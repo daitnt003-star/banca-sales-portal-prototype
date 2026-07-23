@@ -1,0 +1,9 @@
+{
+  "id": "policies",
+  "name": "Hợp đồng",
+  "entry": "./modules/policies/index.html",
+  "navigation": {"group": "main", "label": "Hợp đồng", "order": 30},
+  "permissions": ["VIEW_WORKSPACE"],
+  "dependsOn": ["shared.app-shell", "shared.head-loader"],
+  "owns": ["PolicyView"]
+}

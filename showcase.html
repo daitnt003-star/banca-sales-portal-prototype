@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Banca Sales Portal — Seller Workspace</title>
+<style>
+:root{--brand-950:#0e3a9e;--brand-900:#1147b0;--brand-700:#1a5fd6;--brand-600:#2169e8;--brand-500:#3b82f6;--brand-100:#dbe8ff;--ink-900:#0e1525;--ink-700:#3b4458;--ink-500:#6b7385;--ink-300:#a4abba;--paper:#f6f8fb;--card:#fff;--line:#e1e4ec;--teal:#0d7a6c;--teal-bg:#dff3ef;--amber:#a16207;--amber-bg:#fdf1d6;--red:#b3331f;--red-bg:#fbe7e3;--purple:#6d3fc7;--purple-bg:#ece3fb;--shadow:0 18px 50px rgba(13,35,78,.12);--radius:22px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#dbe8ff 0,#f6f8fb 32%,#eef3fb 100%);color:var(--ink-900)}button,a{font:inherit}.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}.sidebar{background:linear-gradient(180deg,#09235d,#061835);color:white;padding:24px 18px;position:sticky;top:0;height:100vh}.brand{display:flex;gap:12px;align-items:center;margin-bottom:28px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#2f7df6,#22c7ff);display:grid;place-items:center;font-weight:900;box-shadow:0 12px 30px rgba(47,125,246,.35)}.brand b{display:block;font-size:15px}.brand span{display:block;font-size:12px;color:#a9c4ff;margin-top:2px}.nav{display:grid;gap:8px}.nav a{color:#dce8ff;text-decoration:none;padding:12px 13px;border-radius:14px;display:flex;gap:10px;align-items:center}.nav a.active,.nav a:hover{background:rgba(255,255,255,.12);color:white}.demo-box{margin-top:22px;padding:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);border-radius:18px}.demo-box label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9fc2ff}.demo-box select{margin-top:8px;width:100%;border:0;border-radius:12px;padding:10px 12px;background:white;color:#172033}.main{padding:28px 34px}.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.crumb{font-size:13px;color:var(--ink-500)}.user{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.7);border:1px solid var(--line);padding:8px 12px;border-radius:999px}.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2169e8,#22c7ff);display:grid;place-items:center;color:white;font-weight:800}.hero{display:grid;grid-template-columns:1.35fr .65fr;gap:22px;margin-bottom:22px}.hero-card{background:linear-gradient(135deg,#0e3a9e,#2169e8 58%,#37c4ff);color:white;border-radius:32px;padding:32px;box-shadow:0 24px 70px rgba(33,105,232,.28);position:relative;overflow:hidden}.hero-card:before{content:"";position:absolute;right:-80px;top:-90px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.13)}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;opacity:.78}.hero h1{font-size:38px;line-height:1.08;margin:10px 0 12px}.hero p{font-size:16px;color:#e8f3ff;max-width:780px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:14px;padding:12px 16px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}.btn.primary{background:white;color:#0e3a9e}.btn.secondary{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:white}.btn.blue{background:var(--brand-600);color:white}.btn.soft{background:#edf4ff;color:var(--brand-700)}.brief{background:white;border:1px solid var(--line);border-radius:32px;padding:24px;box-shadow:var(--shadow)}.brief h3{margin:0 0 14px}.identity-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mini{background:#f8fbff;border:1px solid #e7edf6;border-radius:16px;padding:13px}.mini span{display:block;font-size:12px;color:var(--ink-500);margin-bottom:4px}.mini b{font-size:14px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.kpi{background:white;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow)}.kpi .num{font-size:30px;font-weight:900;margin:6px 0}.kpi .label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-500);font-weight:800}.kpi.ready .num{color:var(--teal)}.kpi.conditional .num{color:var(--amber)}.kpi.blocked .num{color:var(--red)}.kpi.scope .num{color:var(--brand-700)}.section{display:flex;align-items:end;justify-content:space-between;margin:26px 0 14px}.section h2{margin:0;font-size:22px}.section p{margin:4px 0 0;color:var(--ink-500)}.grid{display:grid;gap:16px}.products{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:white;border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow)}.product{min-height:285px;display:flex;flex-direction:column;gap:13px}.product-head{display:flex;justify-content:space-between;gap:12px}.icon{width:52px;height:52px;border-radius:18px;background:#edf4ff;color:#175cd3;display:grid;place-items:center;font-size:24px}.product h3{margin:0;font-size:18px}.muted{color:var(--ink-500)}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;white-space:nowrap}.Có thể bán{background:var(--teal-bg);color:var(--teal)}.Bán có điều kiện{background:var(--amber-bg);color:var(--amber)}.Chưa thể bán{background:var(--red-bg);color:var(--red)}.Chưa xác minh{background:var(--purple-bg);color:var(--purple)}.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{border-radius:999px;background:#f0f5ff;color:#2459b8;padding:6px 10px;font-size:12px;font-weight:700}.reason{background:#fbfcff;border:1px solid #e8edf6;border-radius:16px;padding:12px;color:var(--ink-700);font-size:14px}.product .bottom{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}.status-flow{display:grid;grid-template-columns:1fr 1fr;gap:16px}.timeline{display:grid;gap:12px}.step{display:flex;gap:12px;align-items:flex-start}.dot{width:14px;height:14px;border-radius:50%;background:var(--brand-600);margin-top:4px;box-shadow:0 0 0 5px #e8f1ff}.alert{border-radius:18px;padding:14px 15px;border:1px solid;margin-bottom:10px}.alert.info{background:#edf7ff;border-color:#c7e6ff}.alert.warn{background:var(--amber-bg);border-color:#f3d48b}.alert.danger{background:var(--red-bg);border-color:#f2b8ab}.demo-note{margin-top:20px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:20px;padding:15px}.panel-title{display:flex;justify-content:space-between;gap:10px;align-items:center}.hidden{display:none!important}@media(max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.hero,.status-flow{grid-template-columns:1fr}.products,.kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){.main{padding:18px}.products,.kpis,.identity-row{grid-template-columns:1fr}.hero h1{font-size:30px}.sidebar{padding:18px}}
+.case-row{display:grid;grid-template-columns:1.2fr .9fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.case-row:last-child{border-bottom:0}@media(max-width:680px){.case-row{grid-template-columns:1fr}.case-row .btn{width:max-content}}</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">FI</div><div><b>Banca Sales Portal</b><span>Không gian bán bảo hiểm</span></div></div>
+    <nav class="nav">
+      <a class="active" href="#home">Trang chủ</a>
+      <a href="#products">Sản phẩm có thể bán</a>
+      <a href="#readiness">Điều kiện bán</a>
+      <a href="#profile">Hồ sơ của tôi</a>
+    </nav>
+    <div class="demo-box">
+      <label>Kịch bản xem thử</label>
+      <select id="personaSelect" onchange="setPersona(this.value)">
+        <option value="RM-01">RM-01 · Đủ điều kiện</option>
+        <option value="RM-02">RM-02 · Có giới hạn</option>
+        <option value="CRM-01">CRM-01 · Khách doanh nghiệp</option>
+        <option value="TS-01">TS-01 · Telesales</option>
+        <option value="SUP-01">SUP-01 · Hỗ trợ hồ sơ</option>
+        <option value="SVC-ERR">Trường hợp chưa xác minh</option>
+      </select>
+    </div>
+  </aside>
+  <main class="main" id="app"></main>
+</div>
+<script>
+const personas={
+ 'RM-01':{name:'Nguyễn Văn An',role:'Retail RM',rm:'RM001',branch:'HCM01',partner:'Janus Bank',scope:['OWN','ASSIGNED','PORTFOLIO','SERVICING'],story:'Đủ điều kiện bán'},
+ 'RM-02':{name:'Trần Thị Bình',role:'Retail RM',rm:'RM002',branch:'HCM02',partner:'Janus Bank',scope:['OWN','PORTFOLIO'],story:'Có giới hạn bán'},
+ 'CRM-01':{name:'Lê Quốc Cường',role:'Corporate RM',rm:'CRM001',branch:'HN01',partner:'Janus Bank',scope:['OWN','ASSIGNED','PORTFOLIO'],story:'Bạn đang phụ trách khách hàng doanh nghiệp; một số sản phẩm cần chuyển thẩm định trước khi chốt.'},
+ 'TS-01':{name:'Phạm Minh Tâm',role:'Banca Telesales',rm:'TS001',branch:'CALL',partner:'Janus Bank',scope:['ASSIGNED'],story:'Bạn có thể tư vấn và gửi báo giá cho khách được giao; bước chốt bán/thu phí sẽ chuyển cho RM/Ops.'},
+ 'SUP-01':{name:'Đỗ Mai Hỗ Trợ',role:'Support Seller',rm:'SUP001',branch:'OPS',partner:'Janus Bank',scope:['DELEGATED_CASE'],story:'Bạn chỉ xem và hỗ trợ những hồ sơ được uỷ quyền.'},
+ 'SVC-ERR':{name:'Service Unverified',role:'Retail RM',rm:'RM999',branch:'HCM99',partner:'Janus Bank',scope:['OWN'],story:'Hệ thống chưa xác minh được điều kiện bán, nên tạm khóa thao tác để tránh bán sai quyền.'}
+};
+const products=[
+ {id:'motor',icon:'🚗',name:'Motor Comprehensive',line:'Bảo hiểm xe ô tô',brand:'Thương hiệu Janus',visible:['RM-01','RM-02','TS-01','SVC-ERR'],state:{'RM-01':'Có thể bán','RM-02':'Bán có điều kiện','TS-01':'Bán có điều kiện','SVC-ERR':'Chưa xác minh'},reason:{'RM-01':'Hồ sơ bán hàng hợp lệ. Có thể bắt đầu tư vấn và lập hồ sơ cho khách.','RM-02':'Giấy phép còn 12 ngày. Có thể tư vấn và báo giá, nhưng cần gia hạn trước khi chốt bán.','TS-01':'Telesales được tư vấn/báo giá và gửi link; bind/payment chuyển RM/Ops.','SVC-ERR':'Chưa xác minh được điều kiện bán. Tạm khóa thao tác để đảm bảo tuân thủ.'},caps:{'Có thể bán':['Tư vấn','Báo giá','Nộp hồ sơ','Chốt bán','Thu phí'],'Bán có điều kiện':['Tư vấn','Báo giá','Nộp hồ sơ'],'Chưa xác minh':[]}},
+ {id:'pa',icon:'🛡️',name:'Bảo hiểm tai nạn cá nhân',line:'Tai nạn cá nhân',brand:'Thương hiệu ABC',visible:['RM-01','TS-01'],state:{'RM-01':'Có thể bán','TS-01':'Có thể bán'},reason:{'RM-01':'Sản phẩm đã được cấp quyền bán cho bạn.','TS-01':'Được tư vấn/báo giá theo referral được giao.'},caps:{'Có thể bán':['Tư vấn','Báo giá','Chốt bán']}},
+ {id:'health',icon:'❤️',name:'Bảo hiểm sức khỏe cá nhân',line:'Sức khỏe cá nhân',brand:'Đồng thương hiệu Janus',visible:['RM-02','SVC-ERR'],state:{'RM-02':'Chưa thể bán','SVC-ERR':'Chưa xác minh'},reason:{'RM-02':'Bạn cần hoàn tất khóa đào tạo sức khỏe trước khi bán sản phẩm này.','SVC-ERR':'Chưa xác minh được đào tạo/giấy phép.'},caps:{'Chưa thể bán':[],'Chưa xác minh':[]}},
+ {id:'sme',icon:'🏢',name:'Bảo hiểm tài sản SME',line:'Tài sản doanh nghiệp',brand:'Thương hiệu ABC',visible:['CRM-01'],state:{'CRM-01':'Bán có điều kiện'},reason:{'CRM-01':'Có thể tư vấn và nộp hồ sơ; cần thẩm định trước khi chốt bán.'},caps:{'Bán có điều kiện':['Tư vấn','Báo giá','Nộp hồ sơ']}}
+];
+let persona=localStorage.getItem('showcasePersona')||'RM-01';
+if(!personas[persona]) persona='RM-01';
+document.getElementById('personaSelect').value=persona;
+function setPersona(p){persona=p;localStorage.setItem('showcasePersona',p);const sel=document.getElementById('personaSelect'); if(sel) sel.value=p; render()}
+function p(){return personas[persona]}
+function visibleProducts(){return products.filter(x=>x.visible.includes(persona))}
+function stateOf(prod){return prod.state[persona]||'HIDDEN'}
+function caps(prod){return prod.caps[stateOf(prod)]||[]}
+function counts(){const rows=visibleProducts();return {ready:rows.filter(x=>stateOf(x)==='Có thể bán').length,conditional:rows.filter(x=>stateOf(x)==='Bán có điều kiện').length,blocked:rows.filter(x=>['Chưa thể bán','Chưa xác minh'].includes(stateOf(x))).length,total:rows.length}}
+function badge(s){const cls={'Có thể bán':'READY','Bán có điều kiện':'CONDITIONAL','Chưa thể bán':'BLOCKED','Chưa xác minh':'SERVICE_UNVERIFIED'}[s]||s; return `<span class="badge ${cls}">${s}</span>`}
+function cta(prod){const s=stateOf(prod); if(s==='Có thể bán')return '<button class="btn blue">Bắt đầu tư vấn</button>'; if(s==='Bán có điều kiện')return '<button class="btn soft">Tư vấn / báo giá</button>'; return '<button class="btn soft" disabled>Cần xử lý điều kiện</button>'}
+function productCards(){return visibleProducts().map(prod=>`<article class="card product"><div class="product-head"><div><div class="icon">${prod.icon}</div><h3>${prod.name}</h3><div class="muted">${prod.line} · ${prod.brand}</div></div>${badge(stateOf(prod))}</div><div class="reason">${prod.reason[persona]||'Đủ điều kiện theo cấu hình hiện tại.'}</div><div class="chips">${caps(prod).map(x=>`<span class="chip">${x}</span>`).join('')||'<span class="muted">Chưa có thao tác khả dụng</span>'}</div><div class="bottom">${cta(prod)}<span class="muted">Theo đơn vị/kênh phân phối</span></div></article>`).join('')}
+
+const applications={
+ 'RM-01':{
+   incomplete:[
+    {no:'HS-2407-0182',customer:'Lê Minh Khôi',product:'Motor Comprehensive',status:'Chờ bổ sung đăng ký xe',due:'Hôm nay'},
+    {no:'HS-2407-0176',customer:'Nguyễn Thu Hà',product:'Personal Accident',status:'Chờ khách xác nhận OTP',due:'Ngày mai'}
+   ],
+   completed:[
+    {no:'POL-2407-0091',customer:'Trần Quốc Việt',product:'Motor Comprehensive',premium:'12.450.000đ',issued:'18/07/2026'},
+    {no:'POL-2407-0088',customer:'Phạm Minh Anh',product:'Personal Accident',premium:'780.000đ',issued:'17/07/2026'}
+   ]
+ },
+ 'RM-02':{
+   incomplete:[{no:'HS-2407-0144',customer:'Võ Thanh Tùng',product:'Motor Comprehensive',status:'Báo giá còn dở',due:'2 ngày'}],
+   completed:[{no:'POL-2407-0062',customer:'Đặng Hoài Nam',product:'Motor Comprehensive',premium:'9.850.000đ',issued:'15/07/2026'}]
+ },
+ 'CRM-01':{
+   incomplete:[{no:'HS-2407-0201',customer:'Công ty An Phát',product:'Bảo hiểm tài sản SME',status:'Chờ thẩm định',due:'Hôm nay'}],
+   completed:[]
+ },
+ 'TS-01':{incomplete:[{no:'HS-2407-0190',customer:'Mai Thanh Bình',product:'Motor Comprehensive',status:'Chờ RM chốt bán',due:'Hôm nay'}],completed:[]},
+ 'SUP-01':{incomplete:[{no:'HS-2407-0155',customer:'Hồ sơ được uỷ quyền',product:'Motor Comprehensive',status:'Cần upload bổ sung ảnh xe',due:'Hôm nay'}],completed:[]},
+ 'SVC-ERR':{incomplete:[],completed:[]}
+};
+function caseList(type){const rows=(applications[persona]||applications['RM-01'])[type]||[]; if(!rows.length) return '<div class="muted">Chưa có hồ sơ trong mục này.</div>'; return rows.map(x=>`<div class="case-row"><div><b>${x.customer}</b><div class="muted">${x.no} · ${x.product}</div></div><div><b>${x.status||x.premium}</b><div class="muted">${x.due||x.issued}</div></div><button class="btn soft">Xem</button></div>`).join('')}
+
+function alerts(){const id=persona; if(id==='RM-01')return '<div class="alert info"><b>Sẵn sàng bán:</b> Motor và Bảo hiểm tai nạn cá nhân đều Có thể bán.</div>'; if(id==='RM-02')return '<div class="alert warn"><b>Motor conditional:</b> license sắp hết hạn, không bind.</div><div class="alert danger"><b>Health blocked:</b> thiếu mandatory training.</div>'; if(id==='SVC-ERR')return '<div class="alert danger"><b>Service unverified:</b> không default Có thể bán, toàn bộ CTA bán bị khóa.</div>'; if(id==='CRM-01')return '<div class="alert warn"><b>Bảo hiểm tài sản SME:</b> cần referral/UW trước khi chốt bán.</div>'; if(id==='TS-01')return '<div class="alert warn"><b>Telesales:</b> quote/link only, không bind/payment.</div>'; return '<div class="alert info"><b>Delegated support:</b> chỉ xử lý case được giao.</div>'}
+function render(){const me=p(), k=counts(); document.getElementById('app').innerHTML=`<div class="topbar"><div class="crumb">Janus Bank / Không gian bán bảo hiểm</div><div class="user"><div class="avatar">${me.name.split(' ').slice(-1)[0][0]}</div><div><b>${me.name}</b><div class="muted" style="font-size:12px">${me.rm} · ${me.branch}</div></div></div></div><section class="hero" id="home"><div class="hero-card"><div class="eyebrow">Banca Sales Portal</div><h1>Xin chào, ${me.name}</h1><p>Đây là không gian bán bảo hiểm cá nhân của bạn tại ${me.partner}. Các mục bên dưới giúp bạn tiếp tục hồ sơ đang xử lý, xem hợp đồng đã phát hành và chọn sản phẩm có thể tư vấn cho khách hàng.</p></div><aside class="brief" id="profile"><h3>Hồ sơ người bán</h3><div class="identity-row"><div class="mini"><span>Vai trò</span><b>${me.role}</b></div><div class="mini"><span>Ngân hàng</span><b>${me.partner}</b></div><div class="mini"><span>Chi nhánh</span><b>${me.branch}</b></div><div class="mini"><span>Mã RM</span><b>${me.rm}</b></div></div><div class="chips" style="margin-top:14px">${me.scope.map(x=>`<span class="chip">${({OWN:'Hồ sơ của tôi',ASSIGNED:'Được giao',PORTFOLIO:'Khách hàng phụ trách',SERVICING:'Đang phục vụ',DELEGATED_CASE:'Được uỷ quyền'}[x]||x)}</span>`).join('')}</div></aside></section><section class="kpis"><div class="kpi ready"><div class="label">Có thể bán</div><div class="num">${k.ready}</div><div class="muted">Sản phẩm sẵn sàng</div></div><div class="kpi conditional"><div class="label">Có điều kiện</div><div class="num">${k.conditional}</div><div class="muted">Được làm một phần</div></div><div class="kpi blocked"><div class="label">Cần xử lý</div><div class="num">${k.blocked}</div><div class="muted">Cần xử lý trước</div></div><div class="kpi scope"><div class="label">Nhóm khách hàng</div><div class="num">${me.scope.length}</div><div class="muted">Có thể phục vụ</div></div></section><div class="section"><div><h2>HSYCBH chưa hoàn thành</h2><p>Các hồ sơ cần bạn tiếp tục xử lý hoặc theo dõi.</p></div><button class="btn soft">Xem tất cả</button></div><section class="card">${caseList('incomplete')}</section><div class="section"><div><h2>HSYCBH đã hoàn thành</h2><p>Những hồ sơ đã phát hành hợp đồng trong thời gian gần đây.</p></div><button class="btn soft">Xem tất cả</button></div><section class="card">${caseList('completed')}</section><div class="section" id="products"><div><h2>Sản phẩm có thể bán</h2><p>Danh sách đã được cá nhân hóa theo đơn vị, vai trò, giấy phép và đào tạo của bạn.</p></div><button class="btn soft">Xem tất cả</button></div><section class="grid products">${productCards()}</section>`}
+render();
+</script>
+</body>
+</html>

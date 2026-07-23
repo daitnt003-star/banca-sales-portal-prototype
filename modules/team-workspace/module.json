@@ -1,0 +1,9 @@
+{
+  "id": "team-workspace",
+  "name": "Đội nhóm",
+  "entry": "./modules/team-workspace/index.html",
+  "navigation": {"group": "main", "label": "Đội nhóm", "order": 40},
+  "permissions": ["VIEW_TEAM_WORKSPACE"],
+  "dependsOn": ["shared.app-shell", "shared.head-loader"],
+  "owns": ["TeamWorkspaceView", "Delegation"]
+}

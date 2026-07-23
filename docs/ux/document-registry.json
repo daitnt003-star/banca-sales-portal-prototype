@@ -1,0 +1,24 @@
+{
+  "documents": [
+    {
+      "id": "policy-detail-page-spec",
+      "path": "docs/ux/pages/policy-detail-page-spec.md",
+      "type": "page-spec",
+      "module": "policies",
+      "status": "active"
+    },
+    {
+      "id": "ux-change-log",
+      "path": "docs/ux/ux-change-log.md",
+      "type": "change-log",
+      "status": "active"
+    },
+    {
+      "id": "cross-screen-layout-review-2026-07-21",
+      "path": "docs/ux/reviews/cross-screen-layout-review-2026-07-21.md",
+      "type": "ux-review",
+      "module": "global",
+      "status": "active"
+    }
+  ]
+}

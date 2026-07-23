@@ -1,0 +1,10 @@
+{
+  "id": "employee-profile",
+  "name": "Hồ sơ nhân viên",
+  "entry": "./modules/employee-profile/index.html",
+  "navigation": {"group": "avatar", "label": "Hồ sơ nhân viên", "order": 90},
+  "permissions": ["VIEW_WORKSPACE"],
+  "dependsOn": ["shared.app-shell", "shared.head-loader"],
+  "owns": ["EmployeeProfileView"],
+  "note": "Merge của seller-profile + seller-readiness + product-access (OQ-01: xóa route cũ, không redirect). 3 tab: info / certs / products."
+}

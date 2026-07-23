@@ -1,0 +1,9 @@
+{
+  "id": "help",
+  "name": "Trợ giúp",
+  "entry": "./modules/help/index.html",
+  "navigation": {"group": "main", "label": "Trợ giúp", "order": 50},
+  "permissions": ["VIEW_WORKSPACE"],
+  "dependsOn": ["shared.app-shell", "shared.head-loader"],
+  "owns": ["HelpContent"]
+}

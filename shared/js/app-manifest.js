@@ -1,0 +1,99 @@
+window.BANCA = window.BANCA || {};
+BANCA.manifest =
+{
+  "app": "Banca Sales Portal — Prototype (Spec v1)",
+  "version": "0.2.0",
+  "defaultPersona": "RM-01",
+  "defaultModule": "seller-workspace",
+  "modules": [
+    {
+      "id": "auth",
+      "title": "Demo setup / Persona",
+      "route": "modules/auth/index.html",
+      "permission": "PUBLIC",
+      "navGroup": "dev"
+    },
+    {
+      "id": "seller-workspace",
+      "title": "Trang chủ",
+      "route": "modules/seller-workspace/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "business"
+    },
+    {
+      "id": "unsubmitted-applications",
+      "title": "Hồ sơ chưa nộp",
+      "route": "modules/unsubmitted-applications/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "business",
+      "group": "BÁN BẢO HIỂM"
+    },
+    {
+      "id": "submitted-applications",
+      "title": "Hồ sơ đã nộp",
+      "route": "modules/submitted-applications/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "business",
+      "group": "BÁN BẢO HIỂM"
+    },
+    {
+      "id": "application-workspace",
+      "title": "Application Workspace",
+      "route": "modules/application-workspace/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "hidden"
+    },
+    {
+      "id": "policies",
+      "title": "Hợp đồng",
+      "route": "modules/policies/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "business"
+    },
+    {
+      "id": "team-workspace",
+      "title": "Đội nhóm",
+      "route": "modules/team-workspace/index.html",
+      "permission": "VIEW_TEAM_WORKSPACE",
+      "navGroup": "business"
+    },
+    {
+      "id": "help",
+      "title": "Trợ giúp",
+      "route": "modules/help/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "business"
+    },
+    {
+      "id": "employee-profile",
+      "title": "Hồ sơ nhân viên",
+      "route": "modules/employee-profile/index.html",
+      "permission": "VIEW_WORKSPACE",
+      "navGroup": "avatar"
+    },
+    {
+      "id": "state-gallery",
+      "title": "Demo Control / State Gallery",
+      "route": "dev/state-gallery.html",
+      "permission": "PUBLIC",
+      "navGroup": "dev"
+    }
+  ],
+  "personas": [
+    "RM-01",
+    "RM-02",
+    "TS-01",
+    "TL-01",
+    "BM-01",
+    "SUP-01",
+    "RM-IN",
+    "SVC-ERR"
+  ],
+  "removedModules": [
+    "seller-profile",
+    "seller-readiness",
+    "product-access"
+  ],
+  "demoEntry": "index.html"
+}
+;

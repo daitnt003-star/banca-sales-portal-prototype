@@ -1,0 +1,9 @@
+{
+  "id": "application-workspace",
+  "name": "Application Workspace",
+  "entry": "./modules/application-workspace/index.html",
+  "navigation": {"group": "hidden", "label": "Application Workspace", "order": 25},
+  "permissions": ["VIEW_WORKSPACE"],
+  "dependsOn": ["shared.app-shell", "shared.head-loader"],
+  "owns": ["Application", "Quote", "SalesCase"]
+}

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Banca Sales Portal — FPT IS Template</title>
+<style>
+:root{--brand-950:#0e3a9e;--brand-900:#1147b0;--brand-850:#1450bd;--brand-700:#1a5fd6;--brand-600:#2169e8;--brand-500:#3b82f6;--brand-100:#dbe8ff;--ink-900:#0e1525;--ink-700:#3b4458;--ink-500:#6b7385;--ink-300:#a4abba;--paper:#f6f8fb;--paper-card:#fff;--line:#e1e4ec;--line-strong:#c9cee0;--teal-600:#0d7a6c;--teal-100:#dff3ef;--amber-600:#a16207;--amber-100:#fdf1d6;--red-600:#b3331f;--red-100:#fbe7e3;--purple-600:#6d3fc7;--purple-100:#ece3fb;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;--sb1-w:240px;--sb2-w:264px}*{box-sizing:border-box}body{margin:0;font-family:var(--font-sans);background:var(--paper);color:var(--ink-900);font-size:13.5px;-webkit-font-smoothing:antialiased}button,select{font-family:inherit}.shell{display:flex;min-height:100vh}.sb1{width:var(--sb1-w);flex-shrink:0;background:var(--brand-950);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}.sb1-header{height:64px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 18px}.fpt{display:flex;align-items:center;gap:8px}.fpt-badge{height:26px;width:64px;border-radius:6px;background:#fff;color:var(--brand-900);font-weight:900;display:flex;align-items:center;justify-content:center;letter-spacing:.5px}.sys-name{color:#cfdcfb;font-size:11px;font-weight:600;letter-spacing:.4px}.sb1-scroll{flex:1;overflow-y:auto;padding:8px}.sb1-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:#cfdcfb;font-size:12.5px;font-weight:600;letter-spacing:.2px;cursor:pointer;margin-bottom:6px;text-decoration:none}.sb1-item.active{background:rgba(255,255,255,.16);color:#fff}.sb1-item:hover{background:rgba(255,255,255,.08)}.sb1-group-label{padding:9px 12px;border-radius:8px;color:#e3ecff;font-size:13px;font-weight:500;margin-top:6px}.sb1-sub-item{display:flex;align-items:center;gap:9px;padding:8px 12px 8px 28px;border-radius:7px;color:#aec2ee;font-size:13px;cursor:pointer;text-decoration:none}.sb1-sub-item.active{background:#fff;color:var(--brand-900);font-weight:600}.bullet{width:5px;height:5px;border-radius:50%;background:#7d97d6}.sb1-footer{padding:12px;border-top:1px solid rgba(255,255,255,.12)}.sb1-user{display:flex;align-items:center;gap:10px;padding:6px 4px}.avatar{width:30px;height:30px;border-radius:50%;background:#fff;color:var(--brand-900);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}.uname{color:#fff;font-size:13px;font-weight:600}.urole{color:#9db3e8;font-size:11.5px}.demo-select{margin-top:8px;width:100%;border:1px solid #2356c2;background:#123fa5;color:#fff;border-radius:8px;padding:8px}.sb2{width:var(--sb2-w);flex-shrink:0;background:#eef3fc;border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}.sb2-header{height:58px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #dde6f7}.sb2-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--brand-900)}.sb2-scroll{flex:1;padding:10px;overflow:auto}.sb2-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-radius:8px;color:var(--ink-700);cursor:pointer;margin-bottom:4px}.sb2-item.active{background:#fff;color:var(--brand-900);box-shadow:0 2px 6px rgba(17,71,176,.08);font-weight:600}.sb2-caption{font-size:11.5px;color:var(--ink-500);line-height:1.35}.content{flex:1;min-width:0}.topbar{height:58px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:20}.breadcrumb{font-size:12.5px;color:var(--ink-500)}.top-actions{display:flex;align-items:center;gap:10px}.btn{border:1px solid var(--line-strong);background:#fff;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--ink-700);cursor:pointer}.btn.primary{border-color:var(--brand-600);background:var(--brand-600);color:#fff}.btn.subtle{border-color:#d8e3f7;background:#eef5ff;color:var(--brand-900)}.main{padding:22px 24px 36px}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.page-title{font-size:22px;margin:0 0 6px;font-weight:700}.page-sub{color:var(--ink-500);font-size:13px}.grid{display:grid;gap:14px}.kpi-row{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.kpi-card,.panel-card{background:var(--paper-card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(10,30,70,.04)}.kpi-card{padding:14px}.kpi-label{font-size:11px;color:var(--ink-500);font-weight:700;text-transform:uppercase;letter-spacing:.45px}.kpi-num{font-size:26px;font-weight:750;margin:7px 0 3px}.kpi-note{font-size:12px;color:var(--ink-500)}.panel-card{padding:16px;margin-bottom:14px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.panel-title{font-size:15px;font-weight:700}.panel-sub{font-size:12px;color:var(--ink-500);margin-top:2px}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11.5px;font-weight:700}.ok{background:var(--teal-100);color:var(--teal-600)}.warn{background:var(--amber-100);color:var(--amber-600)}.bad{background:var(--red-100);color:var(--red-600)}.pending{background:var(--purple-100);color:var(--purple-600)}.table{width:100%;border-collapse:collapse}.table th{font-size:11px;color:var(--ink-500);letter-spacing:.4px;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--line);padding:9px 8px}.table td{border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:middle}.table tr:last-child td{border-bottom:0}.muted{color:var(--ink-500)}.product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.product-card{padding:14px;background:#fff;border:1px solid var(--line);border-radius:12px}.product-name{font-weight:700;margin-bottom:4px}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.chip{background:#eef5ff;color:var(--brand-900);border:1px solid #d8e3f7;border-radius:999px;padding:4px 7px;font-size:11.5px}.two-col{grid-template-columns:1.1fr .9fr}.empty{padding:18px;text-align:center;color:var(--ink-500);background:#fbfcff;border:1px dashed var(--line-strong);border-radius:10px}@media(max-width:1100px){.sb2{display:none}.kpi-row,.product-grid,.two-col{grid-template-columns:1fr 1fr}}@media(max-width:760px){.shell{display:block}.sb1{height:auto;width:auto;position:relative}.content{width:100%}.kpi-row,.product-grid,.two-col{grid-template-columns:1fr}.page-head{display:block}.main{padding:16px}.topbar{position:relative}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sb1">
+    <div class="sb1-header"><div class="fpt"><div class="fpt-badge">FPT IS</div></div><div class="sys-name">BANCA SALES PORTAL</div></div>
+    <div class="sb1-scroll">
+      <a class="sb1-item active" href="#">Trang chủ</a>
+      <div class="sb1-group-label">Tư vấn & bán hàng</div>
+      <a class="sb1-sub-item" href="#"><span class="bullet"></span>Tư vấn nhanh</a>
+      <a class="sb1-sub-item" href="#"><span class="bullet"></span>HSYCBH</a>
+      <a class="sb1-sub-item" href="#"><span class="bullet"></span>Hợp đồng</a>
+    </div>
+    <div class="sb1-footer">
+      <div class="sb1-user"><div class="avatar" id="avatar">A</div><div><div class="uname" id="userName">Nguyễn Văn An</div><div class="urole" id="userRole">Retail RM</div></div></div>
+      <select class="demo-select" id="personaSelect" onchange="setPersona(this.value)"><option value="RM-01">RM-01 · Đủ điều kiện</option><option value="RM-02">RM-02 · Có giới hạn</option><option value="CRM-01">CRM-01 · Doanh nghiệp</option><option value="TS-01">TS-01 · Telesales</option><option value="SUP-01">SUP-01 · Hỗ trợ</option><option value="SVC-ERR">Chưa xác minh</option></select>
+    </div>
+  </aside>
+  <aside class="sb2">
+    <div class="sb2-header"><div class="sb2-title">Không gian bán hàng</div></div>
+    <div class="sb2-scroll">
+      <div class="sb2-item active"><div><b>Trang chủ</b><div class="sb2-caption">Việc cần xử lý hôm nay</div></div></div>
+      <div class="sb2-item"><div><b>HSYCBH chưa hoàn thành</b><div class="sb2-caption">Hồ sơ đang xử lý</div></div><span id="leftOpen">0</span></div>
+      <div class="sb2-item"><div><b>HSYCBH đã hoàn thành</b><div class="sb2-caption">Đã xong hồ sơ, chờ hoặc đã phát hành</div></div><span id="leftDone">0</span></div>
+      <div class="sb2-item"><div><b>Hợp đồng đã phát hành</b><div class="sb2-caption">Đã có số hợp đồng</div></div><span id="leftPolicies">0</span></div>
+    </div>
+  </aside>
+  <section class="content">
+    <div class="topbar"><div class="breadcrumb">Janus Bank / Không gian bán bảo hiểm / Trang chủ</div><div class="top-actions"><button class="btn">Thông báo</button><button class="btn primary">Tạo tư vấn mới</button></div></div>
+    <main class="main" id="app"></main>
+  </section>
+</div>
+<script>
+const personas={
+ 'RM-01':{name:'Nguyễn Văn An',role:'Retail RM',rm:'RM001',branch:'HCM01',partner:'Janus Bank',scopes:['Hồ sơ của tôi','Được giao','Khách hàng phụ trách','Đang phục vụ']},
+ 'RM-02':{name:'Trần Thị Bình',role:'Retail RM',rm:'RM002',branch:'HCM02',partner:'Janus Bank',scopes:['Hồ sơ của tôi','Khách hàng phụ trách']},
+ 'CRM-01':{name:'Lê Quốc Cường',role:'Corporate RM',rm:'CRM001',branch:'HN01',partner:'Janus Bank',scopes:['Hồ sơ của tôi','Được giao','Khách hàng phụ trách']},
+ 'TS-01':{name:'Phạm Minh Tâm',role:'Telesales',rm:'TS001',branch:'CALL',partner:'Janus Bank',scopes:['Được giao']},
+ 'SUP-01':{name:'Đỗ Mai Hỗ Trợ',role:'Support Seller',rm:'SUP001',branch:'OPS',partner:'Janus Bank',scopes:['Được uỷ quyền']},
+ 'SVC-ERR':{name:'Người bán chưa xác minh',role:'Retail RM',rm:'RM999',branch:'HCM99',partner:'Janus Bank',scopes:['Hồ sơ của tôi']}
+};
+const apps={
+ 'RM-01':{
+  open:[['HS-2407-0182','Lê Minh Khôi','Motor Comprehensive','Chờ bổ sung đăng ký xe','Hôm nay'],['HS-2407-0176','Nguyễn Thu Hà','Bảo hiểm tai nạn cá nhân','Chờ khách xác nhận OTP','Ngày mai']],
+  done:[['HS-2407-0169','Trần Quốc Việt','Motor Comprehensive','Đã hoàn tất hồ sơ','Đã lên HĐ'],['HS-2407-0158','Phạm Minh Anh','Bảo hiểm tai nạn cá nhân','Đã hoàn tất hồ sơ','Chờ cấp số HĐ']],
+  policies:[['POL-2407-0091','Trần Quốc Việt','Motor Comprehensive','12.450.000đ','18/07/2026']]
+ },
+ 'RM-02':{
+  open:[['HS-2407-0144','Võ Thanh Tùng','Motor Comprehensive','Báo giá còn dở','2 ngày']],
+  done:[['HS-2407-0131','Đặng Hoài Nam','Motor Comprehensive','Đã hoàn tất hồ sơ','Đã lên HĐ']],
+  policies:[['POL-2407-0062','Đặng Hoài Nam','Motor Comprehensive','9.850.000đ','15/07/2026']]
+ },
+ 'CRM-01':{open:[['HS-2407-0201','Công ty An Phát','Bảo hiểm tài sản SME','Chờ thẩm định','Hôm nay']],done:[],policies:[]},
+ 'TS-01':{open:[['HS-2407-0190','Mai Thanh Bình','Motor Comprehensive','Chờ RM chốt bán','Hôm nay']],done:[],policies:[]},
+ 'SUP-01':{open:[['HS-2407-0155','Hồ sơ được uỷ quyền','Motor Comprehensive','Cần upload bổ sung ảnh xe','Hôm nay']],done:[],policies:[]},
+ 'SVC-ERR':{open:[],done:[],policies:[]}
+};
+const products=[
+ {id:'motor',name:'Motor Comprehensive',type:'Bảo hiểm xe ô tô',brand:'Thương hiệu Janus',visible:['RM-01','RM-02','TS-01','SVC-ERR'],state:{'RM-01':'Có thể bán','RM-02':'Bán có điều kiện','TS-01':'Bán có điều kiện','SVC-ERR':'Chưa xác minh'},note:{'RM-01':'Có thể tư vấn và lập hồ sơ.','RM-02':'Cần gia hạn giấy phép trước khi chốt bán.','TS-01':'Có thể tư vấn, chốt bán chuyển RM/Ops.','SVC-ERR':'Chưa xác minh được điều kiện bán.'},actions:{'RM-01':['Tư vấn','Báo giá','Nộp hồ sơ','Chốt bán'],'RM-02':['Tư vấn','Báo giá'],'TS-01':['Tư vấn','Báo giá'],'SVC-ERR':[]}},
+ {id:'pa',name:'Bảo hiểm tai nạn cá nhân',type:'Bảo vệ cá nhân',brand:'Thương hiệu ABC',visible:['RM-01','TS-01'],state:{'RM-01':'Có thể bán','TS-01':'Có thể bán'},note:{'RM-01':'Sản phẩm đã được cấp quyền bán.','TS-01':'Có thể tư vấn theo khách được giao.'},actions:{'RM-01':['Tư vấn','Báo giá','Chốt bán'],'TS-01':['Tư vấn','Báo giá']}},
+ {id:'health',name:'Bảo hiểm sức khỏe cá nhân',type:'Sức khỏe',brand:'Đồng thương hiệu Janus',visible:['RM-02','SVC-ERR'],state:{'RM-02':'Chưa thể bán','SVC-ERR':'Chưa xác minh'},note:{'RM-02':'Cần hoàn tất khóa đào tạo sức khỏe.','SVC-ERR':'Chưa xác minh được đào tạo/giấy phép.'},actions:{'RM-02':[],'SVC-ERR':[]}},
+ {id:'sme',name:'Bảo hiểm tài sản SME',type:'Doanh nghiệp',brand:'Thương hiệu ABC',visible:['CRM-01'],state:{'CRM-01':'Bán có điều kiện'},note:{'CRM-01':'Cần thẩm định trước khi chốt bán.'},actions:{'CRM-01':['Tư vấn','Báo giá','Nộp hồ sơ']}}
+];
+let persona=localStorage.getItem('templatePersona')||'RM-01'; if(!personas[persona]||persona==='SVC-ERR') persona='RM-01';
+function setPersona(id){persona=id;localStorage.setItem('templatePersona',id);render()}
+function cls(state){return state==='Có thể bán'?'ok':state==='Bán có điều kiện'?'warn':state==='Chưa thể bán'?'bad':'pending'}
+function badge(state){return `<span class="badge ${cls(state)}">${state}</span>`}
+function rows(type){const list=apps[persona][type]; if(!list.length)return `<div class="empty">Chưa có hồ sơ trong mục này.</div>`; const last=type==='open'?'Hạn xử lý':type==='done'?'Tình trạng HĐ':'Ngày phát hành'; const code=type==='policies'?'Số hợp đồng':'Mã hồ sơ'; return `<table class="table"><thead><tr><th>${code}</th><th>Khách hàng</th><th>Sản phẩm</th><th>${type==='policies'?'Phí bảo hiểm':'Trạng thái'}</th><th>${last}</th><th></th></tr></thead><tbody>${list.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td><button class="btn subtle">Xem</button></td></tr>`).join('')}</tbody></table>`}
+function productCards(){return products.filter(p=>p.visible.includes(persona)).map(p=>{const state=p.state[persona];const acts=p.actions[persona]||[];return `<div class="product-card"><div class="product-name">${p.name}</div><div class="muted">${p.type} · ${p.brand}</div><div style="margin-top:10px">${badge(state)}</div><div class="muted" style="margin-top:8px;min-height:34px">${p.note[persona]}</div><div class="chips">${acts.length?acts.map(a=>`<span class="chip">${a}</span>`).join(''):'<span class="muted">Cần xử lý điều kiện</span>'}</div></div>`}).join('')}
+function render(){
+ const me=personas[persona];
+ const open=apps[persona].open.length, done=apps[persona].done.length, policyCount=apps[persona].policies.length;
+ document.getElementById('personaSelect').value=persona;
+ document.getElementById('userName').textContent=me.name;
+ document.getElementById('userRole').textContent=me.role;
+ document.getElementById('avatar').textContent=me.name.split(' ').pop()[0];
+ document.getElementById('leftOpen').textContent=open;
+ document.getElementById('leftDone').textContent=done;
+ document.getElementById('leftPolicies').textContent=policyCount;
+ document.getElementById('app').innerHTML=`<div class="page-head"><div><h1 class="page-title">Xin chào, ${me.name}</h1><div class="page-sub">${me.partner} · ${me.branch} · ${me.role}</div></div><button class="btn primary">Tư vấn nhanh</button></div><section class="grid kpi-row"><div class="kpi-card"><div class="kpi-label">HSYCBH chưa hoàn thành</div><div class="kpi-num">${open}</div><div class="kpi-note">Cần tiếp tục xử lý</div></div><div class="kpi-card"><div class="kpi-label">HSYCBH đã hoàn thành</div><div class="kpi-num">${done}</div><div class="kpi-note">Đã xong hồ sơ, có thể chờ HĐ</div></div><div class="kpi-card"><div class="kpi-label">Hợp đồng đã phát hành</div><div class="kpi-num">${policyCount}</div><div class="kpi-note">Đã có số hợp đồng</div></div><div class="kpi-card"><div class="kpi-label">Việc cần xử lý</div><div class="kpi-num">${open}</div><div class="kpi-note">Ưu tiên hôm nay</div></div></section><section class="panel-card"><div class="panel-head"><div><div class="panel-title">HSYCBH chưa hoàn thành</div><div class="panel-sub">Các hồ sơ cần tiếp tục xử lý hoặc theo dõi.</div></div><button class="btn subtle">Xem tất cả</button></div>${rows('open')}</section><section class="panel-card"><div class="panel-head"><div><div class="panel-title">HSYCBH đã hoàn thành</div><div class="panel-sub">Hồ sơ đã hoàn tất nghiệp vụ bán, có thể đã hoặc chưa phát hành hợp đồng.</div></div><button class="btn subtle">Xem tất cả</button></div>${rows('done')}</section><section class="panel-card"><div class="panel-head"><div><div class="panel-title">Hợp đồng đã phát hành</div><div class="panel-sub">Chỉ những hồ sơ đã có số hợp đồng/số chứng nhận.</div></div><button class="btn subtle">Xem tất cả</button></div>${rows('policies')}</section>`
+}
+render();
+</script>
+</body>
+</html>

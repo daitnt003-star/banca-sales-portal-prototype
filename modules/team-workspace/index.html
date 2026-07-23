@@ -1,0 +1,795 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Workspace — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=42"></script></head><body><script>
+/* ============================================================================
+ * WORKSPACE (Home scope-tabbed + Team detail 6-tab).
+ * Home = Summary + Alert + Shortcut, render scope-tabs từ availableScopes.
+ * Team page = Detail + Filter + Action (6 tab). Không hard-code role→tab.
+ * ==========================================================================*/
+const me = BANCA.current(), r = rel();
+const P = BANCA.resolveManagerProfile(me);
+const meObj = BANCA.personas[me] || {};
+const qs = new URLSearchParams(location.search);
+const view = qs.get('view') || 'home';
+const EMBED = BANCA.isEmbed(me), RO = BANCA.isReadonlyCase(me);
+const DEBUG = qs.get('debug')==='1'; // chrome kỹ thuật/demo chỉ hiện khi ?debug=1
+// "Bây giờ" cho prototype = 2026-07-22 16:20 (khớp mock). Diễn đạt hạn/SLA theo thời gian tương đối.
+const NOW_TS = new Date('2026-07-22T16:20:00+07:00').getTime();
+function relTime(due){
+  if(!due) return {label:'Chưa có hạn', tone:'var(--ink-300)', abs:''};
+  const t=new Date(String(due).replace(' ','T')+(String(due).length<=10?'T23:59:59':'')+'+07:00').getTime();
+  if(isNaN(t)) return {label:due, tone:'var(--ink-500)', abs:due};
+  const diff=t-NOW_TS; const m=Math.round(Math.abs(diff)/60000);
+  const abs=BANCA.fmtDateVN?BANCA.fmtDateVN(due):String(due);
+  const human=(mm)=>{ if(mm<60) return mm+' phút'; const h=Math.round(mm/60); if(h<24) return h+' giờ'; return Math.round(h/24)+' ngày'; };
+  if(diff<0) return {label:'Quá hạn '+human(m), tone:'var(--red-600)', abs, overdue:true, order:diff};
+  if(m<=90) return {label:'Còn '+human(m), tone:'var(--amber-600)', abs, order:diff};
+  return {label:'Còn '+human(m), tone:'var(--ink-500)', abs, order:diff};
+}
+function fmtVNDate(s){ if(!s) return '—'; const m=String(s).match(/(\d{4})-(\d{2})-(\d{2})[ T]?(\d{2}:\d{2})?/); if(!m) return String(s); return m[3]+'/'+m[2]+'/'+m[1]+(m[4]?', '+m[4]:''); }
+const appUrl = id => r+'modules/application-workspace/index.html?id='+id;
+const SCOPES = BANCA.availableScopes(me);
+const MGMT = SCOPES.filter(s=>s!=='SELF');
+const USE_PILL = SCOPES.length>=3;          // ≥3 cấp → [Cá nhân][Quản lý] + pill dropdown
+let homeMode, manageScope, activeScope;
+if(USE_PILL){
+  homeMode = (qs.get('seg')==='SELF' && SCOPES.includes('SELF')) ? 'SELF' : 'MANAGE';
+  manageScope = MGMT.includes(qs.get('mscope')) ? qs.get('mscope') : (MGMT.includes(BANCA.defaultScope(me))?BANCA.defaultScope(me):MGMT[0]);
+  activeScope = homeMode==='SELF' ? 'SELF' : manageScope;
+} else {
+  activeScope = SCOPES.includes(qs.get('seg')) ? qs.get('seg') : BANCA.defaultScope(me);
+  homeMode = activeScope==='SELF' ? 'SELF' : 'MANAGE'; manageScope = activeScope;
+}
+function mgmtOrgLabel(scope){ if(scope==='TEAM') return 'Team '+(meObj.team||''); if(scope==='BRANCH'||scope==='ORG_SUBTREE') return 'Chi nhánh '+(meObj.branch||''); if(scope==='REGION') return 'Khu vực '+BANCA.regionOf(meObj.branch); return BANCA.scopeTabLabel(scope); }
+// "Cá nhân" = không gian bán hàng thật (seller-workspace), không phải pane tóm tắt.
+function homeHref(scope){ if(scope==='SELF') return r+'modules/seller-workspace/index.html'; return USE_PILL ? '?seg=MANAGE&mscope='+scope : '?seg='+scope; }
+
+/* Guard: user không có capability quản lý → chỉ SELF */
+if(!BANCA.isManagerProfile(me)){
+  shell('Workspace','Không khả dụng',
+   `<div class="card"><div class="empty-state" style="padding:28px;">
+     <div style="font-size:32px;">👤</div>
+     <div style="font-weight:700;margin-top:6px;">Tài khoản của bạn dùng bố cục cá nhân (PERSONAL)</div>
+     <div style="font-size:13px;color:var(--ink-500);margin-top:4px;max-width:460px;">Workspace quản lý chỉ hiển thị cho user có capability quản lý (availableScopes ⊃ TEAM/BRANCH). Đây không phải kiểm tra theo tên chức danh.</div>
+     <a class="btn btn-primary btn-sm" style="margin-top:12px;" href="${r}modules/seller-workspace/index.html">Về không gian làm việc của tôi →</a>
+   </div></div>`, {startSale:false});
+} else {
+
+/* ============================ HELPERS SCOPE-AWARE ============================ */
+const fUnit = qs.get('unit')||''; // OrgUnit đang chọn trong drawer (drill trong scope)
+function membersOf(scope){ return BANCA.membersForScope(scope, me); }
+function appsOf(scope){ return BANCA.appsForScope(scope, me); }
+// Thành viên trong scope, lọc thêm theo OrgUnit đã chọn (nếu có) + nhân viên hỗ trợ.
+function teamMembersList(scope){
+  const all=membersOf(scope);
+  if(!fUnit) return all;
+  const u=BANCA.orgUnitById(fUnit);
+  let list=all.filter(per=>BANCA.personaInUnit(per,fUnit));
+  if(u&&u.type==='TEAM'){
+    all.forEach(per=>{ if(!list.includes(per) && (BANCA.supportUnitsOf(per.id)||[]).includes(u.attrs.team)){ list.push(Object.assign({},per,{_supportFrom:per.team})); } });
+  }
+  return list;
+}
+function readiness(id){
+  let R=0,C=0,B=0; const items=[];
+  (BANCA.products||[]).forEach(pr=>{
+    if(!pr.visible || !pr.visible.includes(id)) return;
+    const st = pr.state[id] || '—';
+    if(st==='READY') R++; else if(st==='CONDITIONAL') C++; else B++;
+    items.push({name:pr.name, state:st, reason:(pr.reason||{})[id]||'', prod:pr});
+  });
+  return {R,C,B,items,total:items.length};
+}
+function sellerRisk(s){
+  const rd=readiness(s.id);
+  const openSubs=BANCA.applications.filter(a=>a.owner===s.id&&a.submissionState==='SUBMITTED');
+  const rejected=BANCA.applications.filter(a=>a.owner===s.id&&a.status==='REJECTED').length;
+  const needInfo=openSubs.filter(a=>a.status==='NEED_MORE_INFO').length;
+  const k=BANCA.kpi[s.id]||{}; const reasons=[]; let score=0;
+  if(s.status!=='ACTIVE'){score+=3;reasons.push('Seller inactive còn hồ sơ mở');}
+  if(rd.B>0){score+=2;reasons.push(rd.B+' sản phẩm mất quyền bán');}
+  if(needInfo>0){score+=2;reasons.push(needInfo+' hồ sơ chờ bổ sung');}
+  if(rejected>0){score+=1;reasons.push(rejected+' hồ sơ bị trả lại');}
+  return {score,reasons,rd,k,rejected,needInfo};
+}
+const SEV={HIGH:['Cao','var(--red-600)','#fdecec'],MED:['TB','var(--amber-600)','#fff6e6'],LOW:['Thấp','var(--ink-500)','#eef0f4']};
+function exceptionsOf(scope){
+  const apps=appsOf(scope); const subs=apps.filter(a=>a.submissionState==='SUBMITTED'); const drafts=apps.filter(a=>a.submissionState==='NOT_SUBMITTED');
+  const ex=[]; const add=(sev,type,a,akind,filter)=>ex.push({sev,type,id:a.id,cust:a.customerId,owner:a.owner,ownerName:(BANCA.personas[a.owner]||{}).name||a.owner,due:a.deadline||a.expiresAt||'',akind,filter});
+  subs.forEach(a=>{
+    if(a.status==='NEED_MORE_INFO') add('HIGH','Bổ sung quá hạn',a,'task','support');
+    if(a.status==='PENDING_PAYMENT') add('HIGH','Payment chờ xử lý',a,'case','payment');
+    if(a.status==='REJECTED') add('MED','Hồ sơ bị từ chối',a,'case','rejected');
+  });
+  drafts.forEach(a=>{
+    if((a.warnings||[]).includes('QUOTE_EXPIRING')||(a.warnings||[]).includes('QUOTE_NEED_RERATE')) add('MED','Quote sắp hết hạn',a,'case','quote');
+    if((a.warnings||[]).includes('PRODUCT_AUTH_CHANGED')) add('HIGH','Seller mất quyền bán',a,'reassign','authchg');
+  });
+  membersOf(scope).filter(s=>s.status!=='ACTIVE').forEach(s=>{ const open=BANCA.applications.find(a=>a.owner===s.id); if(open) add('HIGH','Seller inactive còn hồ sơ mở',open,'reassign','inactive'); });
+  // Embed: cảnh báo tích hợp/đồng bộ từ hệ thống ngân hàng (không phải case Portal).
+  if(EMBED){
+    ex.push({sev:'HIGH',type:'Callback thanh toán thất bại',id:'EXT-CASE-9082',cust:null,ownerName:'JANUS_CRM',src:'JANUS_CRM',due:'',akind:'integration'});
+    ex.push({sev:'MED',type:'Đồng bộ hồ sơ lỗi (chưa map seller)',id:'EXT-CASE-9105',cust:null,ownerName:'JANUS_CRM',src:'JANUS_CRM',due:'',akind:'integration'});
+  }
+  const rank={HIGH:0,MED:1,LOW:2}; return ex.sort((x,y)=>rank[x.sev]-rank[y.sev]);
+}
+
+/* ============================ HEADER ============================ */
+function headerBar(ctxLabel){
+  // Chrome kỹ thuật (Nhúng/Cổng trực tiếp/nguồn tổ chức) là thông tin vận hành hệ thống, không thuộc luồng nghiệp vụ → chỉ hiện ở debug.
+  const modeChip = DEBUG ? (EMBED?`<span class="badge" style="background:#eaf1ff;color:#2b5cff;" title="EMBED · mirror read-only">Nhúng</span>`:`<span class="badge badge-ready" title="PORTAL · case sống">Cổng trực tiếp</span>`) : '';
+  const orgChip = DEBUG ? `<span class="badge badge-version" title="${P.orgSource}">${P.orgSource==='SYNCED'?'Tổ chức đồng bộ':P.orgSource==='HYBRID'?'Tổ chức hỗn hợp':'Tổ chức thủ công'}</span>` : '';
+  const sync = P.syncedAt?`<span style="font-size:11.5px;color:var(--ink-300);">Cập nhật ${fmtVNDate(P.syncedAt)}</span>`:'';
+  const chipRow = (modeChip||orgChip)?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;">${modeChip} ${orgChip} ${sync}</div>`:(sync?`<div style="margin-top:4px;">${sync}</div>`:'');
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+    <div><div style="font-size:12.5px;color:var(--ink-500);">${ctxLabel||('Tổng quan khu vực · <b style="color:var(--ink-700);">'+BANCA.scopeLabel(me)+'</b>')}</div>${chipRow}</div>
+    <select id="tf" onchange="setFilter('tf',this.value)" style="padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;height:fit-content;"><option>Tháng 07/2026</option><option>Hôm nay</option><option>7 ngày qua</option><option>Quý III/2026</option><option>Tùy chọn…</option></select>
+  </div>`;
+}
+function embedBanner(){ return EMBED?`<div class="card" style="padding:10px 14px;background:#eaf1ff;border-color:#c7d8ff;font-size:12.5px;color:#274690;margin-bottom:14px;">ℹ️ Hồ sơ được quản lý trên hệ thống ngân hàng. Dữ liệu tại đây là <b>bản mirror chỉ để theo dõi</b> — không chỉnh sửa case sống.</div>`:''; }
+
+/* ============================ HOME (scope tabs) ============================ */
+function scopeTabs(){
+  if(SCOPES.length<=1) return '';
+  const tabCss=on=>`text-decoration:none;padding:8px 18px;border-radius:9px;font-size:13.5px;${on?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}`;
+  if(!USE_PILL){
+    return `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">${SCOPES.map(sc=>`<a href="${homeHref(sc)}" class="tab" style="${tabCss(activeScope===sc)}">${BANCA.scopeTabLabel(sc)}</a>`).join('')}</div>`;
+  }
+  // ≥3 cấp: [Cá nhân] [Quản lý] + pill dropdown chọn phạm vi quản lý
+  const selfTab = SCOPES.includes('SELF')?`<a href="${homeHref('SELF')}" class="tab" style="${tabCss(false)}">Cá nhân</a>`:'';
+  const mgmtTab = `<a href="?seg=MANAGE&mscope=${manageScope}" class="tab" style="${tabCss(homeMode==='MANAGE')}">Quản lý</a>`;
+  const pill = homeMode==='MANAGE'
+    ? `<div style="display:flex;align-items:center;gap:6px;margin-left:6px;"><span style="font-size:12.5px;color:var(--ink-500);">Phạm vi quản lý:</span>
+        <select onchange="setManageScope(this.value)" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--brand-600);background:var(--paper-card);cursor:pointer;">${MGMT.map(s=>`<option value="${s}" ${s===manageScope?'selected':''}>${mgmtOrgLabel(s)}</option>`).join('')}</select></div>`
+    : '';
+  return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">${selfTab}${mgmtTab}${pill}</div>`;
+}
+window.setManageScope=(v)=>{ qs.set('seg','MANAGE'); qs.set('mscope',v); location.search=qs.toString(); };
+function personalPane(){
+  const my=BANCA.applications.filter(a=>a.owner===me);
+  const md=my.filter(a=>a.submissionState==='NOT_SUBMITTED').length;
+  const ms=my.filter(a=>a.submissionState==='SUBMITTED').length;
+  const attn=my.filter(a=>a.submissionState==='SUBMITTED'&&['NEED_MORE_INFO','PENDING_PAYMENT','REJECTED'].includes(a.status));
+  const k=aggregateKpi('SELF'); const rd=readiness(me); const showComm=P.visibility.commission;
+  return `<div class="section-title"><h2>Việc cần xử lý của tôi</h2></div>
+    ${attn.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Hồ sơ</th><th>Khách</th><th>Trạng thái</th><th></th></tr></thead><tbody>${attn.map(a=>`<tr><td><a href="${appUrl(a.id)}" style="color:var(--brand-600);font-weight:600;">${a.id}</a></td><td style="font-size:12px;">${custName(a.customerId)}</td><td style="font-size:12px;">${BANCA.appStatusBadge?BANCA.appStatusBadge(a.status):a.status}</td><td><a class="btn btn-secondary btn-sm" href="${appUrl(a.id)}">Xử lý</a></td></tr>`).join('')}</tbody></table></div>`:`<div class="card"><div class="empty-state">Không có việc cá nhân cần xử lý gấp. 🎉</div></div>`}
+    <div class="section-title" style="margin-top:16px;"><h2>KPI cá nhân</h2></div>
+    <div class="kpi-strip" style="margin-bottom:14px;">
+      <div class="kpi"><span>Hồ sơ chưa nộp</span><b>${md}</b></div>
+      <div class="kpi"><span>Hồ sơ đã nộp</span><b>${ms}</b></div>
+      <div class="kpi"><span>Premium</span><b style="font-size:14px;">${BANCA.vnd(k.premium)}</b></div>
+      <div class="kpi"><span>Tỷ lệ chuyển đổi</span><b>${k.conversion||'—'}</b></div>
+      ${showComm?`<div class="kpi"><span>Hoa hồng</span><b style="font-size:14px;">${BANCA.vnd(k.commission)}</b></div>`:''}
+      <div class="kpi"><span>Readiness</span><b style="font-size:13px;">${rd.R}R/${rd.C}C/${rd.B}B</b></div>
+    </div>
+    ${P.sellingEnabled?`<a class="btn btn-primary btn-sm" href="${r}modules/seller-workspace/index.html">Mở không gian bán hàng →</a>`:''}`;
+}
+// ============ HOME QUẢN LÝ — cấu trúc lại theo luồng ra quyết định ============
+// Gom mọi việc khẩn (exception + bàn giao chờ phân công) vào 1 dòng dữ liệu chuẩn hóa.
+function assignItems(scope){
+  const list = BANCA.pendingAssignment ? BANCA.pendingAssignment(scope, me) : [];
+  return list.map(h=>({
+    _kind:'assign', sev: h.priority==='HIGH'?'HIGH':'MED', type:'Bàn giao chờ phân công',
+    filter:'assign', id:h.id, cust:null, custLabel:h.customerName,
+    subLabel:(h.productName||'')+' · '+BANCA.handoffTypeLabel(h.type),
+    ownerName:BANCA.participantName(h,'ADVISOR')||'Chưa có', due:h.acceptBy||'',
+    reason:h.unassignedReason||h.declineReason||'',
+    cta:(BANCA.canDo('ASSIGN_TASK')||BANCA.canDo('REASSIGN_IN'))?`<button class="btn btn-primary btn-sm" onclick="openAssign('${h.id}','${scope}')">Phân công</button>`:'<span style="font-size:11px;color:var(--ink-300);">Cần quyền</span>'
+  }));
+}
+function actionItems(scope){
+  // exceptions() đã trả sev/type/filter/akind — map sang cùng schema + gộp bàn giao.
+  const ex=exceptionsOf(scope).map(e=>({
+    _kind:'ex', sev:e.sev, type:e.type,
+    filter: e.filter==='authchg'||e.akind==='reassign' ? 'auth' : (e.akind==='integration'?'integration':(e.filter==='rejected'?'app':'app')),
+    id:e.id, cust:e.cust, custLabel:e.cust?custName(e.cust):(e.src?'Nguồn: '+e.src:'••• ẩn'),
+    subLabel:'', ownerName:e.ownerName, due:e.due||'', reason:'', cta:exAction(e)
+  }));
+  const merged=assignItems(scope).concat(ex);
+  // Sắp xếp: quá hạn trước, rồi mức độ, rồi hạn gần nhất.
+  const rank={HIGH:0,MED:1,LOW:2};
+  return merged.map(it=>{ const rt=relTime(it.due); return {...it, rt}; })
+    .sort((a,b)=>{ const ao=a.rt.overdue?0:1, bo=b.rt.overdue?0:1; if(ao!==bo)return ao-bo; if(rank[a.sev]!==rank[b.sev])return rank[a.sev]-rank[b.sev]; return (a.rt.order||0)-(b.rt.order||0); });
+}
+function execSummaryBar(scope,kpi,items){
+  const overdue=items.filter(i=>i.rt.overdue).length;
+  const assignN=items.filter(i=>i.filter==='assign').length;
+  const authN=items.filter(i=>i.filter==='auth').length;
+  const tp=kpi.targetPct;
+  const tile=(v,l,tone)=>`<div style="flex:1;min-width:120px;padding:10px 14px;border-right:1px solid var(--line);"><div style="font-size:22px;font-weight:800;color:${tone||'var(--ink-700)'};line-height:1;">${v}</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">${l}</div></div>`;
+  return `<div class="card" style="padding:0;margin-bottom:16px;display:flex;flex-wrap:wrap;overflow:hidden;">
+    ${tile(items.length, 'việc cần xử lý', items.length?'var(--brand-600)':'var(--teal-600)')}
+    ${tile(assignN, 'chờ phân công', assignN?'var(--amber-600)':'var(--ink-400)')}
+    ${tile(authN, 'seller mất quyền bán', authN?'var(--red-600)':'var(--ink-400)')}
+    ${tile(tp!=null?tp+'%':(kpi.target||'—'), tp!=null?'hoàn thành chỉ tiêu':'chỉ tiêu', tp!=null?(tp>=80?'var(--teal-600)':tp>=50?'var(--amber-600)':'var(--red-600)'):'var(--ink-700)')}
+    ${tile(kpi.policies, 'hợp đồng phát hành', 'var(--ink-700)')}
+  </div>`;
+}
+function actionCenter(scope, items){
+  const scopeWord=BANCA.scopeTabLabel(scope).toLowerCase();
+  const fA=qs.get('ac')||'all';
+  const defs=[['all','Tất cả',i=>true],['overdue','Quá hạn',i=>i.rt.overdue],['assign','Phân công',i=>i.filter==='assign'],['auth','Quyền bán',i=>i.filter==='auth'],['app','Hồ sơ',i=>i.filter==='app']];
+  const cnt=fn=>items.filter(fn).length;
+  const tabs=defs.map(([k,l,fn])=>`<a href="#" onclick="setAC('${k}');return false;" class="ac-tab" style="text-decoration:none;padding:6px 12px;border-radius:8px;font-size:12.5px;${fA===k?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l} (${cnt(fn)})</a>`).join('');
+  const active=(defs.find(d=>d[0]===fA)||defs[0])[2];
+  const list=items.filter(active).slice(0,8);
+  const sevBadge=sev=>{const s=SEV[sev];return `<span class="badge" style="background:${s[2]};color:${s[1]};">${s[0]}</span>`;};
+  const rows=list.map(it=>`<tr>
+     <td>${sevBadge(it.sev)}</td>
+     <td style="font-size:12.5px;"><b>${it.type}</b>${it.subLabel?`<div style="font-size:11px;color:var(--ink-300);">${it.subLabel}</div>`:''}</td>
+     <td>${it.id&&it._kind!=='assign'&&it.filter!=='integration'?`<a href="${appUrl(it.id)}" style="font-weight:600;color:var(--brand-600);">${it.id}</a>`:`<b style="color:var(--ink-700);">${it.custLabel||it.id||'—'}</b>`}${it.custLabel&&it._kind!=='assign'?`<div style="font-size:11px;color:var(--ink-300);">${it.custLabel}</div>`:''}</td>
+     <td style="font-size:12px;">${it.ownerName}</td>
+     <td style="font-size:12px;color:${it.rt.tone};" title="${it.rt.abs||''}"><b>${it.rt.label}</b>${it.reason?`<div style="font-size:11px;color:var(--amber-600);">${it.reason}</div>`:''}</td>
+     <td>${it.cta}</td>
+   </tr>`).join('');
+  const total=items.filter(active).length;
+  return `<div class="section-title"><h2>Trung tâm hành động</h2><span class="subtitle">Mọi việc khẩn trong ${scopeWord} — bàn giao chờ phân công, quyền bán, SLA & hồ sơ trả lại, gộp một nơi</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
+    ${list.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Mức</th><th>Vấn đề</th><th>Hồ sơ · Khách</th><th>Phụ trách</th><th>Hạn / SLA</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>${total>8?`<a href="${r}modules/submitted-applications/index.html?scope=${scope}" style="font-size:12.5px;color:var(--brand-600);display:inline-block;margin-top:8px;">Xem tất cả ${total} việc →</a>`:''}`:`<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--teal-600);">✓ Không có việc cần xử lý trong bộ lọc này.</div>`}`;
+}
+window.setAC=(v)=>{ qs.set('ac',v); history.replaceState(null,'','?'+qs.toString()); location.reload(); };
+function cockpitSummary(scope){
+  const apps=appsOf(scope); const members=membersOf(scope);
+  const subs=apps.filter(a=>a.submissionState==='SUBMITTED'); const drafts=apps.filter(a=>a.submissionState==='NOT_SUBMITTED');
+  const scopeWord=BANCA.scopeTabLabel(scope).toLowerCase();
+  const kpi=aggregateKpi(scope); const showComm=P.visibility.commission;
+  const items=actionItems(scope);
+  // ---- KPI phân tầng: chính (Premium / hoàn thành chỉ tiêu / hợp đồng) + chẩn đoán ----
+  const delta=(d,suffix)=>{ if(d==null) return '<span style="font-size:11px;color:var(--ink-300);">—</span>'; const up=d>0,zero=d===0; const sym=up?'▲':zero?'▬':'▼'; const tone=up?'var(--teal-600)':zero?'var(--ink-400)':'var(--red-600)'; return `<span style="font-size:11px;color:${tone};">${sym} ${d>0?'+':''}${d}${suffix||''} vs kỳ trước</span>`; };
+  const gapVND = kpi.targetPremium ? kpi.targetPremium-kpi.premium : null;
+  const tp=kpi.targetPct;
+  const tpTone = tp==null?'var(--ink-700)':tp>=80?'var(--teal-600)':tp>=50?'var(--amber-600)':'var(--red-600)';
+  const tpStatus = tp==null?'':tp>=80?'● Đạt tiến độ':tp>=50?'▲ Cần đẩy':'■ Thiếu nhiều';
+  const primary=`<div class="kpi-row" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
+    <div class="card" style="margin:0;padding:14px 16px;cursor:pointer;" onclick="drill('premium','${scope}')"><div style="font-size:12px;color:var(--ink-500);">Premium ${scopeWord}</div><div style="font-size:22px;font-weight:800;margin-top:2px;">${BANCA.vnd(kpi.premium)}</div><div style="margin-top:4px;">${delta(kpi.premiumDelta,'%')}</div></div>
+    <div class="card" style="margin:0;padding:14px 16px;cursor:pointer;" onclick="drill('target','${scope}')"><div style="font-size:12px;color:var(--ink-500);">Hoàn thành chỉ tiêu</div><div style="font-size:22px;font-weight:800;margin-top:2px;color:${tpTone};">${tp!=null?tp+'%':(kpi.target||'—')}</div><div style="margin-top:4px;font-size:11px;color:${tpTone};">${tpStatus}${gapVND!=null&&gapVND>0?' · còn thiếu '+BANCA.vnd(gapVND):''}</div></div>
+    <div class="card" style="margin:0;padding:14px 16px;cursor:pointer;" onclick="drill('policies','${scope}')"><div style="font-size:12px;color:var(--ink-500);">Hợp đồng phát hành</div><div style="font-size:22px;font-weight:800;margin-top:2px;">${kpi.policies}</div><div style="margin-top:4px;">${delta(kpi.policiesDelta,' HĐ')}</div></div>
+  </div>`;
+  const diag=[['Tỷ lệ chuyển đổi',kpi.conversion,'conv',delta(kpi.convDelta,' điểm')],['Tuân thủ SLA',kpi.sla,'sla',''],['Việc cần xử lý',items.length,'support','']];
+  if(showComm) diag.splice(2,0,['Hoa hồng dự kiến',BANCA.vnd(kpi.commission),'comm','']);
+  const diagBlock=`<div class="kpi-strip" style="margin-bottom:8px;">${diag.slice(0,4).map(([l,v,k,d])=>`<div class="kpi" style="cursor:pointer;" onclick="drill('${k}','${scope}')"><span>${l}</span><b style="font-size:14px;${k==='support'&&v?'color:var(--red-600);':''}">${v}</b>${d?`<div>${d}</div>`:''}</div>`).join('')}</div>`;
+  const kpiBlock=`<div class="section-title" style="margin-top:18px;"><h2>Hiệu quả kinh doanh</h2><span class="subtitle">Chỉ số chính + chẩn đoán · so kỳ trước & khoảng cách chỉ tiêu · bấm để drill-down</span></div>${primary}${diagBlock}${metricNote()}`;
+  // ---- Pipeline: tách draft vs submitted + phát hiện điểm nghẽn (aging/SLA) ----
+  const st=(...s)=>subs.filter(a=>s.includes(a.status));
+  const aging=a=>{ const u=a.updatedAt||a.submittedAt; if(!u) return 0; return (NOW_TS-new Date(String(u).replace(' ','T')+'+07:00').getTime())/86400000; };
+  const stageDef=[['Đã nộp',st('PENDING_RECEIPT'),'NEW'],['Thẩm định',st('PENDING_UW','IN_UW','NEED_MORE_INFO','UW_DECIDED'),'UW'],['Chờ xác nhận',st('PENDING_CUSTOMER_CONFIRM'),'CONFIRM'],['Chờ thanh toán',st('PENDING_PAYMENT','PAID'),'PAYMENT'],['Chờ phát hành',st('PENDING_ISSUE'),'ISSUE'],['Đã phát hành',st('ISSUED'),'DONE']];
+  // Điểm nghẽn = stage có hồ sơ aging > 3 ngày hoặc slaBreach
+  const bottleneck=stageDef.map(([l,arr,f])=>{ const stuck=arr.filter(a=>a.slaBreach||aging(a)>3).length; return {l,n:arr.length,f,stuck}; });
+  const worst=bottleneck.filter(b=>b.stuck>0).sort((a,b)=>b.stuck-a.stuck)[0];
+  const pipeCells=[{l:'Chưa nộp',n:drafts.length,f:'unsub',stuck:drafts.filter(a=>(a.warnings||[]).includes('QUOTE_EXPIRING')).length}].concat(bottleneck);
+  const pipeBlock=`<div class="section-title" style="margin-top:18px;"><h2>Pipeline & điểm nghẽn</h2><span class="subtitle">Hành trình bảo hiểm trong ${scopeWord} · badge = hồ sơ tồn >3 ngày hoặc quá SLA</span></div>
+    ${worst?`<div class="card" style="padding:10px 14px;background:#fff6e6;border-color:#ffe0a3;font-size:12.5px;color:#8a5a00;margin-bottom:10px;">🚧 Điểm nghẽn: <b>${worst.stuck} hồ sơ</b> đang kẹt ở bước <b>${worst.l}</b> (tồn >3 ngày/quá SLA). <a href="${r}modules/submitted-applications/index.html?scope=${scope}&group=${worst.f}" style="color:#8a5a00;text-decoration:underline;">Xử lý ngay →</a></div>`:''}
+    <div class="kpi-row" style="grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px;">${pipeCells.map(c=>`<div class="card" style="margin:0;cursor:pointer;text-align:center;padding:12px 6px;position:relative;" onclick="location.href='${c.f==='unsub'?r+'modules/unsubmitted-applications/index.html?scope='+scope:r+'modules/submitted-applications/index.html?scope='+scope+'&group='+c.f}'">${c.stuck?`<span title="${c.stuck} hồ sơ tồn lâu/quá SLA" style="position:absolute;top:4px;right:4px;background:var(--red-600);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;">${c.stuck}⚠</span>`:''}<div style="font-size:20px;font-weight:700;color:var(--brand-600);">${c.n}</div><div style="font-size:10.5px;color:var(--ink-500);margin-top:3px;line-height:1.3;">${c.l}</div></div>`).join('')}</div>`;
+  // ---- Hiệu suất đội ngũ: gộp "cần chú ý" + "toàn bộ" thành 1 module có mode ----
+  const perfMode=qs.get('pm')||'attn';
+  const riskMap={}; members.forEach(s=>{ const rr=sellerRisk(s); riskMap[s.id]=rr; });
+  let perfList=members.slice();
+  if(perfMode==='attn') perfList=members.filter(s=>riskMap[s.id].score>0).sort((a,b)=>riskMap[b.id].score-riskMap[a.id].score);
+  else perfList=members.slice(0,10);
+  const attnN=members.filter(s=>riskMap[s.id].score>0).length;
+  const modeTab=(k,l,c)=>`<a href="#" onclick="setPM('${k}');return false;" style="text-decoration:none;padding:5px 12px;border-radius:8px;font-size:12px;${perfMode===k?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l}${c!=null?' ('+c+')':''}</a>`;
+  const perfRows=perfList.slice(0,10).map(s=>{ const sApps=BANCA.applications.filter(a=>a.owner===s.id); const prem=sApps.filter(a=>a.status==='ISSUED').reduce((x,a)=>x+appPremium(a),0); const issued=sApps.filter(a=>a.status==='ISSUED').length; const kk=BANCA.kpi[s.id]||{}; const ovd=sApps.filter(a=>a.status==='NEED_MORE_INFO').length; const wait=(BANCA.handoffsForSeller?BANCA.handoffsForSeller(s.id):[]).length; const rr=riskMap[s.id];
+    const flag = rr.score>0?`<div style="font-size:11px;color:var(--amber-600);margin-top:2px;">${rr.reasons.slice(0,2).join(' · ')}</div>`:'';
+    return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'"><td><b style="font-size:12.5px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}${flag}</td><td style="font-size:12px;">${BANCA.vnd(prem)}</td><td>${issued}</td><td>${kk.conversion||'—'}</td><td>${kk.target||'—'}</td><td>${sApps.length}</td><td style="${ovd?'color:var(--red-600);':''}">${ovd||'—'}</td><td style="${wait?'color:var(--amber-600);':''}">${wait||'—'}</td><td onclick="event.stopPropagation();">${rr.score>0&&BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-secondary btn-sm" onclick="openTask('${s.id}')">Giao việc</button>`:''}</td></tr>`; }).join('');
+  const perfBlock=`<div class="section-title" style="margin-top:18px;"><h2>Hiệu suất đội ngũ</h2><span class="subtitle">${perfMode==='attn'?'Ưu tiên thành viên có rủi ro/cơ hội can thiệp':'Toàn bộ thành viên trong '+scopeWord}</span></div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">${modeTab('attn','Cần chú ý',attnN)}${modeTab('all','Toàn bộ',members.length)}</div>
+    <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên</th><th>Premium</th><th>Hợp đồng</th><th>Chuyển đổi</th><th>Chỉ tiêu</th><th>Khối lượng</th><th>Quá hạn</th><th>Chờ nhận</th><th></th></tr></thead><tbody>${perfRows||`<tr><td colspan="9"><div class="empty-state">${perfMode==='attn'?'Không có thành viên cần chú ý. 👍':'Không có thành viên.'}</div></td></tr>`}</tbody></table></div>
+    <div style="margin-top:10px;"><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}">Xem toàn bộ đội nhóm →</a></div>`;
+  return embedBanner()+execSummaryBar(scope,kpi,items)+actionCenter(scope,items)+kpiBlock+pipeBlock+perfBlock;
+}
+window.setPM=(v)=>{ qs.set('pm',v); history.replaceState(null,'','?'+qs.toString()); location.reload(); };
+function exAction(e){
+  if(e.akind==='integration') return `<button class="btn btn-secondary btn-sm" onclick="retrySync('${e.id}')">Retry sync</button> <button class="btn btn-secondary btn-sm" onclick="openMirrorCase('${e.id}','${e.src||'JANUS_CRM'}')">Xem tích hợp</button>`;
+  if(EMBED) return `<button class="btn btn-secondary btn-sm" onclick="openMirrorCase('${e.id}','${e.src||'JANUS_CRM'}')">Xem mirror</button>`;
+  if(e.akind==='reassign') return (BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS'))?`<button class="btn btn-secondary btn-sm" onclick="openReassign('${e.id}','${e.owner}')">${BANCA.reassignActionLabel(me)}</button>`:`<span style="font-size:11px;color:var(--ink-300);">Cần quyền</span>`;
+  if(e.akind==='task') return `<button class="btn btn-secondary btn-sm" onclick="openTask('${e.owner}','${e.id}')">Giao việc</button>`;
+  return `<a class="btn btn-secondary btn-sm" href="${appUrl(e.id)}">Xem case</a>`;
+}
+function appPremium(a){ if(typeof a.premium==='number') return a.premium; const v=(a.versions||[]).find(x=>x.status==='CURRENT'); return v?v.premium:0; }
+/* Unified dataset: MỌI chỉ số derive từ cùng appsOf(scope) để KPI reconcile với pipeline. */
+function aggregateKpi(scope){
+  const apps=appsOf(scope);
+  const issued=apps.filter(a=>a.status==='ISSUED');
+  const submitted=apps.filter(a=>a.submissionState==='SUBMITTED');
+  const premium=issued.reduce((s,a)=>s+appPremium(a),0);
+  const policies=issued.length;
+  const conversion=submitted.length?Math.round(policies/submitted.length*100)+'%':'—';
+  const slaOk=submitted.filter(a=>!a.slaBreach).length;
+  const sla=submitted.length?Math.round(slaOk/submitted.length*100)+'%':'—';
+  // Target là mục tiêu cấu hình (goal), không derive từ hồ sơ.
+  const ids=[me].concat(membersOf(scope).map(s=>s.id));
+  let commission=0; ids.forEach(id=>{ commission+=(BANCA.commissionSummary(id)||{}).amount||0; });
+  const target=(BANCA.kpi[me]||{}).target||'—';
+  // Ngữ cảnh: gộp prev/target premium từ seed (kpi) theo scope. me + members.
+  let prevPremium=0, targetPremium=0, prevPolicies=0;
+  const kpiIds = scope==='SELF' ? [me] : ids;
+  kpiIds.forEach(id=>{ const kk=BANCA.kpi[id]||{}; prevPremium+=kk.prevPremium||0; targetPremium+=kk.targetPremium||0; prevPolicies+=kk.prevPolicies||0; });
+  const targetPct = targetPremium? Math.round(premium/targetPremium*100) : null;
+  const premiumDelta = prevPremium? Math.round((premium-prevPremium)/prevPremium*100) : null;
+  const policiesDelta = policies - prevPolicies;
+  const kMe=BANCA.kpi[me]||{}; const convNow=parseInt(conversion)||null; const convDelta=(convNow!=null&&kMe.prevConversion!=null)?convNow-kMe.prevConversion:null;
+  return {premium,policies,conversion,target,sla,commission, issuedCount:policies, submittedCount:submitted.length,
+    prevPremium,targetPremium,prevPolicies,targetPct,premiumDelta,policiesDelta,convDelta};
+}
+function metricNote(){ return `<div style="font-size:11px;color:var(--ink-300);margin:-8px 0 14px;">Định nghĩa: <b>Policy đã phát hành</b> = hồ sơ trạng thái ISSUED trong phạm vi & kỳ · <b>Conversion</b> = đã phát hành / đã nộp · <b>Premium</b> = tổng phí hồ sơ đã phát hành · <b>Mục tiêu</b> là chỉ tiêu cấu hình.</div>`; }
+function renderHome(){
+  let pane = (homeMode==='SELF') ? personalPane() : cockpitSummary(manageScope);
+  shell('Trang chủ','Workspace', headerBar()+scopeTabs()+pane+managerFootnote()+modalHost(), {startSale:P.sellingEnabled});
+}
+function managerFootnote(){
+  // Nội dung người dùng cuối: chỉ 1 link nhật ký kiểm toán. Chi tiết render/scope/actions → debug.
+  const dbg = DEBUG?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:6px;">Render theo <b>${P.label}</b> · scopes: ${SCOPES.join(', ')} · actions: ${(P.supervisoryActions||[]).join(', ')||'—'}. Không có quyền: sửa hierarchy, gán license, bật/tắt sản phẩm, đổi authorization/rating/UW rule (Distribution/Core).</div>`:'';
+  return `<div style="margin-top:16px;"><a href="#" onclick="openAudit();return false;" style="font-size:11.5px;color:var(--brand-600);">Nhật ký kiểm toán</a>${dbg}</div>`;
+}
+window.openAudit=()=>{
+  const log=(BANCA.auditLog||[]).slice().reverse().slice(0,40);
+  const lbl={CREATE_HANDOFF:'Tạo bàn giao',ASSIGN_HANDOFF:'Phân công',ACCEPT_HANDOFF:'Tiếp nhận',DECLINE_HANDOFF:'Từ chối',HANDOFF_NEED_MORE_INFO:'Yêu cầu bổ sung',RE_ATTRIBUTION:'Điều chỉnh ghi nhận',ASSIGN_TASK:'Giao việc',COACH:'Coaching',RETRY_SYNC:'Đồng bộ lại',UNMASK_PII:'Mở PII',UNMASK_HEALTH:'Mở health'};
+  showModal(`<h3 style="margin:0 0 4px;">Nhật ký kiểm toán</h3><div style="font-size:11.5px;color:var(--ink-300);margin-bottom:8px;">Mọi assign/reassign/participant/customer change đều lưu: actor · action · previous → new · reason · thời điểm · scope.</div>
+   ${log.length?`<div class="card" style="padding:0;max-height:50vh;overflow:auto;"><table class="dtable"><thead><tr><th>Thời điểm</th><th>Hành động</th><th>Bởi</th><th>Chi tiết</th></tr></thead><tbody>${log.map(e=>`<tr><td style="font-size:11px;color:var(--ink-500);white-space:nowrap;">${(e.at||'').replace('T',' ').slice(0,19)}</td><td style="font-size:12px;"><b>${lbl[e.action]||e.action}</b></td><td style="font-size:12px;">${(BANCA.personas[e.by||e.actor]||{}).name||e.by||e.actor||'—'}</td><td style="font-size:11.5px;color:var(--ink-500);">${[e.handoff||e.case||e.seller||'',e.previous?('từ '+e.previous+'→'+(e.new||'')):'',e.reason||e.note||''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty-state" style="padding:16px;">Chưa có bản ghi kiểm toán trong phiên này.</div>'}
+   <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`);
+};
+
+window.openScopeTree=(rootId,scope)=>{
+  function render(nodeId,depth){ const st=BANCA.orgSubtree(nodeId); if(!st)return''; const u=st.unit;
+    const mem=membersOf(scope).filter(p=>BANCA.personaInUnit(p,u.id) && p.role!=='Support Seller' && !p.serviceError);
+    const cnt=mem.length;
+    const appCnt=(BANCA.applications||[]).filter(a=>mem.some(m=>m.id===a.owner)).length;
+    const sel=fUnit===u.id;
+    return `<div style="padding:6px 0;padding-left:${8+depth*18}px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px dashed var(--line);${sel?'background:#eefaf7;':''}"><div style="font-size:12.5px;">${depth?'› ':''}<span style="color:var(--ink-400);">${BANCA.orgUnitLabelType(u.type)}</span> <b>${u.name}</b> <span style="font-size:10.5px;color:var(--ink-300);">${cnt} người · ${appCnt} hồ sơ</span></div><button class="btn btn-secondary btn-sm" onclick="selectUnit('${u.id}','${scope}')">${sel?'Đang xem':'Chọn'}</button></div>`
+      + st.children.map(c=>render(c.unit.id,depth+1)).join(''); }
+  const allMem=membersOf(scope).filter(p=>p.role!=='Support Seller'&&!p.serviceError);
+  const allApps=(BANCA.applications||[]).filter(a=>allMem.some(m=>m.id===a.owner)).length;
+  showModal(`<h3 style="margin:0 0 4px;">Sơ đồ tổ chức / Phạm vi dữ liệu</h3><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Bạn đang xem dữ liệu trong phạm vi <b>${BANCA.scopeTabLabel(scope).toLowerCase()}</b>. Chọn chi nhánh/đội để thu hẹp. Chỉ hiển thị đơn vị trong quyền của bạn.</div>
+   <div class="card" style="padding:0;max-height:52vh;overflow:auto;"><div style="padding:8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);${!fUnit?'background:#eefaf7;':''}"><b style="font-size:12.5px;">Toàn bộ ${BANCA.scopeTabLabel(scope)} <span style="font-size:10.5px;color:var(--ink-300);font-weight:400;">${allMem.length} người · ${allApps} hồ sơ</span></b><button class="btn btn-secondary btn-sm" onclick="selectUnit('','${scope}')">${!fUnit?'Đang xem':'Chọn'}</button></div>${render(rootId,0)}</div>
+   <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`);
+};
+window.selectUnit=(id,scope)=>{ const o=new URLSearchParams(location.search); o.set('view','team'); o.set('scope',scope); if(id)o.set('unit',id); else o.delete('unit'); o.delete('sub'); o.delete('team2'); location.search=o.toString(); };
+
+/* ============================ TEAM PAGE ============================ */
+function renderTeam(){
+  const scope = SCOPES.includes(qs.get('scope')) ? qs.get('scope') : (SCOPES.includes('TEAM')?'TEAM':BANCA.defaultScope(me));
+  const t = qs.get('t')||'members';
+  const members=teamMembersList(scope);
+  // Danh sách seller thật (bỏ persona giả) — dùng chung cho count + các tab.
+  const realMembers=members.filter(s=> s.role!=='Support Seller' && !s.serviceError && !(s.isManager && BANCA.resolveManagerProfile(s.id).sellingEnabled===false));
+  const taskCount=buildTaskRows(scope,members).length;
+  const blockedCount=realMembers.filter(s=>readiness(s.id).B>0).length;
+  const tabs=[['members','Thành viên',realMembers.length],['tasks','Công việc',taskCount],['auth','Quyền bán',blockedCount],['perf','Hiệu suất',realMembers.length]];
+  const nav=`<div class="tabbar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">${tabs.map(([tk,tl,cnt])=>`<a href="?view=team&scope=${scope}&t=${tk}" class="tab" style="text-decoration:none;padding:8px 14px;border-radius:8px;font-size:13px;${t===tk?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${tl}${tk==='auth'&&cnt?` <span style="background:#fdecec;color:var(--red-600);border-radius:8px;padding:0 6px;font-size:10px;font-weight:700;">${cnt}</span>`:` (${cnt})`}</a>`).join('')}</div>`;
+  let body='';
+  if(t==='cases') body=teamCases(scope); // giữ cho deep-link cũ (không phải tab)
+  else if(t==='tasks') body=teamTasks(scope,members);
+  else if(t==='auth') body=teamAuth(scope,realMembers);
+  else if(t==='perf') body=teamPerf(scope,realMembers);
+  else body=teamMembers(scope,members);
+  const header = teamHeader(scope,members);
+  // Title chỉ 'Đội nhóm' — đơn vị cụ thể hiển thị trong header card, tránh mâu thuẫn 'Khu vực · TEAM-A'.
+  // Header 1 lớp: title 'Đội nhóm', subtitle nhỏ 'Điều phối & rủi ro' — không lặp tên màn.
+  shell('Đội nhóm','Đội nhóm', headerBar('Điều phối & rủi ro')+`<a href="${homeHref(scope)}" style="font-size:12.5px;color:var(--brand-600);">← Về Trang chủ</a>`+header+nav+body+modalHost(), {startSale:false});
+}
+// Header tổ chức (hierarchy-aware) — tên đơn vị đúng + breadcrumb + Cơ cấu / Vận hành.
+function teamHeader(scope,members){
+  // Đồng nhất số với tab: chỉ đếm seller thật (bỏ Support Seller / service error / manager-thuần).
+  members=members.filter(s=> s.role!=='Support Seller' && !s.serviceError && !(s.isManager && BANCA.resolveManagerProfile(s.id).sellingEnabled===false));
+  const memIds=members.map(s=>s.id);
+  const apps=appsOf(scope).filter(a=>memIds.includes(a.owner)); const active=members.filter(s=>s.status==='ACTIVE').length;
+  const overdue=apps.filter(a=>a.status==='NEED_MORE_INFO').length;
+  const pend=(BANCA.pendingAssignment?BANCA.pendingAssignment(scope,me):[]).filter(h=>!fUnit||memIds.some(id=>(BANCA.personas[id]||{}).team===h.targetTeam)).length;
+  const waiting=BANCA.handoffs.filter(h=>memIds.includes(h.targetSeller)&&['PENDING_ACCEPTANCE','ASSIGNED'].includes(h.state)).length;
+  // Đơn vị đang xem: unit đã chọn (drawer) hoặc theo scope
+  const selUnit = fUnit?BANCA.orgUnitById(fUnit):null;
+  const unitName = selUnit ? (BANCA.orgUnitLabelType(selUnit.type)+' '+selUnit.name)
+    : scope==='TEAM'?('Đội '+(meObj.team||'')):scope==='BRANCH'||scope==='ORG_SUBTREE'?('Chi nhánh '+meObj.branch):scope==='REGION'?('Khu vực '+BANCA.regionOf(meObj.branch)):BANCA.scopeTabLabel(scope);
+  // Breadcrumb: nếu chọn unit thì theo path unit, else theo path của me
+  let crumbs;
+  if(selUnit){ const chain=[]; let u=selUnit; while(u){ chain.unshift(u.name); u=u.parentId?BANCA.orgUnitById(u.parentId):null; } crumbs=chain.join(' › '); }
+  else { const full=BANCA.orgPath(meObj); const depth={REGION:1,BRANCH:2,ORG_SUBTREE:2,DEPT:3,TEAM:4}[scope]||4; crumbs=full.slice(0,depth).map(x=>x.name).join(' › '); }
+  const orgSrc=P.orgSource==='SYNCED'?('Tổ chức đồng bộ'+(P.syncedAt?' · '+P.syncedAt:'')):P.orgSource==='HYBRID'?'Tổ chức hỗn hợp':'Tổ chức thủ công';
+  // Scope selector: LUÔN hiển thị. Có quyền chọn (root có đơn vị con) → bấm được; không → disabled.
+  const rootU=BANCA.rootUnitForScope(scope,meObj);
+  const canPick = rootU && BANCA.orgChildren(rootU.id).length>0;
+  const pickerLabel = `Phạm vi dữ liệu: <b>${selUnit?selUnit.name:(rootU?rootU.name:BANCA.scopeTabLabel(scope))}</b>`;
+  const picker = canPick
+    ? `<button class="btn btn-secondary btn-sm" onclick="openScopeTree('${rootU.id}','${scope}')" style="white-space:nowrap;">${pickerLabel} ▼</button>`
+    : `<button class="btn btn-secondary btn-sm" disabled style="white-space:nowrap;opacity:.55;cursor:not-allowed;" title="Bạn chỉ có quyền xem phạm vi này">${pickerLabel}</button>`;
+  // Quản lý trực tiếp / cấp trên tính theo ĐƠN VỊ ĐANG XEM (selUnit hoặc root của scope), không theo đơn vị của người đăng nhập.
+  const viewUnit = selUnit || rootU;
+  const mgrOfUnit = u => (u&&u.managerId&&BANCA.personas[u.managerId]) ? BANCA.personas[u.managerId] : null;
+  const directMgr = mgrOfUnit(viewUnit);
+  // Cấp trên: đi lên cây, bỏ qua đơn vị có cùng quản lý với đơn vị đang xem (1 người kiêm nhiều cấp).
+  let upperMgr=null, pu=viewUnit?(viewUnit.parentId?BANCA.orgUnitById(viewUnit.parentId):null):null;
+  while(pu){ const m=mgrOfUnit(pu); if(m && (!directMgr || m.name!==directMgr.name)){ upperMgr=m; break; } pu=pu.parentId?BANCA.orgUnitById(pu.parentId):null; }
+  const parentUnitObj = viewUnit&&viewUnit.parentId ? BANCA.orgUnitById(viewUnit.parentId) : null;
+  const unitFullName = u => { const t=BANCA.orgUnitLabelType(u.type); return u.name.startsWith(t)?u.name:(t+' '+u.name); };
+  const parentUnit = parentUnitObj ? unitFullName(parentUnitObj) : 'Cấp cao nhất trong quyền của bạn';
+  // Seller có vấn đề quyền bán (bị chặn ≥1 sản phẩm)
+  const authRisk=members.filter(s=>s.role!=='Support Seller'&&!s.serviceError&&readiness(s.id).B>0).length;
+  // Summary strip: 1 hàng số liệu, số đáng chú ý mới tô màu.
+  const cell=(v,l,sub,tone)=>`<div style="flex:1;min-width:105px;padding:10px 12px;border-right:1px solid var(--line);"><div style="font-size:19px;font-weight:800;color:${tone||'var(--ink-700)'};line-height:1;">${v}</div><div style="font-size:11px;color:var(--ink-500);margin-top:3px;">${l}</div>${sub?`<div style="font-size:10.5px;color:var(--ink-300);">${sub}</div>`:''}</div>`;
+  const summary=`<div style="display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper-card);margin-top:12px;">
+    ${cell(members.length,'thành viên',active+' đang hoạt động')}
+    ${cell(apps.length,'hồ sơ đang xử lý')}
+    ${cell(pend,'cơ hội chưa thành hồ sơ','chờ phân công',pend?'var(--amber-600)':'var(--ink-400)')}
+    ${cell(waiting,'bàn giao chờ tiếp nhận',null,waiting?'var(--amber-600)':'var(--ink-400)')}
+    ${cell(overdue,'quá hạn',null,overdue?'var(--red-600)':'var(--ink-400)')}
+    ${cell(authRisk,'quyền bán rủi ro',null,authRisk?'var(--red-600)':'var(--ink-400)')}
+  </div>`;
+  // Mini action center: chỉ hiện dòng có việc + CTA.
+  const acRows=[];
+  if(pend) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);"><span style="font-size:12.5px;"><b style="color:var(--amber-600);">${pend}</b> cơ hội chờ phân công</span><a class="btn btn-primary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=assign">Phân công →</a></div>`);
+  if(authRisk) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);"><span style="font-size:12.5px;"><b style="color:var(--red-600);">${authRisk}</b> seller có vấn đề quyền bán</span><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=auth">Xem quyền bán →</a></div>`);
+  if(waiting) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;"><span style="font-size:12.5px;"><b style="color:var(--amber-600);">${waiting}</b> bàn giao chờ seller tiếp nhận</span><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=accept">Xem & nhắc →</a></div>`);
+  const actionCenter = acRows.length?`<div style="margin-top:10px;border:1px solid #ffe0a3;background:#fffdf5;border-radius:10px;padding:6px 14px;">${acRows.join('')}</div>`:'';
+  return `${embedBanner()}<div class="card" style="padding:16px 18px;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div><div style="font-size:17px;font-weight:800;">${unitName}</div>
+        <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${crumbs}</div>
+        <div style="font-size:11.5px;color:var(--ink-400);margin-top:4px;">Quản lý trực tiếp: <b>${directMgr?directMgr.name:'Chưa gán quản lý'}</b> · Cấp trên: ${upperMgr?upperMgr.name:'Chưa gán quản lý'} · Thuộc: ${parentUnit}</div></div>
+      <div style="text-align:right;">${picker}${DEBUG?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:4px;">${P.channelMode==='EMBED'?'Embed':'Cổng trực tiếp'} · ${orgSrc}</div>`:''}</div>
+    </div>
+    ${selUnit?`<div style="font-size:12px;color:var(--brand-600);margin-top:6px;">Đang lọc theo <b>${selUnit.name}</b> · <a href="?view=team&scope=${scope}" style="color:var(--brand-600);">xem toàn bộ ${BANCA.scopeTabLabel(scope).toLowerCase()}</a></div>`:''}
+    ${summary}
+    ${actionCenter}
+  </div>`;
+}
+function memberFilterActive(){ return qs.get('filter')||''; }
+// Vấn đề chính + action đề xuất cho từng thành viên (lớp diễn giải, không chỉ số khô).
+function memberIssue(s){
+  const rd=readiness(s.id); const sApps=BANCA.applications.filter(a=>a.owner===s.id);
+  const overdue=sApps.filter(a=>a.status==='NEED_MORE_INFO').length;
+  const k=BANCA.kpi[s.id]||{};
+  const convN=parseInt(k.conversion)||null;
+  if(s.status!=='ACTIVE') return {label:'Ngừng hoạt động'+(sApps.length?' — còn '+sApps.length+' hồ sơ mở':''), tone:'var(--red-600)', cta:['Kiểm tra hồ sơ','?view=seller&seller='+s.id], level:3};
+  if(rd.B>0) return {label:rd.B+' sản phẩm bị chặn quyền bán', tone:'var(--red-600)', cta:['Xem rủi ro','?view=seller&seller='+s.id], level:3};
+  if(overdue>0) return {label:overdue+' hồ sơ quá hạn bổ sung', tone:'var(--red-600)', cta:['Xem hồ sơ',null,'submitted'], level:2};
+  if(sApps.filter(a=>a.submissionState==='SUBMITTED').length>=5) return {label:'Tải công việc cao ('+sApps.length+' hồ sơ)', tone:'var(--amber-600)', cta:['Cân nhắc chuyển bớt',null,'reassign'], level:2};
+  if(convN!=null&&convN<20) return {label:'Tỷ lệ chuyển đổi thấp ('+k.conversion+')', tone:'var(--amber-600)', cta:['Xem hiệu suất','?view=seller&seller='+s.id], level:1};
+  if(rd.C>0) return {label:rd.C+' sản phẩm bán có điều kiện', tone:'var(--amber-600)', cta:['Xem chi tiết','?view=seller&seller='+s.id], level:1};
+  if(rd.total===0) return {label:'Chưa gán sản phẩm', tone:'var(--ink-400)', cta:['Xem hồ sơ NV','?view=seller&seller='+s.id], level:1};
+  return {label:'Ổn định', tone:'var(--teal-600)', cta:null, level:0};
+}
+function readinessBadges(rd){
+  if(rd.total===0) return '<span class="badge" style="background:#eef0f4;color:var(--ink-500);">Chưa gán sản phẩm</span>';
+  const b=[];
+  if(rd.R>0) b.push(`<span class="badge badge-ready">${rd.R} bán được</span>`);
+  if(rd.C>0) b.push(`<span class="badge badge-conditional">${rd.C} điều kiện</span>`);
+  if(rd.B>0) b.push(`<span class="badge badge-blocked" style="font-weight:700;">${rd.B} bị chặn</span>`);
+  return b.join(' ');
+}
+function teamMembers(scope,members){
+  const flt=memberFilterActive();
+  let list=members.filter(s=> s.role!=='Support Seller' && !s.serviceError && !(s.isManager && BANCA.resolveManagerProfile(s.id).sellingEnabled===false));
+  // Filter rủi ro (P1): theo nhu cầu quản lý, không chỉ trạng thái nhân sự.
+  const fRisk=qs.get('risk')||'';
+  if(flt==='readiness'||flt==='risk'||fRisk==='blocked') list=list.filter(s=>readiness(s.id).B>0);
+  if(fRisk==='attn') list=list.filter(s=>memberIssue(s).level>0);
+  if(fRisk==='overload') list=list.filter(s=>BANCA.applications.filter(a=>a.owner===s.id&&a.submissionState==='SUBMITTED').length>=5);
+  if(fRisk==='inactive') list=list.filter(s=>s.status!=='ACTIVE');
+  const fStatus=qs.get('st')||'';
+  if(fStatus) list=list.filter(s=>s.status===fStatus);
+  const showTeamFilter = scope==='BRANCH'||scope==='ORG_SUBTREE'||scope==='REGION';
+  const teamsInScope=[...new Set(members.map(s=>s.team).filter(Boolean))];
+  const fTeam=qs.get('team2')||'';
+  if(fTeam) list=list.filter(s=>s.team===fTeam);
+  // Sắp theo mức độ vấn đề giảm dần — người cần can thiệp lên đầu.
+  list=list.slice().sort((a,b)=>memberIssue(b).level-memberIssue(a).level);
+  const riskChip=(v,l)=>{const on=fRisk===v; return `<a href="#" onclick="setFilter('risk','${on?'':v}');return false;" class="chip" style="cursor:pointer;text-decoration:none;padding:6px 12px;font-size:12px;${on?'background:var(--brand-600);color:#fff;':''}">${l}</a>`;};
+  return `${flt?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Lọc: <b>Readiness có rủi ro</b> · <a href="?view=team&scope=${scope}&t=members" style="color:var(--brand-600);">bỏ lọc</a></div>`:''}
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${riskChip('attn','Cần chú ý')}${riskChip('blocked','Bị chặn quyền bán')}${riskChip('overload','Tải công việc cao')}${riskChip('inactive','Không hoạt động')}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"><input placeholder="🔍 Tìm nhân viên" oninput="filterRows('mbr',this.value)" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;min-width:200px;"><select onchange="setFilter('st',this.value)" style="padding:7px;border:1px solid var(--line);border-radius:7px;font-size:12px;"><option value="">Mọi trạng thái</option><option ${fStatus==='ACTIVE'?'selected':''} value="ACTIVE">Đang hoạt động</option><option ${fStatus==='INACTIVE'?'selected':''} value="INACTIVE">Ngừng hoạt động</option></select>${showTeamFilter&&teamsInScope.length>1?`<select onchange="setFilter('team2',this.value)" style="padding:7px;border:1px solid var(--line);border-radius:7px;font-size:12px;"><option value="">Mọi đội</option>${teamsInScope.map(tm=>`<option value="${tm}" ${fTeam===tm?'selected':''}>${tm}</option>`).join('')}</select>`:''}</div>
+  <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên &amp; đơn vị</th><th>Vấn đề chính</th><th>Quyền bán</th><th>Công việc</th><th>Hiệu suất kỳ này</th><th>Hoạt động</th><th>Hành động</th></tr></thead><tbody id="mbr-body">${list.length?list.map(s=>memberRow(s,scope)).join(''):'<tr><td colspan="7"><div class="empty-state">Không có thành viên khớp bộ lọc.</div></td></tr>'}</tbody></table></div>`;
+}
+function memberRow(s,scope){
+  const rd=readiness(s.id); const sApps=BANCA.applications.filter(a=>a.owner===s.id);
+  const overdue=sApps.filter(a=>a.status==='NEED_MORE_INFO').length; const k=BANCA.kpi[s.id]||{};
+  const waiting=(BANCA.handoffsForSeller?BANCA.handoffsForSeller(s.id):[]).length;
+  const prem=sApps.filter(a=>a.status==='ISSUED').reduce((x,a)=>x+appPremium(a),0);
+  const issued=sApps.filter(a=>a.status==='ISSUED').length;
+  const orgLabel=BANCA.memberOrgLabel(s,scope);
+  const supUnits=BANCA.supportUnitsOf?BANCA.supportUnitsOf(s.id):[];
+  const supportBadge = s._supportFrom ? ` <span class="badge badge-conditional" style="font-size:9px;">Hỗ trợ từ ${s._supportFrom}</span>`
+    : (supUnits.length ? ` <span class="badge badge-version" style="font-size:9px;" title="Hỗ trợ: ${supUnits.join(', ')}">+${supUnits.length} đơn vị hỗ trợ</span>` : '');
+  const mgrBadge = (s.isManager && BANCA.resolveManagerProfile(s.id).sellingEnabled!==false) ? ' <span class="badge badge-version" style="font-size:9px;">Quản lý đội · Có bán hàng</span>' : '';
+  const work=[`${sApps.length} hồ sơ`]; if(overdue)work.push(`<span style="color:var(--red-600);">${overdue} quá hạn</span>`); if(waiting)work.push(`<span style="color:var(--amber-600);">${waiting} chờ nhận</span>`);
+  const issue=memberIssue(s);
+  // Action chính thống nhất: "Xem chi tiết" (mở trang nhân viên). Action phụ nằm trong ⋯.
+  const directCta=`<a class="btn btn-secondary btn-sm" href="?view=seller&seller=${s.id}&scope=${scope}" onclick="event.stopPropagation()">Xem chi tiết</a>`;
+  return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'">
+    <td><b style="font-size:13px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}${supportBadge}${mgrBadge}<div style="font-size:11px;color:var(--ink-300);">${s.role} · ${s.rm||''}</div>${orgLabel?`<div style="font-size:11px;color:var(--ink-400);">${orgLabel}</div>`:''}</td>
+    <td style="font-size:12px;font-weight:600;color:${issue.tone};">${issue.label}</td>
+    <td style="font-size:12px;">${readinessBadges(rd)}</td>
+    <td style="font-size:12px;">${work.join('<br>')}</td>
+    <td style="font-size:12px;">${BANCA.vnd(prem)}<div style="font-size:11px;color:var(--ink-300);">${issued} hợp đồng · ${k.conversion||'Chưa có dữ liệu'} · chỉ tiêu ${k.target||'chưa đặt'}</div></td>
+    <td style="font-size:11px;color:var(--ink-300);">${(sApps[0]||{}).updatedAt||'Không phát sinh'}</td>
+    <td onclick="event.stopPropagation();" style="white-space:nowrap;">${directCta} ${overflow(s.id,scope)}</td></tr>`;
+}
+function overflow(id,scope){
+  // "Xem chi tiết" đã là action chính ngoài dòng — dropdown chỉ giữ action phụ.
+  const items=[`<a href="${r}modules/submitted-applications/index.html?scope=${scope}">Xem hồ sơ đang xử lý</a>`];
+  if(BANCA.canDo('ASSIGN_TASK')) items.push(`<a href="#" onclick="openTask('${id}');return false;">Giao việc</a>`);
+  if(BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS')) items.push(`<a href="#" onclick="openReassign(null,'${id}');return false;">${BANCA.reassignActionLabel(me)}</a>`);
+  return `<div class="ovf"><button class="btn btn-secondary btn-sm" onclick="this.nextElementSibling.classList.toggle('open')">⋯</button><div class="ovf-menu">${items.join('')}</div></div>`;
+}
+// Tab Quyền bán (P2): ma trận seller × sản phẩm — nhóm rủi ro license/training riêng.
+function teamAuth(scope,members){
+  const prods=(BANCA.products||[]);
+  const stBadge=st=>({READY:'<span class="badge badge-ready">Bán được</span>',CONDITIONAL:'<span class="badge badge-conditional">Điều kiện</span>',BLOCKED:'<span class="badge badge-blocked">Bị chặn</span>',SERVICE_UNVERIFIED:'<span class="badge" style="background:#eef0f4;color:var(--ink-500);">Chưa xác thực</span>'}[st]||'<span style="font-size:11px;color:var(--ink-300);">Không áp dụng</span>');
+  const rows=members.map(s=>{
+    const cells=prods.map(pr=>{
+      if(!pr.visible||!pr.visible.includes(s.id)) return '<td style="font-size:11px;color:var(--ink-300);">Không áp dụng</td>';
+      const st=pr.state[s.id]; const reason=(pr.reason||{})[s.id]||'';
+      return `<td title="${reason}">${stBadge(st)}${reason?`<div style="font-size:10.5px;color:var(--amber-600);max-width:180px;">${reason}</div>`:''}</td>`;
+    }).join('');
+    const rd=readiness(s.id);
+    return `<tr${rd.B>0?' style="background:#fff8f8;"':''}><td><b style="font-size:12.5px;">${s.name}</b><div style="font-size:11px;color:var(--ink-300);">${s.role}</div></td>${cells}<td>${rd.B>0?`<a class="btn btn-secondary btn-sm" href="?view=seller&seller=${s.id}&scope=${scope}">Xem rủi ro</a>`:''}</td></tr>`;
+  }).join('');
+  return `<div class="section-title"><h2>Quyền bán theo sản phẩm</h2><span class="subtitle">Trạng thái license/training/authorization từng seller · dòng đỏ = có sản phẩm bị chặn</span></div>
+  <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên</th>${prods.map(p=>`<th>${p.name}</th>`).join('')}<th></th></tr></thead><tbody>${rows||'<tr><td colspan="9"><div class="empty-state">Không có thành viên.</div></td></tr>'}</tbody></table></div>
+  <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Quyền bán cấu hình ở tầng Distribution — Portal chỉ hiển thị, không chỉnh sửa.</div>`;
+}
+// Tab Hiệu suất (P2): bảng KPI đầy đủ + cột Nhận định/Hành động (manager biết làm gì tiếp).
+function teamPerf(scope,members){
+  const rows=members.map(s=>{
+    const k=BANCA.kpi[s.id]||{}; const sApps=BANCA.applications.filter(a=>a.owner===s.id);
+    const prem=sApps.filter(a=>a.status==='ISSUED').reduce((x,a)=>x+appPremium(a),0);
+    const issued=sApps.filter(a=>a.status==='ISSUED').length;
+    const subm=sApps.filter(a=>a.submissionState==='SUBMITTED').length;
+    const ovd=sApps.filter(a=>a.status==='NEED_MORE_INFO').length;
+    const issue=memberIssue(s);
+    const verdict = issue.level>0
+      ? `<div style="font-size:12px;font-weight:600;color:${issue.tone};">${issue.label}</div><a class="btn btn-secondary btn-sm" style="margin-top:4px;" href="?view=seller&seller=${s.id}&scope=${scope}" onclick="event.stopPropagation()">Xem chi tiết</a>`
+      : `<div style="font-size:12px;color:var(--teal-600);">Ổn định</div>`;
+    return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'">
+     <td><b style="font-size:12.5px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}</td>
+     <td style="font-size:12px;">${BANCA.vnd(prem)}</td><td>${issued}</td><td>${subm}</td>
+     <td>${k.conversion||'Chưa có dữ liệu'}</td><td>${k.target||'Chưa đặt'}</td>
+     <td style="${ovd?'color:var(--red-600);':''}">${ovd||'Không phát sinh'}</td>
+     <td style="font-size:11px;color:var(--ink-300);">${(sApps[0]||{}).updatedAt||'Không phát sinh'}</td>
+     <td onclick="event.stopPropagation();">${verdict}</td></tr>`;
+  }).join('');
+  return `<div class="section-title"><h2>Hiệu suất thành viên</h2><span class="subtitle">Kỳ Tháng 07/2026 · hiển thị ${members.length} thành viên trong phạm vi hiện tại</span></div>
+  <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên</th><th>Premium</th><th>Đã phát hành</th><th>Đã nộp</th><th>Tỷ lệ chuyển đổi</th><th>Tiến độ chỉ tiêu</th><th>Quá hạn</th><th>Hoạt động gần nhất</th><th>Nhận định / Hành động</th></tr></thead><tbody>${rows||'<tr><td colspan="9"><div class="empty-state">Không có thành viên trong phạm vi hiện tại.</div></td></tr>'}</tbody></table></div>`;
+}
+function teamCases(scope){
+  const apps=appsOf(scope); const flt=qs.get('filter')||''; const stage=qs.get('stage')||'';
+  const fSeller=qs.get('seller2')||''; const fProd=qs.get('prod')||''; const fSt=qs.get('cst')||'';
+  let list=apps.slice();
+  if(flt==='support') list=list.filter(a=>['NEED_MORE_INFO','PENDING_PAYMENT','REJECTED'].includes(a.status));
+  if(stage==='unsub') list=list.filter(a=>a.submissionState==='NOT_SUBMITTED');
+  else if(stage&&stage!=='') { const map={NEW:['PENDING_RECEIPT'],UW:['PENDING_UW','IN_UW','NEED_MORE_INFO','UW_DECIDED'],CONFIRM:['PENDING_CUSTOMER_CONFIRM'],PAYMENT:['PENDING_PAYMENT','PAID'],ISSUE:['PENDING_ISSUE'],DONE:['ISSUED']}; if(map[stage]) list=list.filter(a=>map[stage].includes(a.status)); }
+  if(fSt) list=list.filter(a=>a.status===fSt);
+  if(fProd) list=list.filter(a=>(a.productRef||a.product||'')===fProd);
+  const banner=flt||stage?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Lọc: <b>${flt==='support'?'Cần hỗ trợ':stage?('Stage '+stage):''}</b> · <a href="?view=team&scope=${scope}&t=cases" style="color:var(--brand-600);">bỏ lọc</a></div>`:'';
+  const statuses=[...new Set(apps.map(a=>a.status))];
+  return `${banner}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <select onchange="setFilter('cst',this.value)" style="padding:7px;border:1px solid var(--line);border-radius:7px;font-size:12px;"><option value="">Mọi trạng thái</option>${statuses.map(s=>`<option ${fSt===s?'selected':''} value="${s}">${s}</option>`).join('')}</select>
+    <input placeholder="🔍 Tìm hồ sơ/khách" oninput="filterRows('cs',this.value)" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;min-width:180px;">
+  </div>
+  <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Hồ sơ</th><th>Khách</th><th>Seller</th><th>Trạng thái</th><th>Cập nhật</th><th></th></tr></thead><tbody id="cs-body">${list.length?list.map(a=>`<tr><td><a href="${appUrl(a.id)}" style="color:var(--brand-600);font-weight:600;">${a.id}</a></td><td style="font-size:12px;">${custName(a.customerId)}</td><td style="font-size:12px;">${(BANCA.personas[a.owner]||{}).name||a.owner}</td><td style="font-size:12px;">${BANCA.appStatusBadge?BANCA.appStatusBadge(a.status):a.status}</td><td style="font-size:12px;color:var(--ink-300);">${a.updatedAt||'—'}</td><td>${RO?`<button class="btn btn-secondary btn-sm" onclick="openMirrorCase('${a.id}','${a.source||'JANUS_CRM'}')">Xem mirror</button>`:`<a class="btn btn-secondary btn-sm" href="${appUrl(a.id)}">Xem</a>`}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state">Không có hồ sơ khớp bộ lọc.</div></td></tr>`}</tbody></table></div>`;
+}
+// Tab Công việc — chỉ hoạt động vận hành bán hàng (task/handoff/delegation/exception). KHÔNG coaching.
+function buildTaskRows(scope,members){
+  const memberIds=members.map(s=>s.id);
+  const pend=(BANCA.pendingAssignment?BANCA.pendingAssignment(scope,me):[]);
+  const waiting=BANCA.handoffs.filter(h=>memberIds.includes(h.targetSeller)&&['PENDING_ACCEPTANCE','ASSIGNED','NEED_MORE_INFORMATION'].includes(h.state));
+  const tasks=[]; memberIds.forEach(id=>{ ((BANCA.tasks||{})[id]||[]).forEach(tk=>tasks.push({assignee:id,...tk})); });
+  const overdueEx=exceptionsOf(scope).filter(e=>e.akind!=='integration');
+  let rows=[];
+  pend.forEach(h=>rows.push({cat:'assign',who:'Chưa phân công',cust:h.customerName,note:h.productName||'',due:h.acceptBy,cta:`<button class="btn btn-primary btn-sm" onclick="openAssign('${h.id}','${scope}')">Phân công</button>`}));
+  waiting.forEach(h=>rows.push({cat:'accept',who:BANCA.pName(h.targetSeller),cust:h.customerName,note:BANCA.handoffTypeLabel(h.type),due:h.acceptBy,cta:`<span style="font-size:11px;color:var(--ink-300);">Chờ seller</span>`}));
+  tasks.forEach(tk=>rows.push({cat:'task',who:BANCA.pName(tk.assignee),cust:tk.case||'—',note:tk.text,due:tk.due||'—',cta:`<span style="font-size:11px;color:var(--ink-300);">Đang thực hiện</span>`}));
+  overdueEx.forEach(e=>rows.push({cat:'overdue',who:e.ownerName,cust:e.cust?custName(e.cust):'—',note:e.id,due:e.due||'—',cta:exAction(e)}));
+  return rows;
+}
+function teamTasks(scope,members){
+  const sub=qs.get('sub')||'ALL';
+  const all=buildTaskRows(scope,members);
+  const cnt=c=>c==='ALL'?all.length:all.filter(x=>x.cat===c).length;
+  let rows = sub==='ALL'?all:all.filter(x=>x.cat===sub);
+  const subs=[['ALL','Tất cả'],['assign','Chờ phân công'],['accept','Chờ tiếp nhận'],['task','Đã giao'],['overdue','Quá hạn']];
+  const subBar=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${subs.map(([k,l])=>`<a href="?view=team&scope=${scope}&t=tasks&sub=${k}" class="chip" style="cursor:pointer;text-decoration:none;padding:6px 12px;font-size:12px;${sub===k?'background:var(--brand-600);color:#fff;':''}">${l} (${cnt(k)})</a>`).join('')}</div>`;
+  const catBadge=c=>({assign:['Phân công bán hàng','#fff6e6','var(--amber-600)'],accept:['Bàn giao','#eefaf7','var(--teal-600)'],task:['Hồ sơ','#eef4ff','var(--brand-600)'],overdue:['Quá hạn','#fdecec','var(--red-600)']}[c]||[c,'#eef0f4','var(--ink-500)']);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;"><div class="section-title" style="margin:0;"><h2>Công việc</h2><span class="subtitle">Task, bàn giao & việc quá hạn liên quan bán hàng — không có coaching</span></div>${BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-secondary btn-sm" onclick="pickSeller()">+ Giao việc</button>`:''}</div>
+  ${subBar}
+  ${rows.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Loại</th><th>Người thực hiện</th><th>Case/Khách</th><th>Nội dung</th><th>Hạn</th><th></th></tr></thead><tbody>${rows.map(x=>{const b=catBadge(x.cat);const due=(x.due&&x.due!=='—')?x.due:'Chưa có hạn';const note=x.note||'Chưa có dữ liệu';const who=x.who||'Chưa phân công';return `<tr><td><span class="badge" style="background:${b[1]};color:${b[2]};font-size:9px;">${b[0]}</span></td><td style="font-size:12px;">${who}</td><td style="font-size:12px;">${x.cust||'Chưa có dữ liệu'}</td><td style="font-size:12px;color:var(--ink-600);">${note}</td><td style="font-size:11.5px;color:var(--ink-500);">${due}</td><td>${x.cta}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--teal-600);">✓ Không có công việc nào trong bộ lọc.</div>`}`;
+}
+window.pickSeller=()=>{ const scope=qs.get('scope')||BANCA.defaultScope(me); const members=membersOf(scope); showModal(`<h3 style="margin:0 0 8px;">Chọn nhân viên để giao việc</h3>${members.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);"><span style="font-size:13px;">${s.name}</span><button class="btn btn-secondary btn-sm" onclick="closeModal();openTask('${s.id}')">Chọn</button></div>`).join('')}<div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`); };
+
+/* ============================ CHI TIẾT NHÂN VIÊN (1 trang tổng hợp) ============================ */
+function renderSeller(){
+  const id=qs.get('seller'); const s=BANCA.personas[id]; const scope=qs.get('scope')||BANCA.defaultScope(me);
+  if(!s || !BANCA.inManagerScope(s,me)){ shell('Đội nhóm','Ngoài scope',`<div class="card"><div class="alert2 danger">Nhân viên <b>${id}</b> ngoài scope quản lý của bạn. Direct URL vẫn bị kiểm tra scope.</div></div>`,{startSale:false}); return; }
+  const rd=readiness(id), k=BANCA.kpi[id]||{}; const sApps=BANCA.applications.filter(a=>a.owner===id);
+  const draftN=sApps.filter(a=>a.submissionState==='NOT_SUBMITTED').length;
+  const subN=sApps.filter(a=>a.submissionState==='SUBMITTED').length;
+  const needMore=sApps.filter(a=>a.status==='NEED_MORE_INFO').length;
+  const overdue=needMore;
+  const waiting=(BANCA.handoffsForSeller?BANCA.handoffsForSeller(id):[]).length;
+  const tasks=((BANCA.tasks||{})[id]||[]);
+  const stVN={READY:'Có thể bán',CONDITIONAL:'Bán có điều kiện',BLOCKED:'Chưa thể bán',SERVICE_UNVERIFIED:'Chưa xác thực'};
+  const stTone={READY:'var(--teal-600)',CONDITIONAL:'var(--amber-600)',BLOCKED:'var(--red-600)',SERVICE_UNVERIFIED:'var(--ink-500)'};
+  const subUrl=r+'modules/submitted-applications/index.html?scope='+scope;
+  const unsubUrl=r+'modules/unsubmitted-applications/index.html?scope='+scope;
+  const polUrl=r+'modules/policies/index.html?scope='+scope;
+  // ---------- EMPLOYEE COMMAND BAR (header + badge + action) ----------
+  // Badge CHỈ tóm tắt số lượng — chi tiết (license, bind rule...) nằm ở khối Rủi ro, không truncate.
+  const statusBadges=[];
+  statusBadges.push(`<span class="badge ${s.status==='ACTIVE'?'badge-ready':'badge-blocked'}">Selling ${s.status==='ACTIVE'?'bật':'tắt'}</span>`);
+  if(rd.B>0) statusBadges.push(`<span class="badge badge-blocked" style="font-weight:700;">${rd.B} sản phẩm bị chặn</span>`);
+  if(rd.C>0) statusBadges.push(`<span class="badge badge-conditional">${rd.C} bán có điều kiện</span>`);
+  if(k.target) statusBadges.push(`<span class="badge badge-version">Chỉ tiêu ${k.target}</span>`);
+  // "Chuyển người phụ trách" là action tác động lớn → chuyển vào menu Khác + risk item (có context), KHÔNG ở header chính.
+  const moreMenu=`<div class="ovf"><button class="btn btn-secondary btn-sm" onclick="this.nextElementSibling.classList.toggle('open')">Khác ▾</button><div class="ovf-menu">
+      ${BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS')?`<a href="#" onclick="openReassign(null,'${id}');return false;">${BANCA.reassignActionLabel(me)}</a>`:''}
+      <a href="${r}modules/employee-profile/index.html">Hồ sơ nhân viên / chứng chỉ</a>
+      <a href="#" onclick="openAudit();return false;">Nhật ký kiểm toán</a>
+      ${P.visibility.unmaskPII?'':`<a href="#" onclick="openUnmask('${id}','PII');return false;" title="Dữ liệu khách được mask mặc định — mở cần lý do, ghi audit">🛡 Yêu cầu xem PII</a>`}
+    </div></div>`;
+  const header=`<div class="card" style="padding:16px 18px;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <div style="font-size:17px;font-weight:800;">${s.name}</div>
+        <div style="font-size:12.5px;color:var(--ink-500);margin-top:2px;">${s.title||s.role} · ${s.rm||''} · ${s.team||'Chưa gán đội'} · ${s.branch}</div>
+        <div style="font-size:12px;color:var(--ink-300);margin-top:2px;">Quản lý: ${(BANCA.personas[s.manager]||{}).name||'Chưa gán'} · Hoạt động gần nhất: ${fmtVNDate((sApps[0]||{}).updatedAt)||'Không phát sinh'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${statusBadges.join(' ')}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">
+        ${BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-primary btn-sm" onclick="openTask('${id}')">Giao việc</button>`:''}
+        <a class="btn btn-secondary btn-sm" href="${subUrl}" title="🛡 Dữ liệu khách trong danh sách được mask mặc định">Xem hồ sơ</a>
+        ${moreMenu}
+      </div>
+    </div></div>`;
+  // ---------- RỦI RO CẦN CHÚ Ý (P0 — ngay sau header) ----------
+  const riskItems=rd.items.filter(it=>it.state==='BLOCKED'||it.state==='CONDITIONAL');
+  const riskCta=(it)=>{
+    if(it.state==='BLOCKED'){
+      const isTraining=/training|chứng chỉ|đào tạo/i.test(it.reason||'');
+      return `${isTraining&&BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-primary btn-sm" onclick="openTask('${id}')">Giao training</button>`:''}<a class="btn btn-secondary btn-sm" href="${r}modules/employee-profile/index.html">Xem chứng chỉ</a>`;
+    }
+    return `<a class="btn btn-secondary btn-sm" href="${unsubUrl}">Xem hồ sơ chịu ảnh hưởng</a>${BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS')?`<button class="btn btn-secondary btn-sm" onclick="openReassign(null,'${id}')">${BANCA.reassignActionLabel(me)}</button>`:''}`;
+  };
+  const riskBlock = riskItems.length ? `<div class="card" style="padding:14px 16px;margin-bottom:14px;border:1.5px solid ${rd.B>0?'var(--red-600)':'#ffe0a3'};background:${rd.B>0?'#fdf6f6':'#fffdf5'};">
+    <div style="font-size:14px;font-weight:800;color:${rd.B>0?'var(--red-600)':'var(--amber-600)'};">⚠ Rủi ro cần chú ý</div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+      ${riskItems.map((it,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid ${it.state==='BLOCKED'?'#f2c9c9':'#ffe0a3'};border-radius:8px;padding:10px 12px;">
+        <div><b style="font-size:13px;">${i+1}. ${it.name}:</b> <span style="color:${stTone[it.state]};font-weight:600;font-size:12.5px;">${stVN[it.state]}</span>
+          <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">Lý do: ${it.reason||'Chưa có dữ liệu'}</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${riskCta(it)}</div>
+      </div>`).join('')}
+    </div></div>` : '';
+  // ---------- CỘT TRÁI: tình trạng bán (bảng đầy đủ, THU GỌN mặc định khi đã có Risk block để tránh trùng) ----------
+  const sellRows = rd.items.map(it=>`<tr>
+      <td style="font-size:12.5px;"><b>${it.name}</b></td>
+      <td><span class="badge ${it.state==='READY'?'badge-ready':it.state==='CONDITIONAL'?'badge-conditional':'badge-blocked'}">${stVN[it.state]||it.state}</span></td>
+      <td style="font-size:12px;color:${it.state==='READY'?'var(--ink-300)':'var(--amber-600)'};">${it.reason||'Không có hạn chế'}</td>
+    </tr>`).join('');
+  const sellTable = rd.items.length
+    ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Sản phẩm</th><th>Trạng thái</th><th>Hạn chế</th></tr></thead><tbody>${sellRows}</tbody></table></div>`
+    : `<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--ink-500);">Chưa gán sản phẩm cho nhân viên này. <a href="${r}modules/employee-profile/index.html" style="color:var(--brand-600);">Xem hồ sơ nhân viên →</a></div>`;
+  // Nếu đã có Risk block phía trên → bảng đầy đủ thu gọn trong <details>; không có risk → hiện luôn.
+  const selling = riskItems.length
+    ? `<details style="margin-bottom:4px;"><summary style="cursor:pointer;font-size:13.5px;font-weight:700;padding:6px 0;color:var(--ink-700);">Tình trạng bán hàng theo sản phẩm <span style="font-weight:400;font-size:12px;color:var(--ink-500);">(${rd.R} bán được · ${rd.C} có điều kiện · ${rd.B} bị chặn — bấm để xem đầy đủ)</span></summary>${sellTable}<div style="font-size:11px;color:var(--ink-300);margin:4px 0 0;">Chi tiết license/training tại Hồ sơ nhân viên.</div></details>`
+    : `<div class="section-title"><h2>Tình trạng bán hàng theo sản phẩm</h2><span class="subtitle">${rd.R} bán được · ${rd.C} có điều kiện · ${rd.B} bị chặn</span></div>${sellTable}
+    <div style="font-size:11px;color:var(--ink-300);margin:4px 0 0;">Chi tiết license/training tại Hồ sơ nhân viên.</div>`;
+  // Workload → danh sách cần can thiệp
+  const wlLines=[];
+  wlLines.push(`<div style="font-size:13px;"><b>${sApps.length} hồ sơ đang xử lý</b> — ${draftN} chưa nộp · ${subN} đã nộp</div>`);
+  wlLines.push(needMore?`<div style="font-size:12.5px;color:var(--red-600);margin-top:4px;">⚠ ${needMore} hồ sơ cần bổ sung trước hạn</div>`:`<div style="font-size:12.5px;color:var(--ink-500);margin-top:4px;">Không có hồ sơ cần bổ sung</div>`);
+  wlLines.push(waiting?`<div style="font-size:12.5px;color:var(--amber-600);">⏳ ${waiting} bàn giao chờ tiếp nhận</div>`:`<div style="font-size:12.5px;color:var(--ink-500);">Không có bàn giao chờ tiếp nhận</div>`);
+  if(rd.C>0&&draftN>0) wlLines.push(`<div style="font-size:12.5px;color:var(--amber-600);margin-top:2px;">💡 Có hồ sơ thuộc sản phẩm bán có điều kiện — có thể cần hỗ trợ khi chốt</div>`);
+  const workload=`<div class="section-title" style="margin-top:16px;"><h2>Khối lượng công việc</h2></div>
+    <div class="card" style="padding:14px 16px;">${wlLines.join('')}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        ${draftN?`<a class="btn btn-secondary btn-sm" href="${unsubUrl}">Xem ${draftN} hồ sơ chưa nộp</a>`:''}
+        ${subN?`<a class="btn btn-secondary btn-sm" href="${subUrl}">Xem ${subN} hồ sơ đã nộp</a>`:''}
+        ${needMore?`<a class="btn btn-primary btn-sm" href="${subUrl}&group=UW">Xử lý ${needMore} cần bổ sung</a>`:''}
+        ${waiting?`<a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=accept">Xem chờ tiếp nhận</a>`:''}
+      </div></div>`;
+  // Công việc đang mở — empty state có CTA + nêu kỳ cụ thể
+  const openTasks=`<div class="section-title" style="margin-top:16px;"><h2>Công việc đang mở</h2></div>
+    ${tasks.length?tasks.slice(0,5).map(tk=>`<div class="card" style="padding:10px 14px;margin-bottom:8px;"><div style="font-size:12.5px;color:var(--ink-700);">${tk.text}</div><div style="font-size:11px;color:var(--ink-300);">${tk.case?'Hồ sơ '+tk.case+' · ':''}Hạn ${tk.due||'Chưa có hạn'} · ${tk.at}</div></div>`).join('')+`<a href="?view=team&scope=${scope}&t=tasks" style="font-size:12.5px;color:var(--brand-600);">Xem tất cả công việc →</a>`
+    :`<div class="card" style="padding:14px 16px;"><div style="font-size:12.5px;color:var(--ink-500);">Không có task đang mở trong Tháng 07/2026.</div>
+       <div style="display:flex;gap:8px;margin-top:10px;">${BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-primary btn-sm" onclick="openTask('${id}')">Giao việc mới</button>`:''}<a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=tasks">Xem lịch sử công việc</a></div></div>`}`;
+  // ---------- CỘT PHẢI: KPI 2 nhóm — gom metric thiếu dữ liệu thành 1 câu ----------
+  const noData='<span style="font-size:11px;color:var(--ink-300);">Chưa có dữ liệu kỳ này</span>';
+  const convCtx = (k.policies!=null&&subN) ? `<div style="font-size:10.5px;color:var(--ink-300);">${k.policies||0} phát hành / ${subN} đã nộp</div>` : '';
+  const kpiCell=(l,v,sub)=>`<div class="kpi"><span>${l}</span><b style="font-size:13.5px;">${v}</b>${sub||''}</div>`;
+  // Chất lượng xử lý: chỉ hiện metric CÓ dữ liệu; metric thiếu gom vào 1 câu.
+  const qualityDefs=[['Tuân thủ SLA',k.sla],['Hồ sơ bị trả lại',k.rejectRate],['Báo giá→Nộp',k.q2s],['Nộp→Phát hành',k.s2i]];
+  const qHave=qualityDefs.filter(([,v])=>v);
+  const qMiss=qualityDefs.filter(([,v])=>!v).map(([l])=>l.toLowerCase());
+  const qualityBlock=`<div class="section-title" style="margin-top:14px;"><h2>Chất lượng xử lý</h2></div>
+    ${qHave.length?`<div class="kpi-strip" style="grid-template-columns:1fr 1fr;">${qHave.map(([l,v])=>kpiCell(l,v)).join('')}</div>`:''}
+    ${qMiss.length?`<div class="card" style="padding:10px 14px;font-size:12px;color:var(--ink-400);${qHave.length?'margin-top:8px;':''}">Chưa có đủ dữ liệu trong Tháng 07/2026 để tính ${qMiss.join(', ')}.</div>`:''}`;
+  const perf=`<div class="section-title"><h2>Kết quả bán hàng</h2><span class="subtitle">Tháng 07/2026</span></div>
+    <div class="kpi-strip" style="grid-template-columns:1fr 1fr;">
+      ${kpiCell('Premium',BANCA.vnd(k.premium))}
+      ${kpiCell('Hợp đồng phát hành',k.policies||0)}
+      ${kpiCell('Tỷ lệ chuyển đổi',k.conversion||noData,convCtx)}
+      ${kpiCell('Hoàn thành chỉ tiêu',k.target||noData)}
+    </div>${qualityBlock}`;
+  // Tổ chức đã có đủ ở header (đơn vị + quản lý + mã NV) → cột phải chỉ giữ link audit mở rộng.
+  const auditCard=`<div class="card" style="padding:10px 14px;font-size:12px;color:var(--ink-400);margin-top:14px;">Thông tin mở rộng: <a href="#" onclick="openAudit();return false;" style="color:var(--brand-600);">Nhật ký kiểm toán</a> · <a href="${r}modules/employee-profile/index.html" style="color:var(--brand-600);">Hồ sơ nhân viên</a></div>`;
+  // ---------- TABS ngữ cảnh nhân viên — có COUNT ----------
+  const polN=(BANCA.myPolicies?BANCA.myPolicies():[]).filter(x=>x.owner===id).length;
+  const certN=(BANCA.certifications&&BANCA.certifications[id]?BANCA.certifications[id].length:null);
+  const tabDefs=[['Tổng quan',null,null,true],['Hồ sơ chưa nộp',unsubUrl,draftN],['Hồ sơ đã nộp',subUrl,subN],['Hợp đồng',polUrl,polN],['Công việc','?view=team&scope='+scope+'&t=tasks',tasks.length],['Chứng chỉ',r+'modules/employee-profile/index.html',certN]];
+  const sellerTabs=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+    ${tabDefs.map(([l,href,cnt,on])=>{const lbl=l+(cnt!=null?` (${cnt})`:''); return on?`<span class="tab" style="padding:7px 14px;border-radius:8px;font-size:12.5px;background:var(--brand-600);color:#fff;font-weight:600;">${lbl}</span>`
+        :`<a href="${href}" class="tab" style="text-decoration:none;padding:7px 14px;border-radius:8px;font-size:12.5px;background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);">${lbl}</a>`;}).join('')}
+  </div>`;
+  // ---------- LAYOUT 2 cột (65/35, responsive) ----------
+  const body=`${header}${riskBlock}${sellerTabs}
+    <div style="display:grid;grid-template-columns:65fr 35fr;gap:18px;align-items:start;" class="seller-2col">
+      <div>${selling}${workload}${openTasks}</div>
+      <div>${perf}${auditCard}</div>
+    </div>
+    <style>@media(max-width:900px){.seller-2col{grid-template-columns:1fr!important;}}</style>`;
+  shell('Đội nhóm', s.name+' — chi tiết nhân viên', headerBar('Chi tiết nhân viên')+`<a href="?view=team&scope=${scope}&t=members" style="font-size:12.5px;color:var(--brand-600);">← Thành viên</a>`+body+modalHost(), {startSale:false});
+}
+
+/* ============================ MODALS ============================ */
+function modalHost(){ return `<div id="mgr-modal"></div>`; }
+function showModal(html){ document.getElementById('mgr-modal').innerHTML=`<div class="modal-ov" onclick="if(event.target===this)closeModal()"><div class="modal-bx">${html}</div></div>`; }
+window.closeModal=()=>{ const m=document.getElementById('mgr-modal'); if(m)m.innerHTML=''; };
+function toast(msg){ const t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;'; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+function addTask(sellerId,text,caseId,due){ BANCA.tasks=BANCA.tasks||{}; BANCA.tasks[sellerId]=BANCA.tasks[sellerId]||[]; BANCA.tasks[sellerId].unshift({text,case:caseId||null,due:due||null,at:new Date().toLocaleString('vi-VN'),status:'OPEN'}); }
+// Giao việc — bắt buộc gắn hồ sơ/khách/handoff/readiness (không phải task đánh giá nhân sự).
+window.openTask=(sellerId,caseId)=>{ if(!BANCA.canDo('ASSIGN_TASK'))return toast('Chưa được cấp quyền giao việc.'); const s=BANCA.personas[sellerId]||{}; showModal(`<h3 style="margin:0 0 8px;">Giao việc cho ${s.name||sellerId}</h3>${caseId?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Gắn hồ sơ ${caseId}</div>`:''}
+   <div class="label" style="margin-bottom:4px;">Loại công việc</div><select id="tk-type" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;"><option>Hồ sơ</option><option>Tài liệu</option><option>Thanh toán</option><option>Tái tục</option><option>Readiness</option><option>Hỗ trợ</option></select>
+   <textarea id="tk-text" placeholder="Nội dung việc (gắn hồ sơ/khách/handoff)…" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;"></textarea>
+   <div style="display:flex;gap:8px;margin-top:8px;"><input id="tk-case" placeholder="Mã hồ sơ/khách" value="${caseId||''}" style="flex:1;padding:7px;border:1px solid var(--line);border-radius:7px;"><input type="date" id="tk-due" style="padding:7px;border:1px solid var(--line);border-radius:7px;"></div>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doTask('${sellerId}')">Giao việc</button></div>`); };
+window.doTask=(sellerId)=>{ const text=(document.getElementById('tk-text').value||'').trim(); if(!text)return toast('Nhập nội dung.'); const cs=(document.getElementById('tk-case')||{}).value||''; const due=(document.getElementById('tk-due')||{}).value||''; const type=(document.getElementById('tk-type')||{}).value||''; if(!cs)return toast('Task phải gắn hồ sơ/khách/handoff.'); BANCA.audit({action:'ASSIGN_TASK',seller:sellerId,case:cs,text:type+': '+text}); addTask(sellerId,type+': '+text,cs,due); closeModal(); toast('Đã giao việc (demo).'); };
+window.openReassign=(caseId,fromSeller)=>{ if(!(BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS')))return toast('Chưa được cấp quyền chuyển.'); const title=BANCA.reassignActionLabel(me); const warn=EMBED?`<div class="card" style="padding:10px;background:#eaf1ff;border-color:#c7d8ff;font-size:12px;color:#274690;margin-bottom:10px;">⚠️ Embed: chỉ <b>điều chỉnh ghi nhận (attribution)</b> cho KPI/hoa hồng. <b>Không</b> đổi owner thật trong hệ thống ngân hàng.</div>`:`<div class="card" style="padding:10px;background:#fff6e6;border-color:#ffe0a3;font-size:12px;color:#8a5a00;margin-bottom:10px;">Đổi <b>owner thực tế</b>, cập nhật task & notification, kiểm tra readiness người nhận, ghi audit.</div>`; const cands=membersOf(BANCA.defaultScope(me)).filter(s=>s.id!==fromSeller&&s.status==='ACTIVE'); showModal(`<h3 style="margin:0 0 8px;">${title}${caseId?' · '+caseId:''}</h3>${warn}<div class="label" style="margin-bottom:6px;">Người nhận</div><select id="ra-to" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;">${cands.map(s=>`<option value="${s.id}">${s.name} · ${s.role}</option>`).join('')}</select><div class="label" style="margin-bottom:6px;">Lý do (bắt buộc — ghi audit)</div><input id="ra-reason" placeholder="Lý do" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doReassign('${caseId||''}','${fromSeller||''}')">${title}</button></div>`); };
+window.doReassign=(caseId,fromSeller)=>{ const reason=(document.getElementById('ra-reason').value||'').trim(); if(!reason)return toast('Nhập lý do.'); const to=document.getElementById('ra-to').value; BANCA.audit({action:EMBED?'RE_ATTRIBUTION':'REASSIGN',case:caseId,from:fromSeller,to,reason,mode:EMBED?'EMBED':'PORTAL'}); closeModal(); toast(EMBED?'Đã điều chỉnh ghi nhận (không đổi owner bank).':'Đã chuyển người phụ trách (demo).'); };
+window.openUnmask=(sellerId,kind)=>{ showModal(`<h3 style="margin:0 0 8px;">Yêu cầu xem dữ liệu ${kind}</h3><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Manager không tự động xem PII/health. Mở dữ liệu cần lý do và sẽ ghi audit (user, thời điểm).</div><input id="um-reason" placeholder="Lý do" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doUnmask('${sellerId}','${kind}')">Xác nhận & ghi audit</button></div>`); };
+window.doUnmask=(sellerId,kind)=>{ const reason=(document.getElementById('um-reason').value||'').trim(); if(!reason)return toast('Nhập lý do.'); BANCA.audit({action:'UNMASK_'+kind,seller:sellerId,reason}); closeModal(); toast('Đã ghi audit mở '+kind+' (demo).'); };
+window.openAssign=(id,scope)=>{
+  const h=BANCA.handoffById(id); if(!h) return;
+  const cands=membersOf(scope||BANCA.defaultScope(me)).filter(s=>s.status==='ACTIVE').map(s=>{
+    const prod=(BANCA.products||[]).find(p=>p.id===h.productRef); const st=prod?(prod.state[s.id]||'—'):'—';
+    const eligible= prod? prod.visible.includes(s.id) && ['READY','CONDITIONAL'].includes(st) : true;
+    const load=BANCA.applications.filter(a=>a.owner===s.id&&a.submissionState==='SUBMITTED').length;
+    return {s,st,eligible,load};
+  });
+  showModal(`<h3 style="margin:0 0 6px;">Phân công · ${h.customerName}</h3>
+   <div class="card" style="padding:10px;background:var(--paper);font-size:12px;margin-bottom:10px;">Khách hàng đã xác định (chỉ đọc): <b>${h.customerName}</b>${h.cif?' · CIF '+h.cif:''} · ${h.productName||''}. Người tư vấn: <b>${BANCA.participantName(h,'ADVISOR')||'—'}</b>. Bạn được ghi là <b>người phân công</b>, không thay người tư vấn/giới thiệu.</div>
+   <div class="label" style="margin-bottom:6px;">Chọn người bán đủ điều kiện</div>
+   ${cands.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border:1px solid ${c.eligible?'var(--line)':'#f2c9c9'};background:${c.eligible?'#fff':'#fdf2f2'};border-radius:8px;margin-bottom:6px;">
+     <div><div style="font-size:13px;font-weight:700;">${c.s.name}</div><div style="font-size:11px;color:var(--ink-500);">${c.s.role} · ${c.s.branch} · ${badge(c.st)} · ${c.load} hồ sơ đang xử lý${!c.eligible?' · <span style="color:var(--red-600);">không đủ điều kiện bán sản phẩm này</span>':' · khách trong scope'}</div></div>
+     ${c.eligible?`<button class="btn btn-primary btn-sm" onclick="doAssign('${id}','${c.s.id}')">Chọn</button>`:'<span style="font-size:11px;color:var(--ink-300);">—</span>'}
+   </div>`).join('')}
+   <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`);
+};
+window.doAssign=(id,sellerId)=>{ BANCA.assignHandoff(id,sellerId,me); closeModal(); toast('Đã phân công cho '+((BANCA.personas[sellerId]||{}).name||sellerId)+' — chờ tiếp nhận.'); setTimeout(()=>location.reload(),700); };
+window.openMirrorCase=(id,src)=>{ const app=BANCA.applications.find(a=>a.id===id)||{}; showModal(`<h3 style="margin:0 0 4px;">Hồ sơ mirror · chỉ đọc</h3>
+   <div class="card" style="padding:10px;background:#eaf1ff;border-color:#c7d8ff;font-size:12px;color:#274690;margin:8px 0 12px;">Bản sao dữ liệu từ hệ thống ngân hàng. Không thể chỉnh sửa, nộp, bind hay chuyển owner tại đây.</div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:12.5px;">
+     <div><span style="color:var(--ink-500);">Hệ thống nguồn:</span> <b>${src||'JANUS_CRM'}</b></div>
+     <div><span style="color:var(--ink-500);">Mã hồ sơ ngoài:</span> <b>${id}</b></div>
+     <div><span style="color:var(--ink-500);">Khách (mask):</span> ${app.customerId?custName(app.customerId):'••• ẩn'}</div>
+     <div><span style="color:var(--ink-500);">Trạng thái sync:</span> ${/EXT/.test(id)?'<span class="badge badge-blocked" style="font-size:9px;">Lỗi đồng bộ</span>':'<span class="badge badge-ready" style="font-size:9px;">Đã đồng bộ</span>'}</div>
+     <div><span style="color:var(--ink-500);">Đồng bộ lúc:</span> ${P.syncedAt||'—'}</div>
+     <div><span style="color:var(--ink-500);">Tham chiếu bank:</span> <span style="color:var(--ink-300);">core://janus/${id}</span></div>
+   </div>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">${/EXT/.test(id)?`<button class="btn btn-secondary btn-sm" onclick="retrySync('${id}')">Retry sync</button>`:''}<button class="btn btn-primary btn-sm" onclick="closeModal()">Đóng</button></div>`); };
+window.retrySync=(id)=>{ BANCA.audit({action:'RETRY_SYNC',case:id,mode:'EMBED'}); closeModal(); toast('Đã yêu cầu đồng bộ lại '+id+' (demo).'); };
+window.setFilter=(k,v)=>{ qs.set(k,v); location.search=qs.toString(); };
+window.filterRows=(pfx,q)=>{ q=(q||'').toLowerCase(); document.querySelectorAll('#'+pfx+'-body tr').forEach(tr=>{ tr.style.display=tr.textContent.toLowerCase().includes(q)?'':'none'; }); };
+window.drill=(k,scope)=>{ if(k==='support'||k==='policies'||k==='premium'){ location.href=r+'modules/submitted-applications/index.html?scope='+scope; return;} location.href='?view=team&scope='+scope+'&t=perf'; };
+
+/* ============================ ROUTER ============================ */
+if(view==='team') renderTeam();
+else if(view==='seller') renderSeller();
+else renderHome();
+}
+</script>
+<style>
+.ovf{position:relative;display:inline-block;}
+.ovf-menu{display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:50;min-width:160px;padding:4px;}
+.ovf-menu.open{display:block;}
+.ovf-menu a{display:block;padding:7px 10px;font-size:12.5px;color:var(--ink-700);text-decoration:none;border-radius:6px;}
+.ovf-menu a:hover{background:var(--paper);}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.modal-bx{background:#fff;border-radius:12px;padding:20px;width:min(440px,92vw);max-height:88vh;overflow:auto;}
+</style>
+</body></html>

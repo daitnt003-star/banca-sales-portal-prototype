@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma trận tài liệu bắt buộc — Bảo hiểm Ô tô</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --ink:#1f2733; --muted:#66738a;
+    --line:#e3e8ef; --head:#1e293b; --headink:#e8eef7;
+    --req:#dc2626; --cond:#d97706; --inherit:#2563eb; --none:#9aa6b8;
+    --reqbg:#fdecec; --condbg:#fdf3e3; --inheritbg:#eaf1fe; --nonebg:#f1f4f8;
+    --accent:#1d4ed8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.5;padding:32px 20px 64px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px}
+  h2{font-size:16px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);letter-spacing:.01em}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}
+  .lg{display:flex;align-items:center;gap:8px;font-size:13px;background:var(--card);
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .dot{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#fff;flex:0 0 auto}
+  .d-req{background:var(--req)} .d-cond{background:var(--cond)}
+  .d-inherit{background:var(--inherit)} .d-none{background:var(--none)}
+  /* table */
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  thead th{background:var(--head);color:var(--headink);text-align:center;padding:12px 10px;font-weight:600;
+    vertical-align:bottom;border-right:1px solid #334155}
+  thead th:first-child{text-align:left;width:29%}
+  thead th small{display:block;font-weight:400;color:#9fb0c7;font-size:11px;margin-top:3px}
+  tbody td{border-top:1px solid var(--line);border-right:1px solid var(--line);padding:11px 10px;text-align:center;vertical-align:middle}
+  tbody td:first-child{text-align:left}
+  tbody tr:nth-child(even){background:#fafbfd}
+  .docname{font-weight:600;color:var(--ink)}
+  .docsub{display:block;color:var(--muted);font-size:11.5px;font-weight:400;margin-top:2px}
+  .cell{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;font-weight:800;font-size:13px}
+  .c-req{background:var(--reqbg);color:var(--req)}
+  .c-cond{background:var(--condbg);color:var(--cond)}
+  .c-inherit{background:var(--inheritbg);color:var(--inherit)}
+  .c-none{background:var(--nonebg);color:var(--none)}
+  .ref{font-size:10px;color:var(--cond);font-weight:700;vertical-align:super;margin-left:2px}
+  /* rules */
+  .rules{list-style:none;padding:0;margin:0}
+  .rules li{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--cond);
+    border-radius:8px;padding:12px 14px;margin-bottom:9px;font-size:13.5px}
+  .rules li b{color:var(--accent)}
+  .tag{display:inline-block;background:var(--condbg);color:var(--cond);font-weight:700;font-size:11px;
+    border-radius:5px;padding:1px 6px;margin-right:6px}
+  /* pseudo */
+  pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:16px 18px;overflow:auto;font-size:12.5px;
+    line-height:1.6;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:0}
+  .kw{color:#93c5fd} .st{color:#fca5a5} .cm{color:#64748b}
+  .note{background:#eef6ff;border:1px solid #cfe2ff;border-radius:10px;padding:14px 16px;font-size:13px;color:#33507a}
+  .note b{color:#1d4ed8}
+  .foot{color:var(--muted);font-size:12px;margin-top:28px;text-align:center}
+  @media(max-width:720px){thead th:first-child{width:auto}body{padding:20px 12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ma trận tài liệu bắt buộc — Sản phẩm bảo hiểm Ô tô</h1>
+  <p class="sub">Quy tắc xác định tài liệu cần có theo từng loại phạm vi bảo hiểm. Dùng để cấu hình rule engine chặn nộp hồ sơ (cờ <code>MISSING_DOCUMENT</code>).</p>
+
+  <div class="legend">
+    <span class="lg"><span class="dot d-req">●</span> <b>Bắt buộc</b> — thiếu là chặn nộp</span>
+    <span class="lg"><span class="dot d-cond">◐</span> <b>Bắt buộc có điều kiện</b> — chỉ khi thỏa điều kiện</span>
+    <span class="lg"><span class="dot d-inherit">↻</span> <b>Kế thừa</b> — dùng lại kỳ trước nếu còn hợp lệ</span>
+    <span class="lg"><span class="dot d-none">○</span> <b>Không cần</b></span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Tài liệu</th>
+          <th>TNDS bắt buộc<small>(chỉ trách nhiệm dân sự)</small></th>
+          <th>Vật chất / Comprehensive<small>Cấp mới</small></th>
+          <th>Comprehensive<small>Tái tục</small></th>
+          <th>Xe giá trị cao / IDV lớn<small>(điều kiện bổ sung)</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="docname">1. Giấy đăng ký xe</span><span class="docsub">Xác định xe & chủ xe</span></td>
+          <td><span class="cell c-req">●</span></td>
+          <td><span class="cell c-req">●</span></td>
+          <td><span class="cell c-inherit">↻</span></td>
+          <td><span class="cell c-req">●</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">2. Giấy đăng kiểm còn hiệu lực</span><span class="docsub">Bắt buộc với ô tô — xác nhận xe đủ điều kiện lưu hành</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">a</span></td>
+          <td><span class="cell c-req">●</span></td>
+          <td><span class="cell c-req">●</span><span class="ref">b</span></td>
+          <td><span class="cell c-req">●</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">3. Ảnh hiện trạng xe</span><span class="docsub">4 góc + đồng hồ km + số khung / số máy</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-req">●</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">c</span></td>
+          <td><span class="cell c-req">●</span><span class="ref">d</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">4. CMND/CCCD chủ xe</span><span class="docsub">Cá nhân: CCCD · Tổ chức: ĐKKD + mã số thuế</span></td>
+          <td><span class="cell c-req">●</span></td>
+          <td><span class="cell c-req">●</span></td>
+          <td><span class="cell c-inherit">↻</span></td>
+          <td><span class="cell c-req">●</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">5. Giấy phép lái xe (GPLX)</span><span class="docsub">Chủ yếu cần ở khâu bồi thường</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">e</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">e</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">6. Chứng từ giá trị xe</span><span class="docsub">Hóa đơn VAT / HĐ mua bán / bảng giá — để xác định IDV</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">f</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-req">●</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">7. Giấy ủy quyền / HĐ thuê xe</span><span class="docsub">Khi người mua ≠ chủ xe đăng ký</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">g</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">g</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">g</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">g</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">8. Thông tin bên thụ hưởng</span><span class="docsub">Xe đang thế chấp / trả góp ngân hàng</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">h</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">h</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">h</span></td>
+        </tr>
+        <tr>
+          <td><span class="docname">9. Biên bản giám định / khảo sát xe</span><span class="docsub">Đánh giá rủi ro trước khi cấp</span></td>
+          <td><span class="cell c-none">○</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">i</span></td>
+          <td><span class="cell c-cond">◐</span><span class="ref">i</span></td>
+          <td><span class="cell c-req">●</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Điều kiện chi tiết (rule engine)</h2>
+  <ul class="rules">
+    <li><span class="tag">a</span> <b>Đăng kiểm — TNDS:</b> Với hồ sơ chỉ có TNDS bắt buộc, đăng kiểm là <i>khuyến nghị</i>, không chặn nộp. Bật thành bắt buộc nếu quy trình nội bộ yêu cầu xác minh xe đang lưu hành.</li>
+    <li><span class="tag">b</span> <b>Đăng kiểm — Tái tục:</b> <u>Không kế thừa bản cũ</u>. Phải kiểm tra ngày hết hạn đăng kiểm ≥ ngày hiệu lực đơn; nếu đã hết hạn → chặn.</li>
+    <li><span class="tag">c</span> <b>Ảnh hiện trạng — Tái tục:</b> Bắt buộc nếu <b>có gián đoạn bảo hiểm</b> (lapse), <b>chuyển từ đơn vị bảo hiểm khác</b>, hoặc kỳ trước từng có bồi thường. Miễn nếu tái tục liên tục cùng công ty và không có claim (có thể chụp mới định kỳ, ví dụ mỗi 2 năm).</li>
+    <li><span class="tag">d</span> <b>Ảnh — Xe giá trị cao:</b> Bổ sung <b>video 360°</b> hoặc khảo sát thực tế tại chỗ.</li>
+    <li><span class="tag">e</span> <b>GPLX:</b> Không bắt buộc khi cấp đơn với hồ sơ tiêu chuẩn (người mua có thể ≠ người lái). Bật thành bắt buộc nếu sản phẩm <b>định phí / giới hạn theo người lái được chỉ định</b> (named driver). <u>Luôn bắt buộc ở khâu bồi thường</u> — thuộc module claim, không thuộc khâu phát hành.</li>
+    <li><span class="tag">f</span> <b>Chứng từ giá trị — Cấp mới:</b> Bắt buộc nếu <b>xe mới 100%</b> (dùng hóa đơn để chốt IDV), hoặc <b>IDV khai báo lệch bảng giá thị trường quá ngưỡng</b> (ví dụ ±10%). Xe cũ định giá theo bảng khấu hao chuẩn thì không cần.</li>
+    <li><span class="tag">g</span> <b>Ủy quyền / HĐ thuê:</b> Kích hoạt khi <b>bên mua bảo hiểm hoặc người được bảo hiểm khác với chủ xe trên giấy đăng ký</b> (xe công ty, xe thuê tài chính, mua hộ).</li>
+    <li><span class="tag">h</span> <b>Bên thụ hưởng:</b> Kích hoạt khi xe <b>đang thế chấp / trả góp</b>. Cần văn bản xác nhận ngân hàng/tổ chức tín dụng là bên thụ hưởng quyền lợi bảo hiểm.</li>
+    <li><span class="tag">i</span> <b>Giám định trước cấp:</b> Kích hoạt khi xe <b>trên N năm tuổi</b> (ví dụ &gt; 10 năm), <b>có tiền sử tổn thất</b>, hoặc IDV vượt ngưỡng phân cấp duyệt.</li>
+  </ul>
+
+  <h2>Quy tắc chặn nộp hồ sơ</h2>
+  <div class="card" style="padding:16px 18px">
+    <pre><span class="cm">// Chỉ ● và ◐-đã-kích-hoạt mới tính là "thiếu tài liệu bắt buộc"</span>
+<span class="kw">for</span> (doc <span class="kw">of</span> requiredDocs) {
+  status = resolveRequirement(doc, {coverage, source, vehicle, owner, idv})
+  <span class="cm">// status ∈ { REQUIRED, CONDITIONAL, INHERITED, OPTIONAL }</span>
+
+  <span class="kw">if</span> (status === <span class="st">'INHERITED'</span> && hasValidPriorDoc(doc)) <span class="kw">continue</span>   <span class="cm">// dùng lại kỳ trước</span>
+  <span class="kw">if</span> (status === <span class="st">'OPTIONAL'</span>) <span class="kw">continue</span>
+
+  <span class="kw">if</span> ((status === <span class="st">'REQUIRED'</span> ||
+      (status === <span class="st">'CONDITIONAL'</span> && conditionMet(doc))) && !doc.uploaded) {
+    flag(<span class="st">'MISSING_DOCUMENT'</span>, doc)   <span class="cm">// → chặn nút "Nộp hồ sơ"</span>
+  }
+}</pre>
+  </div>
+
+  <div class="note" style="margin-top:22px">
+    <b>Giả định đang áp dụng</b> (điều chỉnh theo nghiệp vụ của bạn): sản phẩm dành cho <b>ô tô</b>; GPLX <b>không</b> bắt buộc ở khâu cấp đơn với hồ sơ tiêu chuẩn; hồ sơ tái tục được phép kế thừa giấy tờ định danh còn hợp lệ. Ba tham số điều khiển toàn bộ ma trận: <b>phạm vi bảo hiểm</b> (TNDS / vật chất), <b>nguồn hồ sơ</b> (cấp mới / tái tục) và <b>hồ sơ rủi ro</b> (giá trị xe, tuổi xe, tình trạng thế chấp).
+  </div>
+
+  <p class="foot">Tài liệu tham chiếu nội bộ · Cập nhật 2026-07-20</p>
+</div>
+</body>
+</html>

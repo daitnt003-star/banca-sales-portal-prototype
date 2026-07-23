@@ -1,0 +1,1 @@
+console.log("DUPLICATE_COMPONENT_SCAN_OK");

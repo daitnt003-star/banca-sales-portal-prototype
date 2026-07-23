@@ -712,7 +712,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Gói Bảo hiểm tai nạn cá nhân theo số tiền bảo hiểm — phí tính theo tuổi × nhóm nghề (${(BANCA.journeyFor('pa').packageSchemaId)}).</div>
    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="showPaCompare()">So sánh các gói</button></div>
    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">${cards}</div>${quoteBlock}`;
- } else if(cur.id==='RISK_OBJECT'){
+ } else if(cur.id==='RISK_OBJECT' && BANCA.journeyStageComponent(app.productId,'RISK_OBJECT')==='motorVehicle'){
   const v=app.vehicle||{};
   const brands=Object.keys(BANCA.vehicleMaster.brands);
   const models=BANCA.vehicleMaster.brands[v.brand]||BANCA.vehicleMaster.brands[brands[0]]||[];

@@ -78,3 +78,11 @@ Health trước đó chỉ là journey đơn insured với 1 mảng `insuredMemb
 - Beneficiary section chỉ hiện khi gói có quyền lợi tử vong — các gói health hiện tại không có, nên section hiển thị ghi chú "không cần" (đúng logic có điều kiện).
 - Quick Advice Health dùng gia đình minh họa (2 người lớn + 1 trẻ) theo gói được chọn; chưa thu compo thành viên thực từ form advisory (đúng tinh thần quick advice: không thu khai báo/OTP/tài liệu y tế).
 - Không chạy server/browser theo brief (orchestrator retest).
+
+---
+## Trạng thái verify (orchestrator retest, 2026-07-23)
+**Đã verify qua browser (evaluate DOM):** AC1 (shared workspace), AC2/AC5 (InsuredCoverageUnit + Member Navigator + phí riêng/tổng/chiết khấu), AC11 (submitted member matrix + derived overall status "Đang thẩm định" với 3 thành viên trạng thái hỗn hợp), AC14/AC15 (policy view-only member list + GCN per member, 0 field Motor). Không regression Motor/PA/home. node --check + inline parse + validate-terminology PASS.
+
+**Guard bổ sung:** app-workspace.js branch `RISK_OBJECT` nay guard `journeyStageComponent==='motorVehicle'` — chặn mọi product non-motor render template xe (reproduce: health+step=RISK_OBJECT không còn hiện xe; motor vẫn hiện xe).
+
+**CHƯA deep-test qua browser (NOT tested — cần test tay/mobile):** AC7-9 (OTP per-member ≥18/<18 flow đầy đủ), AC10 (submit guard chặn khi thành viên chưa xong), AC12-13 (payment CONSOLIDATED + breakdown end-to-end), responsive/mobile sticky bar + full-screen sheet, ZIP filename thực tế, deep-link reload, role không quyền tải/gửi. Các mục này đã implement trong code/seed nhưng CHƯA được orchestrator xác nhận trực quan (screenshot browser đang lỗi timeout).

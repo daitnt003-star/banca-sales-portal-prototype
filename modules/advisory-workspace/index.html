@@ -274,7 +274,7 @@ function sidebar(){
   const an=state.advisorStruct||{};
   return `<aside class="adv-side">
     <div class="card" style="padding:16px;">
-      <div class="label" style="margin-bottom:10px;">📊 Advisory Dashboard</div>
+      <div class="label" style="margin-bottom:10px;">📊 Bảng tư vấn</div>
       ${metric('Nhu cầu chính', state.primaryNeed?BANCA.needLabel(state.primaryNeed):'—')}
       ${metric('Ngân sách', state.budgetBand?BANCA.budgetLabel(state.budgetBand):'—')}
       ${metric('Mức rủi ro', rl[0], rl[1])}
@@ -289,7 +289,7 @@ function sidebar(){
       </div>
     </div>
     <div class="card" style="padding:14px 16px;">
-      <div class="label" style="margin-bottom:8px;">📝 Advisor Note</div>
+      <div class="label" style="margin-bottom:8px;">📝 Ghi chú tư vấn</div>
       ${[['concern','Mối quan tâm'],['budget','Ngân sách/rào cản phí'],['barrier','Rào cản'],['followup','Hẹn theo dõi'],['free','Ghi chú tự do']].map(([k,l])=>`<div style="margin-bottom:8px;"><div style="font-size:11px;color:var(--ink-500);margin-bottom:2px;">${l}</div><input id="an-${k}" value="${(an[k]||'').replace(/"/g,'&quot;')}" onchange="advSetAdvisorField('${k}',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;"></div>`).join('')}
     </div>
     <div class="card" style="padding:12px 14px;font-size:12px;color:var(--ink-500);background:var(--amber-100);border-color:transparent;">
@@ -371,7 +371,7 @@ window.advTransferSeller = function(pkgRef){
 };
 window.advDoTransfer = function(sellerId, sellerName){ state.transferredTo=sellerId; save(); advModalClose(); advToast('Đã chuyển tư vấn cho '+sellerName+' (demo).'); };
 window.advToggleDiff = function(){ state.diffOnly=(state.diffOnly===false); save(); renderStep(); };
-window.advExport = function(kind){ advModal(`<div style="text-align:center;padding:10px;"><div style="font-size:34px;">${kind==='QR'?'🔳':kind==='EMAIL'?'✉️':'📄'}</div><div style="font-size:15px;font-weight:700;margin-top:8px;">${kind==='QR'?'Chia sẻ QR bản tư vấn':kind==='EMAIL'?'Gửi email bản tư vấn':'Tải PDF bản tư vấn'}</div><div style="font-size:12.5px;color:var(--ink-500);margin:6px 0;">Bản tư vấn gồm: Nhu cầu · Khuyến nghị · So sánh · Advisor Note (demo).</div><button class="btn btn-primary btn-sm" onclick="advModalClose()">Đã hiểu</button></div>`); };
+window.advExport = function(kind){ advModal(`<div style="text-align:center;padding:10px;"><div style="font-size:34px;">${kind==='QR'?'🔳':kind==='EMAIL'?'✉️':'📄'}</div><div style="font-size:15px;font-weight:700;margin-top:8px;">${kind==='QR'?'Chia sẻ QR bản tư vấn':kind==='EMAIL'?'Gửi email bản tư vấn':'Tải PDF bản tư vấn'}</div><div style="font-size:12.5px;color:var(--ink-500);margin:6px 0;">Bản tư vấn gồm: Nhu cầu · Khuyến nghị · So sánh · Ghi chú tư vấn (demo).</div><button class="btn btn-primary btn-sm" onclick="advModalClose()">Đã hiểu</button></div>`); };
 
 // ----- Step bodies -----
 function bodyNeeds(){
@@ -507,13 +507,13 @@ function bodyResult(){
   const lockBanner = locked?`<div class="alert2 ${state.status==='CONVERTED_TO_SALE'?'success':'warn'}" style="margin-bottom:12px;">🔒 <b>Phiên đã khoá — chỉ xem.</b> ${state.status==='CONVERTED_TO_SALE'?'Đã chuyển sang bán hàng.':'Đã ghi nhận khách chưa quan tâm.'} Mở phiên tư vấn mới nếu khách quay lại.</div>`:'';
   return lockBanner + `<div class="card" style="padding:18px;border-left:4px solid var(--teal-600);margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
-      <div><h3 style="margin:0;font-size:19px;">🎯 Kết quả tư vấn ${state.id}</h3><div style="font-size:13px;color:var(--ink-500);margin-top:3px;">${state.mode==='ANONYMOUS'?'Ẩn danh':(state.customerName||state.customerRef||'Khách hàng')} · nhu cầu chính ${BANCA.needLabel(state.primaryNeed)}</div></div>
+      <div><h3 style="margin:0;font-size:19px;">🎯 Kết quả tư vấn ${state.id}</h3><div style="font-size:13px;color:var(--ink-500);margin-top:3px;">${state.mode==='ANONYMOUS'?'Ẩn danh':(state.customerName||state.customerRef||'Khách hàng')} · nhu cầu chính ${state.primaryNeed?BANCA.needLabel(state.primaryNeed):'chưa xác định'}</div></div>
       <div>${BANCA.adviceStatusBadge(state.status)}</div>
     </div>
   </div>
   <div class="card" style="padding:18px;">
     <table class="dtable"><tbody>
-      <tr><td style="width:220px;color:var(--ink-500);">Nhu cầu chính</td><td><b>${BANCA.needLabel(state.primaryNeed)}</b></td></tr>
+      <tr><td style="width:220px;color:var(--ink-500);">Nhu cầu chính</td><td><b>${state.primaryNeed?BANCA.needLabel(state.primaryNeed):'Chưa xác định'}</b></td></tr>
       <tr><td style="color:var(--ink-500);">Ngân sách</td><td>${state.budgetBand?BANCA.budgetLabel(state.budgetBand):'—'}</td></tr>
       <tr><td style="color:var(--ink-500);">Gói đề xuất / quan tâm</td><td>${o?`<b>${o.productName} · ${o.packageName}</b>`:'<span style="color:var(--ink-300);">Chưa chọn</span>'}</td></tr>
       <tr><td style="color:var(--ink-500);">Phí minh họa</td><td>${o?o.premiumBand+' <span class="help-hint" tabindex=0 title="Ph\u00ed minh h\u1ecda, kh\u00f4ng ph\u1ea3i ph\u00ed ch\u00ednh th\u1ee9c.">?</span>':'—'}</td></tr>
@@ -521,10 +521,9 @@ function bodyResult(){
       <tr><td style="color:var(--ink-500);">Cần bổ sung khi chuyển bán</td><td>${o?((BANCA.adviceOffersFor(state.primaryNeed).find(x=>x.packageRef===o.packageRef)||{}).verify||[]).join(', ')||'—':'Chọn gói trước'}</td></tr>
     </tbody></table>
     ${(()=>{ const offers=BANCA.adviceOffersFor(state.primaryNeed); const ds=BANCA.decisionSupport(offers, o?o.packageRef:null); return ds.length?`<div class="card" style="padding:14px;margin-top:12px;background:var(--brand-100);border-color:transparent;"><div class="label" style="margin-bottom:8px;">Hỗ trợ ra quyết định</div>${ds.map(([q,a])=>`<div style="margin-bottom:8px;"><div style="font-size:12.5px;font-weight:700;">${q}</div><div style="font-size:12.5px;color:var(--ink-600);">${a}</div></div>`).join('')}</div>`:''; })()}
-    <div style="margin-top:14px;"><div class="label" style="margin-bottom:6px;">Ghi chú tư vấn (RM)</div><textarea id="adv-note" onchange="advSetNote()" onblur="advSetNote()" placeholder="Ghi chú thêm cho khách/hồ sơ trước khi lưu hoặc gửi…" style="width:100%;min-height:64px;padding:9px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px;">${state.note||''}</textarea></div>
     <div style="margin-top:14px;"><div class="label" style="margin-bottom:6px;">Có thể bổ sung (gợi ý — không tự thêm)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.RIDER_CATALOG.map(rd=>{const on=(state.upsell||[]).includes(rd.id);return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advToggleUpsell('${rd.id}')">${on?'✓ ':''}${rd.label} +${BANCA.vnd(rd.addMonthly)}/tháng</button>`;}).join('')}</div>${(state.upsell||[]).length?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:6px;">Đã ghi nhận gợi ý bổ sung: ${(state.upsell||[]).map(id=>(BANCA.RIDER_CATALOG.find(r=>r.id===id)||{}).label).join(', ')} — chỉ gợi ý, khách quyết định khi lập hồ sơ.</div>`:''}</div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span class="label">Xuất bản tư vấn:</span><button class="btn btn-secondary btn-sm" onclick="advExport('PDF')">📄 Tải PDF</button><button class="btn btn-secondary btn-sm" onclick="advExport('EMAIL')">✉️ Email</button><button class="btn btn-secondary btn-sm" onclick="advExport('QR')">🔳 Chia sẻ QR</button></div>
-    ${(()=>{ const dur=state.startedAt?Math.max(1,Math.round((Date.now()-state.startedAt)/60000)):'—'; return `<div class="card" style="padding:12px 14px;margin-top:12px;background:var(--paper);border-color:transparent;"><div class="label" style="margin-bottom:6px;">Phiên tư vấn</div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-500);"><span>Advisor: <b style="color:var(--ink-700);">${(BANCA.personas[state.createdBy]||{}).name||state.createdBy}</b></span><span>Bắt đầu: <b style="color:var(--ink-700);">${state.startedAt?new Date(state.startedAt).toLocaleTimeString('vi-VN').slice(0,5):'—'}</b></span><span>Lưu gần nhất: <b style="color:var(--ink-700);">${state.updatedAt}</b></span><span>Thời lượng: <b style="color:var(--ink-700);">${dur} phút</b></span><span>Phiên bản: <b style="color:var(--ink-700);">v${state.version}</b></span></div>${state.mode==='ANONYMOUS'?'<div style="font-size:11.5px;color:var(--amber-600);margin-top:6px;">⚠️ Phiên ẩn danh — chưa lưu vào CRM cho đến khi chuyển sang bán hàng.</div>':''}</div>`; })()}
+    ${(()=>{ const dur=state.startedAt?Math.max(1,Math.round((Date.now()-state.startedAt)/60000)):'—'; return `<div class="card" style="padding:12px 14px;margin-top:12px;background:var(--paper);border-color:transparent;"><div class="label" style="margin-bottom:6px;">Phiên tư vấn</div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-500);"><span>Tư vấn viên: <b style="color:var(--ink-700);">${(BANCA.personas[state.createdBy]||{}).name||state.createdBy}</b></span><span>Bắt đầu: <b style="color:var(--ink-700);">${state.startedAt?new Date(state.startedAt).toLocaleTimeString('vi-VN').slice(0,5):'—'}</b></span><span>Lưu gần nhất: <b style="color:var(--ink-700);">${state.updatedAt}</b></span><span>Thời lượng: <b style="color:var(--ink-700);">${dur} phút</b></span><span>Phiên bản: <b style="color:var(--ink-700);">v${state.version}</b></span></div>${state.mode==='ANONYMOUS'?'<div style="font-size:11.5px;color:var(--amber-600);margin-top:6px;">⚠️ Phiên ẩn danh — chưa lưu vào CRM cho đến khi chuyển sang bán hàng.</div>':''}</div>`; })()}
     <div style="margin-top:12px;font-size:12px;color:var(--ink-300);">Disclaimer: Kết quả tư vấn và phí chỉ mang tính minh họa, chưa phải cam kết bảo hiểm. Phí chính thức được tính lại tại bước lập báo giá khi chuyển sang bán hàng.</div>
     ${locked?'':`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
       <button class="btn btn-secondary" onclick="advSendResult()">Gửi kết quả</button>
@@ -559,6 +558,6 @@ const layout = `<div class="adv-layout">
 </div>
 <div id="adv-foot">${footer()}</div>`;
 
-shell('Tư vấn nhanh','Advisory Workspace', layout, {startSale:false});
+shell('Tư vấn nhanh','Không gian tư vấn', layout, {startSale:false});
 }
 </script></body></html>

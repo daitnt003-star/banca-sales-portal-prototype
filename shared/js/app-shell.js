@@ -1,4 +1,8 @@
 function rel(){return location.pathname.includes('/modules/')?'../../':location.pathname.includes('/dev/')?'../':''}
+// ---- Ngôn ngữ (VI mặc định, EN tùy chọn) ----
+BANCA.lang = (function(){ try{ return localStorage.getItem('bancaLang')==='en'?'en':'vi'; }catch(e){ return 'vi'; } })();
+BANCA.t = function(vi, en){ return BANCA.lang==='en' ? (en||vi) : vi; };
+BANCA.setLang = function(l){ try{ localStorage.setItem('bancaLang', l==='en'?'en':'vi'); }catch(e){} location.reload(); };
 // Privacy helpers — mặc định che PII, reveal là hành động chủ động có audit demo tại từng màn.
 BANCA.maskPhone = BANCA.maskPhone || function(v){ v=String(v||''); return v.length>=9 ? v.slice(0,3)+' *** '+v.slice(-3) : (v||'—'); };
 BANCA.maskId = BANCA.maskId || function(v){ v=String(v||''); return v.length>=6 ? v.slice(0,3)+' ****** '+v.slice(-3) : (v||'—'); };
@@ -33,17 +37,22 @@ const FPT_LOGO_SVG = `<svg viewBox="0 0 50.3 25" xmlns="http://www.w3.org/2000/s
 
 // Menu chính theo Spec v1 mục 3.1 — [label, url, icon, group, permission]
 function navItems(){
+ const T=BANCA.t;
+ const GRP={sales:T('BÁN HÀNG','SALES'),process:T('XỬ LÝ','PROCESSING'),after:T('SAU BÁN','AFTER-SALE'),manage:T('QUẢN LÝ','MANAGEMENT')};
  // IA nhóm theo vòng đời bán hàng (bản đánh giá P2): Bán hàng → Xử lý → Sau bán → Quản lý.
  const items=[
-  ['Trang chủ','modules/seller-workspace/index.html','home',null,'VIEW_WORKSPACE'],
-  ['Tư vấn nhanh','modules/quick-advisory/index.html','advise','BÁN HÀNG','VIEW_WORKSPACE'],
-  ['Hồ sơ chưa nộp','modules/unsubmitted-applications/index.html','draft','BÁN HÀNG','VIEW_WORKSPACE'],
-  ['Hồ sơ đã nộp','modules/submitted-applications/index.html','sent','XỬ LÝ','VIEW_WORKSPACE'],
-  ['Hợp đồng','modules/policies/index.html','doc','SAU BÁN','VIEW_WORKSPACE'],
-  ['Đội nhóm','modules/team-workspace/index.html','team','QUẢN LÝ','VIEW_TEAM_WORKSPACE'],
-  ['Trợ giúp','modules/help/index.html','help',null,'VIEW_WORKSPACE'],
+  [T('Trang chủ','Home'),'modules/seller-workspace/index.html','home',null,'VIEW_WORKSPACE'],
+  [T('Tư vấn nhanh','Quick advisory'),'modules/quick-advisory/index.html','advise',GRP.sales,'VIEW_WORKSPACE'],
+  [T('Hồ sơ chưa nộp','Unsubmitted'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE'],
+  [T('Hồ sơ đã nộp','Submitted'),'modules/submitted-applications/index.html','sent',GRP.process,'VIEW_WORKSPACE'],
+  [T('Hợp đồng','Policies'),'modules/policies/index.html','doc',GRP.after,'VIEW_WORKSPACE'],
+  [T('Đội nhóm','Team'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE'],
+  [T('Trợ giúp','Help'),'modules/help/index.html','help',null,'VIEW_WORKSPACE'],
  ];
- return items.filter(i=>BANCA.can(i[4]));
+ // Nhóm BÁN HÀNG (tư vấn/tạo hồ sơ) là hoạt động bán cá nhân → ẩn với persona không bán (quản lý thuần).
+ const _mp = BANCA.resolveManagerProfile ? BANCA.resolveManagerProfile(BANCA.current()) : {sellingEnabled:true};
+ const canSell = _mp.sellingEnabled!==false;
+ return items.filter(i=>BANCA.can(i[4]) && !(i[3]==='BÁN HÀNG' && !canSell));
 }
 
 function navIcon(k){
@@ -77,13 +86,13 @@ function shell(active,title,body,opts){
  //  · "Tư vấn nhanh" = khi khách CHƯA chắc nhu cầu/gói.
  //  · "Tạo hồ sơ bán hàng" = khi đã biết khách + sản phẩm (mở modal chọn ngữ cảnh).
  //  · "Tiếp tục hồ sơ gần nhất" = nếu đang có nháp dang dở (giảm thao tác).
- const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ Tạo hồ sơ bán hàng</button>` : '';
- const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 Tư vấn nhanh</button>` : '';
+ const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ ${BANCA.t('Tạo hồ sơ bán hàng','New sales case')}</button>` : '';
+ const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('Tư vấn nhanh','Quick advisory')}</button>` : '';
  let resumeBtn='';
  if(canSell){
    try{ const _me=BANCA.current();
      const _drafts=(BANCA.myApps?BANCA.myApps('NOT_SUBMITTED'):[]).filter(a=>a.owner===_me).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
-     if(_drafts.length){ const d=_drafts[0]; resumeBtn=`<button class="btn btn-secondary" onclick="location.href='${r}modules/application-workspace/index.html?id=${d.id}'" style="white-space:nowrap;" title="Hồ sơ ${d.id} · ${custName?custName(d.customerId):''}">↩ Tiếp tục hồ sơ gần nhất</button>`; }
+     if(_drafts.length){ const d=_drafts[0]; resumeBtn=`<button class="btn btn-secondary" onclick="location.href='${r}modules/application-workspace/index.html?id=${d.id}'" style="white-space:nowrap;" title="Hồ sơ ${d.id} · ${custName?custName(d.customerId):''}">↩ ${BANCA.t('Tiếp tục hồ sơ gần nhất','Resume latest case')}</button>`; }
    }catch(e){}
  }
 
@@ -118,6 +127,7 @@ function shell(active,title,body,opts){
       ${resumeBtn}
       ${adviseBtn}
       ${startBtn}
+      <button onclick="BANCA.setLang('${BANCA.lang==='en'?'vi':'en'}')" title="${BANCA.t('Chuyển sang tiếng Anh','Switch to Vietnamese')}" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">🌐 ${BANCA.lang==='en'?'EN':'VI'}</button>
       <div style="position:relative;">
         <button onclick="var p=document.getElementById('demo-persona-pop');p.style.display=p.style.display==='none'?'block':'none';" title="Công cụ demo — đổi persona" style="background:rgba(255,255,255,.08);color:#a9bdde;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 9px;font-size:13px;cursor:pointer;">🧪</button>
         <div id="demo-persona-pop" style="display:none;position:absolute;right:0;top:110%;background:#1c2b4a;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.35);min-width:170px;">

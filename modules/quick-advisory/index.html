@@ -91,16 +91,15 @@ const rowHtml = rows.map(a=>{
 }).join('');
 
 const listBody = rows.length
-  ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable adv-table"><thead><tr><th>Mã tư vấn</th><th>Khách hàng</th><th>Nguồn</th><th>Nhu cầu</th><th>Gói quan tâm</th><th>Phí minh họa</th><th>Trạng thái</th><th>Seller</th><th>Case</th><th>Cập nhật</th><th style="text-align:right;">Thao tác</th></tr></thead><tbody>${rowHtml}</tbody></table></div>`
-  : `<div class="card"><div class="empty-state" style="padding:28px;">Chưa có phiên tư vấn nào ở nhóm này. Bấm <b>+ Bắt đầu tư vấn</b> để bắt đầu một phiên mới — không tạo hồ sơ hay báo giá.</div></div>`;
+  ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable adv-table"><thead><tr><th>Mã tư vấn</th><th>Khách hàng</th><th>Nguồn</th><th>Nhu cầu</th><th>Gói quan tâm</th><th>Phí minh họa</th><th>Trạng thái</th><th>Tư vấn viên</th><th>Hồ sơ</th><th>Cập nhật</th><th style="text-align:right;">Thao tác</th></tr></thead><tbody>${rowHtml}</tbody></table></div>`
+  : `<div class="card"><div class="empty-state" style="padding:28px;">Chưa có phiên tư vấn nào ở nhóm này. Bấm <b>💡 Tư vấn nhanh</b> ở góc trên để bắt đầu một phiên mới — không tạo hồ sơ hay báo giá.</div></div>`;
 
-// Toolbar gọn thay cho section lớn
+// Toolbar gọn — nút bắt đầu tư vấn đã có ở thanh CTA phía trên (💡 Tư vấn nhanh), không lặp ở đây.
 const toolbar = `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <input id="adv-search" value="${(qs.get('q')||'').replace(/"/g,'&quot;')}" placeholder="🔍 Tìm mã / khách / nhu cầu…" onkeydown="if(event.key==='Enter')advSearch()" style="padding:7px 11px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;width:220px;">
     <span style="font-size:12.5px;color:var(--ink-500);">Hiển thị <b>${rows.length}</b> / ${all.length} phiên</span>
   </div>
-  <button class="btn btn-primary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'">+ Bắt đầu tư vấn</button>
 </div>`;
 
 window.advSearch=function(){ const v=(document.getElementById('adv-search').value||'').trim(); const u=new URL(location.href); if(v)u.searchParams.set('q',v); else u.searchParams.delete('q'); location.href=u.toString(); };

@@ -121,11 +121,13 @@ BANCA._payAmount = function(app){
 };
 // Xác nhận khách hàng đã hoàn tất chưa.
 //  - Health (multi-insured có theo dõi per-member): TẤT CẢ thành viên bắt buộc phải CONFIRMED.
-//  - Motor/đơn lẻ chấp thuận-có-điều-kiện: cần app.confirm (OTP verified / confirmedAt).
-//  - Chấp thuận thường (APPROVED/APPROVED_STP): xác nhận đã thực hiện khi nộp.
+//  - PA: luôn cần confirmation package riêng trước thanh toán/phát hành.
+//  - Motor chấp thuận-có-điều-kiện: cần app.confirm (OTP verified / confirmedAt).
+//  - Motor chấp thuận thường (APPROVED/APPROVED_STP): xác nhận đã thực hiện khi nộp.
 BANCA.confirmationComplete = function(app){
   app = app || {};
   const s = BANCA.caseStates(app);
+  if(app.productId==='pa') return !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt));
   if(app.productId==='health' && Array.isArray(app.insuredMembers)
      && app.insuredMembers.some(function(m){ return m.confirmation || m.underwriting; })){
     const active = app.insuredMembers.filter(function(m){ return m.active!==false; });

@@ -2036,7 +2036,7 @@ function cpConfirmSection(){
     ${cards}
     ${allConfirmed?'<div class="alert2" style="margin-top:8px;background:var(--teal-100);color:var(--teal-600);">✓ Tất cả thành viên đã xác nhận — đủ điều kiện thanh toán tổng.</div>':'<div class="alert2 warn" style="margin-top:8px;">Còn thành viên chưa xác nhận — chưa thể khởi tạo thanh toán.</div>'}`;
  } else {
-  const needConfirm = (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))||['PENDING_CUSTOMER_CONFIRM','UW_DECIDED'].includes(st);
+  const needConfirm = app.productId==='pa' || (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))||['PENDING_CUSTOMER_CONFIRM','UW_DECIDED'].includes(st);
   let cState;
   if(app.confirm && ['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'].includes(st)) cState='CONFIRMED';
   else if(app.confirm) cState='SENT';

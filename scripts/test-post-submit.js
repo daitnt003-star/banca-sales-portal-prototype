@@ -35,12 +35,14 @@ ok('1. PA_BASIC submit tạo APPROVED_STP', pa.stpDecision && pa.stpDecision.dec
 // 2. PA không map Motor UW
 ok('2. PA không map Motor UW (ruleSet PA_BASIC_UW, không Motor)', pa.stpDecision.ruleSetCode==='PA_BASIC_UW' && !/MOTOR/i.test(pa.stpDecision.ruleSetCode) && (B.underwritingDefinitionFor('pa').manualUnit===null));
 
-// 3. APPROVED_STP → METHOD_REQUIRED, không PENDING
+// 3. PA APPROVED_STP chưa có confirmation → khóa payment, yêu cầu xác nhận khách hàng
 const vPa = B.deriveCaseViewState(pa);
-ok('3. APPROVED_STP → METHOD_REQUIRED, không PENDING', vPa.phase==='PAYMENT_METHOD_REQUIRED' && vPa.states.paymentStatus==='METHOD_REQUIRED' && vPa.states.paymentStatus!=='PENDING');
+ok('3. PA APPROVED_STP chưa xác nhận → CUSTOMER_CONFIRMATION_REQUIRED', vPa.phase==='CUSTOMER_CONFIRMATION_REQUIRED' && vPa.canCreatePaymentIntent===false);
 
-// 4. Chưa chọn method → không có payment record
-ok('4. Chưa chọn method → không có payment record', pa.payment===null && vPa.canCreatePaymentIntent===true);
+// 4. Sau khi khách xác nhận → METHOD_REQUIRED, chưa có payment record
+const paConfirmed = Object.assign({}, pa, {confirm:{sentAt:'2026-07-23 12:50', otp:'VERIFIED', confirmedAt:'2026-07-23 12:55'}});
+const vPaConfirmed = B.deriveCaseViewState(paConfirmed);
+ok('4. PA đã xác nhận → METHOD_REQUIRED, chưa có payment record', paConfirmed.payment===null && vPaConfirmed.phase==='PAYMENT_METHOD_REQUIRED' && vPaConfirmed.canCreatePaymentIntent===true);
 
 // 5/6/7. Chọn option tạo intent (mô phỏng createPaymentIntent logic)
 function makeIntent(app, channel, experience, delivery){
@@ -49,11 +51,11 @@ function makeIntent(app, channel, experience, delivery){
   const p = B.makePayment({applicationId:app.id, amount:app.premium, paymentChannel:channel, paymentExperience:experience, paymentInitiator:'SELLER', payerType:'CUSTOMER', status:'PENDING'});
   app.payment=p; app.paymentStatus='PENDING'; app.status='PENDING_PAYMENT'; return p;
 }
-const paQR = submitStp('pa'); const iQR = makeIntent(paQR,'QR','CUSTOMER_PRESENT');
+const paQR = Object.assign(submitStp('pa'), {confirm:{otp:'VERIFIED', confirmedAt:'2026-07-23 12:55'}}); const iQR = makeIntent(paQR,'QR','CUSTOMER_PRESENT');
 ok('5. Chọn QR → tạo intent PENDING (channel QR, experience CUSTOMER_PRESENT)', iQR && iQR.status==='PENDING' && iQR.paymentChannel==='QR' && iQR.paymentExperience==='CUSTOMER_PRESENT');
-const paLink = submitStp('pa'); const iLink = makeIntent(paLink,'PAYMENT_LINK','CUSTOMER_REMOTE');
+const paLink = Object.assign(submitStp('pa'), {confirm:{otp:'VERIFIED', confirmedAt:'2026-07-23 12:55'}}); const iLink = makeIntent(paLink,'PAYMENT_LINK','CUSTOMER_REMOTE');
 ok('6. Chọn gửi link → intent PENDING (PAYMENT_LINK, CUSTOMER_REMOTE)', iLink && iLink.paymentChannel==='PAYMENT_LINK' && iLink.paymentExperience==='CUSTOMER_REMOTE');
-const paSA = submitStp('pa'); const iSA = makeIntent(paSA,'CARD','SELLER_ASSISTED');
+const paSA = Object.assign(submitStp('pa'), {confirm:{otp:'VERIFIED', confirmedAt:'2026-07-23 12:55'}}); const iSA = makeIntent(paSA,'CARD','SELLER_ASSISTED');
 ok('7. Seller-assisted → intent (experience SELLER_ASSISTED, initiator SELLER)', iSA && iSA.paymentExperience==='SELLER_ASSISTED' && iSA.paymentInitiator==='SELLER');
 
 // 8. Manual UW pending khóa payment
@@ -77,7 +79,7 @@ const v = B.deriveCaseViewState(condOk);
 ok('12. Một display state duy nhất cho mọi component', v.displayStatus && v.primaryAction && typeof v.paymentAccessible==='boolean' && v.states);
 
 // 13. Double click không tạo hai intent
-const dbl = submitStp('pa'); makeIntent(dbl,'QR','CUSTOMER_PRESENT'); const first=dbl.payment; const second=makeIntent(dbl,'QR','CUSTOMER_PRESENT');
+const dbl = Object.assign(submitStp('pa'), {confirm:{otp:'VERIFIED', confirmedAt:'2026-07-23 12:55'}}); makeIntent(dbl,'QR','CUSTOMER_PRESENT'); const first=dbl.payment; const second=makeIntent(dbl,'QR','CUSTOMER_PRESENT');
 ok('13. Double-click không tạo intent thứ 2', first===second && dbl.payment.paymentId===first.paymentId);
 
 // 14. Payment success không do seller set trực tiếp (guard: chỉ callback)

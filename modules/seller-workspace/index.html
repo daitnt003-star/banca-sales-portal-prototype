@@ -4,7 +4,15 @@ const me = BANCA.current();
 const r = rel();
 
 if(p.status!=='ACTIVE'){
- shell('Trang chủ','Tài khoản ngừng hoạt động',`<div class="card"><div class="alert2 danger"><b>Tài khoản của bạn đã ngừng hoạt động${p.inactiveSince?' từ '+p.inactiveSince:''}.</b><br>Mọi chức năng bán hàng bị khóa. Liên hệ quản trị Distribution để biết thêm chi tiết.</div></div>`,{startSale:false});
+ const _inDate=p.inactiveSince?(String(p.inactiveSince).match(/(\d{4})-(\d{2})-(\d{2})/)?RegExp.$3+'/'+RegExp.$2+'/'+RegExp.$1:p.inactiveSince):'';
+ shell('Trang chủ','Tài khoản ngừng hoạt động',`<div class="card"><div class="alert2 danger"><b>Tài khoản của bạn đã ngừng hoạt động${_inDate?' từ '+_inDate:''}.</b><br>Mọi chức năng bán hàng bị khóa. Vui lòng liên hệ bộ phận quản trị kênh phân phối để được hỗ trợ.</div></div>`,{startSale:false});
+} else if(p.serviceError){
+ // Lỗi hệ thống xác thực điều kiện bán (readiness service không phản hồi) → chặn an toàn (default deny).
+ shell('Trang chủ','Không xác thực được điều kiện bán hàng',`<div class="card"><div class="alert2 danger"><b>Chưa thể xác thực điều kiện bán hàng của bạn.</b><br>Hệ thống tạm thời không kết nối được tới dịch vụ kiểm tra quyền bán / chứng chỉ. Để đảm bảo an toàn, các thao tác bán hàng tạm khóa cho tới khi kết nối được khôi phục.</div>
+   <div style="margin-top:12px;font-size:13px;color:var(--ink-600);">Bạn có thể:</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="location.reload()">Thử lại</button><a class="btn btn-secondary btn-sm" href="${r}modules/help/index.html">Liên hệ hỗ trợ</a></div>
+   <div style="font-size:11.5px;color:var(--ink-300);margin-top:12px;">Nếu tình trạng kéo dài, vui lòng báo bộ phận quản trị kênh phân phối để kiểm tra đồng bộ dữ liệu.</div>
+ </div>`,{startSale:false});
 } else if(BANCA.isManagerProfile(me) && !BANCA.resolveManagerProfile(me).sellingEnabled){
  // Manager chỉ quản lý → Trang chủ CHÍNH LÀ Manager Cockpit (không hiển thị dashboard cá nhân).
  location.replace(r+'modules/team-workspace/index.html');

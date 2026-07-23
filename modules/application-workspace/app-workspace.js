@@ -1776,6 +1776,16 @@ function getSubmittedCaseActions(){
   const t=(act.key==='chooseMethod'||act.key==='trackPay'||act.key==='retryPay')?'payment':(act.key==='confirm'?'confirm':tab);
   return `<a class="btn ${cls} btn-sm" href="?id=${app.id}&tab=${t}">${act.label}</a>`;
  };
+ // Hợp đồng đã phát hành: gộp action ở header — "Xem hợp đồng" là hyperlink mở chi tiết hợp đồng,
+ // kèm nút Tải hợp đồng + Gửi cho khách. Ẩn "Xem lịch sử" và các nhóm nút trùng trong panel.
+ if(st==='ISSUED' && app.policyId){
+  const detailHref=`${r}modules/policies/index.html?view=detail&id=${app.policyId}`;
+  return [
+   `<a href="${detailHref}" style="font-size:12.5px;color:var(--brand-600);text-decoration:underline;align-self:center;padding:6px 4px;">Xem hợp đồng</a>`,
+   `<button class="btn btn-primary btn-sm" onclick="alert('Tải hợp đồng PDF (demo)')">Tải hợp đồng</button>`,
+   `<button class="btn btn-secondary btn-sm" onclick="this.textContent='Đã gửi';this.disabled=true;">Gửi cho khách</button>`
+  ];
+ }
  const out=[];
  if(caseView.primaryAction) out.push(btn(caseView.primaryAction,true));
  (caseView.secondaryActions||[]).forEach(a2=>out.push(btn(a2,false)));
@@ -2389,10 +2399,7 @@ if(activeTab==='overview'){
      <div style="font-size:19px;font-weight:700;color:var(--teal-600);">✓ Hợp đồng đã phát hành thành công</div>
      <div style="font-size:14px;color:var(--ink-700);margin-top:4px;">Số HĐ <b>${app.policyId}</b> · Hiệu lực ${effFrom} → ${effTo}</div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-     <button class="btn btn-primary btn-sm" onclick="alert('Tải hợp đồng PDF (demo)')">Tải hợp đồng</button>
-     <button class="btn btn-secondary btn-sm" onclick="this.textContent='Đã gửi';this.disabled=true;">Gửi cho khách</button>
-    </div>
+    <!-- Nút Tải hợp đồng/Gửi cho khách đã chuyển lên header (getSubmittedCaseActions) -->
    </div>
    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:12.5px;color:var(--ink-500);">
     <div><b style="color:var(--ink-700);">Ngày hiệu lực</b><br>${effFrom}</div>
@@ -2403,11 +2410,7 @@ if(activeTab==='overview'){
   </div>`;
  body = app.policyId? issuedHead + gcnPanel(app)+`
  ${BANCA.commissionVisible('policy')?(()=>{const pol=BANCA.policyById(app.policyId); const cm=pol?BANCA.commissionOfPolicy(pol):null; return cm?`<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--teal-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>${BANCA.vnd(cm.amount)}</b> · trạng thái ${cm.stateLabel} · cơ sở tính HH ${BANCA.vnd(cm.base)} · tỷ lệ ${(cm.rate*100).toFixed(0)}%</div><div style="font-size:11px;color:var(--ink-300);margin-top:3px;">Read-only · cập nhật theo sync ${cm.syncAt}; clawback/đối soát xử lý ở màn admin đối tác.</div></div>`:''})():''}
- <div style="display:flex;gap:8px;margin-top:12px;">
-  <a class="btn btn-secondary btn-sm" href="${r}modules/policies/index.html?view=detail&id=${app.policyId}">Mở Policy Detail</a>
-  <button class="btn btn-secondary btn-sm" onclick="alert('Tải certificate PDF (demo)')">Tải PDF</button>
-  <button class="btn btn-secondary btn-sm" onclick="this.textContent='Đã gửi';this.disabled=true;">Gửi lại khách</button>
- </div>` : (()=>{
+ ` : (()=>{
    const ck=(done,label)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${done?'var(--teal-600)':'var(--line)'};color:${done?'#fff':'var(--ink-500)'};">${done?'✓':'○'}</span><span style="${done?'':'color:var(--ink-500);'}">${label}</span></div>`;
    const uwOk = !!app.uw && !['REJECTED'].includes(st);
    const confirmed = !!app.confirm && ['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'].includes(st);

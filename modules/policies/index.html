@@ -306,12 +306,15 @@ if(p.status!=='ACTIVE'){
    }).join('');
    shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,`
    <style>
-    .policy-cockpit .pc-hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(10,25,60,.06);}
+    .policy-cockpit{max-width:100%;overflow-x:hidden;}
+    .policy-cockpit .pc-grid>*{min-width:0;}
+   .policy-cockpit .pc-hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(10,25,60,.06);}
     .policy-cockpit .pc-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;}
-    .policy-cockpit .pc-main{display:grid;gap:16px;}
-    .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;}
-    .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);}
+    .policy-cockpit .pc-main{display:grid;gap:16px;min-width:0;overflow:hidden;}
+    .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;min-width:0;}
+    .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);min-width:0;overflow:hidden;}
     .policy-cockpit .pc-card h2{font-size:15px;margin:0 0 12px;color:var(--ink-900);}
+    .policy-cockpit .pc-card table{max-width:100%;}
     .policy-cockpit .pc-kv{display:grid;grid-template-columns:230px 1fr;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
     .policy-cockpit .pc-kv:last-child{border-bottom:none;}
     .policy-cockpit .pc-kv .k{color:var(--ink-500);} .policy-cockpit .pc-kv .v{color:var(--ink-800);font-weight:600;}
@@ -372,12 +375,15 @@ if(p.status!=='ACTIVE'){
    ].map(([k,v])=>kv(k,v)).join('');
    shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,`
    <style>
+    .policy-cockpit{max-width:100%;overflow-x:hidden;}
+    .policy-cockpit .pc-grid>*{min-width:0;}
     .policy-cockpit .pc-hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(10,25,60,.06);}
     .policy-cockpit .pc-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;}
-    .policy-cockpit .pc-main{display:grid;gap:16px;}
-    .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;}
-    .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);}
+    .policy-cockpit .pc-main{display:grid;gap:16px;min-width:0;overflow:hidden;}
+    .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;min-width:0;}
+    .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);min-width:0;overflow:hidden;}
     .policy-cockpit .pc-card h2{font-size:15px;margin:0 0 12px;color:var(--ink-900);}
+    .policy-cockpit .pc-card table{max-width:100%;}
     .policy-cockpit .pc-kv{display:grid;grid-template-columns:230px 1fr;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
     .policy-cockpit .pc-kv:last-child{border-bottom:none;}
     .policy-cockpit .pc-kv .k{color:var(--ink-500);} .policy-cockpit .pc-kv .v{color:var(--ink-800);font-weight:600;}
@@ -491,11 +497,13 @@ if(p.status!=='ACTIVE'){
   </div>`;
   shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,`
   <style>
+   .policy-cockpit{max-width:100%;overflow-x:hidden;}
+   .policy-cockpit .pc-grid>*{min-width:0;}
    .policy-cockpit .pc-hero{background:linear-gradient(135deg,#ffffff 0%,#f7f9ff 100%);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(10,25,60,.06);} 
    .policy-cockpit .pc-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;} 
-   .policy-cockpit .pc-main{display:grid;gap:16px;} 
-   .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;} 
-   .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);} 
+   .policy-cockpit .pc-main{display:grid;gap:16px;min-width:0;overflow:hidden;} 
+   .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;min-width:0;} 
+   .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);min-width:0;overflow:hidden;} 
    .policy-cockpit .pc-card h2{font-size:15px;margin:0 0 12px;color:var(--ink-900);} 
    .policy-cockpit .pc-kv{display:grid;grid-template-columns:250px 1fr;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;} 
    .policy-cockpit .pc-kv:last-child{border-bottom:none;} 
@@ -504,7 +512,7 @@ if(p.status!=='ACTIVE'){
   </style>
   ${renderDocStyles()}
   <div class="policy-cockpit">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;position:sticky;top:0;z-index:31;background:var(--paper,#f7f9fc);padding:8px 0;">
+    <div class="sticky-action-bar" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
       <a href="index.html" style="font-size:12.5px;color:var(--brand-600);">&larr; Danh sách hợp đồng</a>
       ${actionBar}
     </div>
@@ -533,7 +541,7 @@ if(p.status!=='ACTIVE'){
 
     <div class="pc-grid">
       <main class="pc-main">
-        <section id="benefits" class="pc-card" style="scroll-margin-top:90px;"><h2>Quyền lợi bảo hiểm</h2><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">${benefitCards}</div></section>
+        <section id="benefits" class="pc-card" style="scroll-margin-top:90px;"><h2>Quyền lợi bảo hiểm</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">${benefitCards}</div></section>
         <section id="fees" class="pc-card" style="scroll-margin-top:90px;"><h2>Phí & thanh toán</h2><div class="label" style="margin-bottom:6px;">Breakdown phí</div>${feeRows.map(([k,val])=>`<div class="pc-kv"><div class="k">${k}</div><div class="v" style="text-align:right;">${val}</div></div>`).join('')}<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Kỳ đóng: một lần · Hóa đơn VAT: ${pol.vatInvoice||'chưa phát hành'}</div><div class="label" style="margin:14px 0 6px;">Lịch sử thanh toán</div><table class="dtable"><thead><tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Ref</th><th>Trạng thái</th></tr></thead><tbody>${pol.billing.map(b=>`<tr><td>${b.date}</td><td>${BANCA.vnd(b.amount)}</td><td>${BANCA.label('paymentMethod',b.method)}</td><td class="code">${b.ref}</td><td><span class="badge badge-ready">Thành công</span></td></tr>`).join('')}</tbody></table></section>
         ${renderDocumentCenter(policyDocs)}
         <section id="terms" class="pc-card" style="scroll-margin-top:90px;"><h2>Điều khoản & loại trừ</h2><div style="font-size:12.5px;color:var(--ink-500);margin-bottom:8px;">Bộ quy tắc: <button class="btn btn-secondary btn-sm" type="button" onclick="policyPreviewDoc('wording-current')">${pol.wordingRef||'QT-BH-VCX-2025'}</button></div>${(pol.exclusions||['Theo quy tắc bảo hiểm chuẩn']).map(x=>`<div style="font-size:12.5px;color:var(--ink-700);padding:4px 0;">✕ ${x}</div>`).join('')}</section>

@@ -41,7 +41,7 @@
   'shared/js/mock-store.js',
   'shared/js/app-shell.js'
  ];
- const V = 'v=20260723w'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260723x'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
 })();

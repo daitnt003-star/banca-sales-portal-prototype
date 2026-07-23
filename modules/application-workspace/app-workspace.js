@@ -537,10 +537,15 @@ if(app.submissionState==='NOT_SUBMITTED'){
       ? `<div class="alert2 danger" style="margin-top:10px;padding:8px 10px;font-size:12px;">🚫 ${elig.errors.map(function(e){return e.msg;}).join(' · ')}</div>`
       : (elig.warnings.length? `<div class="alert2 warn" style="margin-top:10px;padding:8px 10px;font-size:12px;">⚠ ${elig.warnings.map(function(w){return w.msg;}).join(' · ')}</div>`
       : `<div class="alert2 info" style="margin-top:10px;padding:8px 10px;font-size:12px;">✓ Đủ điều kiện tuổi/quan hệ sơ bộ.</div>`)) : '';
-    const guardianBlock = (u.isChild && !inactive) ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
-        <div><label style="font-size:11px;color:var(--ink-500);">Người đại diện (cha/mẹ/giám hộ)</label><input value="${u.guardianName||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianName',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
+    const guardianCandidates = units.filter(function(x){ return x.insuredUnitId!==uid && x.active!==false && !x.isChild && (x.name||'').trim(); });
+    const guardianOptions = guardianCandidates.map(function(x){ return '<option value="'+x.insuredUnitId+'" '+(u.guardianUnitId===x.insuredUnitId?'selected':'')+'>'+esc(x.name)+' · '+esc(x.relationship||'Thành viên hồ sơ')+'</option>'; }).join('');
+    const guardianChoice = u.guardianUnitId || '__new';
+    const guardianBlock = (u.isChild && !inactive) ? `<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
+        <div><label style="font-size:11px;color:var(--ink-500);">Chọn người đại diện</label><select ${readOnly?'disabled':''} onchange="healthUnitSetGuardianChoice('${app.id}','${uid}',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"><option value="__new" ${guardianChoice==='__new'?'selected':''}>+ Thêm người đại diện mới</option>${guardianOptions}</select></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Tên người đại diện</label><input value="${u.guardianName||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianName',this.value)" placeholder="Nhập mới hoặc chọn từ hồ sơ" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
         <div><label style="font-size:11px;color:var(--ink-500);">Quan hệ đại diện</label><input value="${u.guardianRelationship||'Cha/Mẹ'}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianRelationship',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">SĐT người đại diện</label><input value="${u.guardianPhone||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianPhone',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--ink-500);">SĐT người đại diện</label><input value="${u.guardianPhone||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianPhone',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
+        <div class="alert2 info" style="grid-column:1/-1;margin:0;padding:7px 9px;font-size:12px;">Có thể chọn người lớn đã có trong hồ sơ để tự điền tên/SĐT, hoặc chọn “Thêm người đại diện mới” để nhập tay.</div>
       </div>` : '';
     return `<div class="card" style="padding:13px;margin-bottom:9px;${inactive?'opacity:.6;':''}border-left:3px solid ${inactive?'var(--ink-300)':(elig.errors.length?'var(--red-600)':'var(--brand-600)')};">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
@@ -1446,7 +1451,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   return BANCA.healthUnitsOf(a).map(function(u){
    return {name:u.name||'', dob:u.dob||'', relationship:u.relationship||'', insuredUnitId:u.insuredUnitId,
      gender:u.gender||null, identityNumber:u.identityNumber||null, occupation:u.occupation||null,
-     guardianName:u.guardianName||null, guardianRelationship:u.guardianRelationship||null, guardianPhone:u.guardianPhone||null,
+     guardianUnitId:u.guardianUnitId||null, guardianName:u.guardianName||null, guardianRelationship:u.guardianRelationship||null, guardianPhone:u.guardianPhone||null,
      phone:u.phone||null, active:u.active!==false, package:u.package||null,
      riskAnswers:u.riskAnswers||{}, docs:u.docs||{}, beneficiaries:u.beneficiaries||[],
      confirmation:u.confirmation||null, underwriting:u.underwriting||null, certificateNumber:u.certificateNumber||null,
@@ -1478,6 +1483,23 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const reload = ['dob','relationship'].includes(field);
   _healthMapUnit(id, unitId, function(m){ m[field]=val; }, reload, true);
  };
+ window.healthUnitSetGuardianChoice = function(id, unitId, selectedUnitId){
+  _healthMapUnit(id, unitId, function(m){
+   if(selectedUnitId==='__new'){
+    m.guardianUnitId=null;
+    m.guardianName=m.guardianName||'';
+    m.guardianRelationship=m.guardianRelationship||'Cha/Mẹ';
+    m.guardianPhone=m.guardianPhone||'';
+    return;
+   }
+   const src = BANCA.healthUnitsOf(app).find(function(u){return u.insuredUnitId===selectedUnitId;}) || {};
+   m.guardianUnitId=selectedUnitId;
+   m.guardianName=src.name||m.guardianName||'';
+   m.guardianPhone=src.phone||m.guardianPhone||'';
+   m.guardianRelationship=m.guardianRelationship||'Cha/Mẹ';
+  }, true, true);
+ };
+
  window.healthUnitSetRisk = function(id, unitId, code, val, kind){
   _healthMapUnit(id, unitId, function(m){ m.riskAnswers=m.riskAnswers||{}; m.riskAnswers[code]=(kind==='bool')?val:(val); }, false, true);
   // branchOn / eligibility có thể đổi hiển thị → reload nhẹ để cập nhật navigator + nhánh phụ.

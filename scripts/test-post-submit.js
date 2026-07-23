@@ -69,7 +69,7 @@ const cond = {id:'M3',owner:'RM-01',productId:'motor',submissionState:'SUBMITTED
 ok('10. Condition chưa xác nhận khóa payment', B.deriveCaseViewState(cond).paymentAccessible===false && B.deriveCaseViewState(cond).phase==='CUSTOMER_CONFIRMATION_REQUIRED');
 
 // 11. Condition đã xác nhận → METHOD_REQUIRED
-const condOk = {id:'M4',owner:'RM-01',productId:'motor',submissionState:'SUBMITTED',status:'PAYMENT_METHOD_REQUIRED',underwritingDecision:'APPROVED_WITH_CONDITION',paymentStatus:'METHOD_REQUIRED',confirm:{otp:'VERIFIED'}};
+const condOk = {id:'M4',owner:'RM-01',productId:'motor',submissionState:'SUBMITTED',status:'PAYMENT_METHOD_REQUIRED',underwritingDecision:'APPROVED_WITH_CONDITION',paymentStatus:'METHOD_REQUIRED',premium:8162000,confirm:{otp:'VERIFIED'}};
 ok('11. Condition đã xác nhận → METHOD_REQUIRED', B.deriveCaseViewState(condOk).phase==='PAYMENT_METHOD_REQUIRED' && B.deriveCaseViewState(condOk).canCreatePaymentIntent===true);
 
 // 12. Header/list/tab cùng display state (resolver duy nhất)

@@ -1766,7 +1766,7 @@ function getSubmittedCaseActions(){
   policy:`<a class="btn btn-primary btn-sm" href="?id=${app.id}&tab=policy">Xem hợp đồng</a>`,
   resend:`<button class="btn btn-secondary btn-sm" onclick="alert('Gửi lại cho khách (demo)')">Gửi lại cho khách</button>`
  };
- A.chooseMethod=`<a class="btn btn-primary btn-sm" href="?id=${app.id}&tab=payment">Chọn cách thanh toán</a>`;
+ A.chooseMethod=`<a class="btn btn-primary btn-sm" href="?id=${app.id}&tab=confirmpay">Khởi tạo thanh toán</a>`;
  // §X — actions từ canonical resolver: primary + secondary theo action key.
  const btn=(act,primary)=>{
   const cls=primary?'btn-primary':'btn-secondary';
@@ -1795,22 +1795,23 @@ function getSubmittedCaseActions(){
 
 // ---- 7-tab nav (Không gian theo dõi yêu cầu đã nộp) ----
 const SNAP_SUB=[['customer','Thông tin khách hàng'],['quote','Gói & phí'],['declaration','Nội dung khai báo'],['documents','Tài liệu đã nộp']];
-const CONFIRMPAY_SUB=[['confirm','Xác nhận khách hàng'],['payment','Thanh toán'],['comm','Liên hệ']];
+// §confirmpay — GỘP 1 trang dọc: xác nhận + phí + thanh toán + lịch sử (BỎ sub-tab & tab "Liên hệ").
+const CONFIRMPAY_ALIASES=['confirmpay','confirm','payment','comm'];
 const snapIds=SNAP_SUB.map(x=>x[0]);
 const showSupTab = supCount>0 || casePh==='NEED_MORE_INFORMATION';
-const topActive = activeTab==='overview'?'overview' : snapIds.includes(activeTab)?'snapshot' : (['confirm','payment','comm'].includes(activeTab))?'confirmpay' : activeTab;
+const topActive = activeTab==='overview'?'overview' : snapIds.includes(activeTab)?'snapshot' : (CONFIRMPAY_ALIASES.includes(activeTab))?'confirmpay' : activeTab;
 const topTabs=[
  ['overview','Tổng quan xử lý','overview'],
  ['snapshot','Yêu cầu đã nộp','customer'],
  ...(showSupTab?[['supplement','Yêu cầu bổ sung'+(supCount?` <span class="badge badge-blocked" style="font-size:9px;">${supCount}</span>`:''),'supplement']]:[]),
  ['uw','Thẩm định','uw'],
- ['confirmpay','Xác nhận & thanh toán','confirm'],
+ ['confirmpay','Xác nhận & thanh toán','confirmpay'],
  ['policy','Hợp đồng','policy'],
  ['history','Lịch sử','history']
 ];
 const topLink=([key,label,target])=>`<a href="?id=${app.id}&tab=${target}" class="tab" style="text-decoration:none;display:inline-block;padding:9px 13px;font-size:13px;${topActive===key?'border-bottom:2px solid var(--brand-600);color:var(--brand-600);font-weight:600;':'color:var(--ink-500);'}">${label}</a>`;
 const subLink=([id,label])=>`<a href="?id=${app.id}&tab=${id}" style="text-decoration:none;padding:6px 11px;border-radius:7px;font-size:12.5px;${activeTab===id?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${label}</a>`;
-const subSet = topActive==='snapshot'?SNAP_SUB : topActive==='confirmpay'?CONFIRMPAY_SUB : null;
+const subSet = topActive==='snapshot'?SNAP_SUB : null;
 const subNav = subSet ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${subSet.map(subLink).join('')}</div>` : '';
 const viewOnlyBanner = (topActive==='snapshot') ? `<div class="alert2 info" style="margin-bottom:12px;">🔒 <b>Bản yêu cầu đã nộp — chỉ xem.</b> Dữ liệu dưới đây là snapshot tại thời điểm nộp; chỉ chỉnh khi có yêu cầu bổ sung.</div>` : '';
 const tabBar=`<div class="tabbar" style="margin-bottom:14px;overflow-x:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;">${topTabs.map(topLink).join('')}</div>${subNav}${viewOnlyBanner}`;
@@ -1930,6 +1931,269 @@ function communicationLog(){
  if(st==='ISSUED'){ ev.push([app.updatedAt||'—','Email','✉️','Gửi hợp đồng & chứng nhận','Đã gửi','ok']); }
  const tone={ok:'var(--teal-600)',warn:'var(--amber-600)',wait:'var(--brand-600)'};
  return `<div class="card" style="padding:0;overflow:hidden;"><div style="padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;">Nhật ký liên hệ khách hàng</div>${ev.map(e=>`<div style="display:flex;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);align-items:flex-start;font-size:12.5px;"><span style="font-size:16px;">${e[2]}</span><div style="flex:1;"><b>${e[3]}</b> <span class="chip" style="font-size:9px;">${e[1]}</span><div style="font-size:11.5px;color:${tone[e[5]]};margin-top:2px;">${e[4]}</div></div><span style="color:var(--ink-300);white-space:nowrap;">${e[0]}</span></div>`).join('')}</div>`;
+}
+
+// ================================================================
+// §confirmpay — 1 TRANG DỌC 6 SECTION (Motor + Health chung layout).
+// Chỉ khác renderer dữ liệu; KHÔNG tạo layout riêng cho Health.
+// ================================================================
+// Số tiền cần thanh toán (dùng chung render + handler).
+function cpAmount(){ return BANCA._payAmount(app); }
+// Trạng thái thanh toán → chữ tiếng Việt (KHÔNG hiện enum tiếng Anh ngoài vùng kỹ thuật).
+function cpStatusVN(s2){
+ return ({METHOD_REQUIRED:'Chưa khởi tạo', PENDING:'Đang chờ thanh toán', PROCESSING:'Đang xử lý',
+  SUCCESS:'Thành công', FAILED:'Thất bại', TIMEOUT:'Hết hạn', EXPIRED:'Hết hạn', CANCELLED:'Đã hủy'})[s2]||s2||'—';
+}
+// Cách thanh toán → nhãn tiếng Việt.
+function cpMethodVN(pay){
+ if(!pay) return '—';
+ return (BANCA.PAYMENT_EXPERIENCES[pay.paymentExperience]||{}).label
+   || (BANCA.PAYMENT_CHANNELS[pay.paymentChannel]||{}).label || pay.paymentChannel || '—';
+}
+function cpCard(num,title,inner,sub){
+ return `<section class="card" style="padding:16px 18px;margin-bottom:14px;">
+   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+     <span style="width:22px;height:22px;border-radius:50%;background:var(--brand-600);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${num}</span>
+     <b style="font-size:15px;color:var(--ink-900);">${title}</b>${sub?`<span style="font-size:12px;color:var(--ink-500);">· ${sub}</span>`:''}
+   </div>
+   ${inner}
+ </section>`;
+}
+// ---- Section 1: Trạng thái xử lý (process progress) ----
+function cpProcessSection(){
+ const s=caseView.states;
+ const approved = ['APPROVED_STP','APPROVED'].includes(s.underwritingDecision) || s.underwritingDecision==='APPROVED_WITH_CONDITION';
+ const confirmed = BANCA.confirmationComplete(app);
+ const steps=['Chấp thuận','Xác nhận khách hàng','Chờ thanh toán','Đang xử lý','Thanh toán thành công','Phát hành hợp đồng'];
+ let active;
+ if(s.policyStatus==='ISSUED') active=6;
+ else if(s.policyStatus==='ISSUING'||s.paymentStatus==='SUCCESS') active=5;
+ else if(s.paymentStatus==='PROCESSING') active=3;
+ else if(['PENDING','FAILED','EXPIRED'].includes(s.paymentStatus)) active=2;
+ else if(approved && confirmed) active=2;
+ else if(approved) active=1;
+ else active=0;
+ const nodes=steps.map(function(l,i){
+  const state = i<active?'done':(i===active?'active':'todo');
+  const bg = state==='done'?'var(--teal-600)':state==='active'?'var(--brand-600)':'var(--paper)';
+  const fg = state==='todo'?'var(--ink-300)':'#fff';
+  const ic = state==='done'?'✓':(i+1);
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:82px;text-align:center;">
+    <span style="width:24px;height:24px;border-radius:50%;background:${bg};color:${fg};border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${ic}</span>
+    <span style="font-size:10.5px;color:${state==='todo'?'var(--ink-300)':'var(--ink-700)'};font-weight:${state==='active'?'700':'500'};line-height:1.2;">${l}</span>
+   </div>`;
+ }).join('<div style="height:1px;background:var(--line);flex:0 0 12px;margin-top:12px;"></div>');
+ // Thông báo phát hành (đúng trạng thái — KHÔNG banner sai).
+ let issueNote='';
+ if(s.paymentStatus==='SUCCESS' && s.policyStatus==='ISSUING') issueNote=`<div class="alert2 info" style="margin:12px 0 0;">Đã thanh toán — đang phát hành hợp đồng. Chờ Core trả kết quả.</div>`;
+ else if(s.policyStatus==='ISSUED' && app.policyId) issueNote=`<div class="alert2" style="margin:12px 0 0;background:var(--teal-100);color:var(--teal-600);">✓ Hợp đồng đã phát hành · Số HĐ <b>${app.policyId}</b> — <a href="?id=${app.id}&tab=policy" style="color:var(--teal-600);text-decoration:underline;">xem hợp đồng</a>.</div>`;
+ else if(s.policyStatus==='ISSUE_FAILED') issueNote=`<div class="alert2 danger" style="margin:12px 0 0;">Đã thanh toán nhưng phát hành lỗi — không thu lại tiền. <a href="?id=${app.id}&tab=policy" style="color:var(--red-600);text-decoration:underline;">Xử lý phát hành</a>.</div>`;
+ return cpCard(1,'Trạng thái xử lý', `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px;flex-wrap:nowrap;overflow-x:auto;">${nodes}</div>${issueNote}`, caseView.displayStatus);
+}
+// ---- Section 2: Xác nhận khách hàng ----
+function cpConfirmSection(){
+ const isMemberHealth = app.productId==='health' && Array.isArray(app.insuredMembers) && app.insuredMembers.some(function(m){return m.confirmation||m.underwriting;});
+ let inner;
+ if(isMemberHealth){
+  const units = BANCA.healthUnitsOf(app).filter(function(u){return u.active!==false;});
+  const cards = units.map(function(u){
+   const cf=u.confirmation||{status:'PENDING'};
+   const badge = cf.status==='CONFIRMED'?'<span class="badge badge-ready">Đã xác nhận</span>':cf.status==='SENT'?'<span class="badge badge-pending">Đã gửi — chờ khách</span>':'<span class="badge badge-conditional">Chưa gửi</span>';
+   const who = u.isChild ? `Người đại diện: <b>${u.guardianName||'(chưa nhập)'}</b> (${u.guardianRelationship||'cha/mẹ'}) · ${u.guardianPhone||'—'}` : `SĐT thành viên: <b>${u.phone||(cust&&u.relationship==='Bản thân'?BANCA.maskPhone(cust.phone):'—')}</b>`;
+   return `<div class="card" style="padding:14px;margin-bottom:10px;border-left:3px solid ${cf.status==='CONFIRMED'?'var(--teal-600)':'var(--brand-600)'};">
+     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${badge}</div>
+     <div style="font-size:12px;color:var(--ink-500);margin-top:5px;">Gói: ${healthPkgName(u.package)} · vai trò: ${u.relationship||'—'}</div>
+     <div style="font-size:12px;color:var(--ink-500);margin-top:3px;">${who}</div>
+     ${cf.status==='SENT'?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">Gửi lúc ${cf.sentAt||'—'} · OTP ${cf.otp||'PENDING'} · <a href="javascript:alert('Xem evidence phiên xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
+     ${app.owner===me?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">${cf.status==='PENDING'?`<button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi xác nhận</button>`:''}${cf.status==='SENT'?`<button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi lại</button><button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">✓ Khách đã xác nhận (demo)</button>`:''}</div>`:''}
+    </div>`;
+  }).join('');
+  const allConfirmed = units.every(function(u){return (u.confirmation||{}).status==='CONFIRMED';});
+  inner = `<div class="alert2 info" style="margin:0 0 12px;">Xác nhận theo từng người được bảo hiểm. Người ≥18 tự xác nhận bằng SĐT + OTP riêng; trẻ &lt;18 do người đại diện xác nhận — mỗi người 1 phiên/evidence riêng (KHÔNG dùng 1 OTP chung).</div>
+    ${app.owner===me&&!allConfirmed?`<div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirmAll('${app.id}')">Gửi xác nhận hàng loạt (mỗi người 1 phiên)</button></div>`:''}
+    ${cards}
+    ${allConfirmed?'<div class="alert2" style="margin-top:8px;background:var(--teal-100);color:var(--teal-600);">✓ Tất cả thành viên đã xác nhận — đủ điều kiện thanh toán tổng.</div>':'<div class="alert2 warn" style="margin-top:8px;">Còn thành viên chưa xác nhận — chưa thể khởi tạo thanh toán.</div>'}`;
+ } else {
+  const needConfirm = (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))||['PENDING_CUSTOMER_CONFIRM','UW_DECIDED'].includes(st);
+  let cState;
+  if(app.confirm && ['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'].includes(st)) cState='CONFIRMED';
+  else if(app.confirm) cState='SENT';
+  else if(needConfirm) cState='PENDING';
+  else if(['PENDING_RECEIPT','PENDING_UW','IN_UW','NEED_MORE_INFO'].includes(st)) cState='NOT_READY';
+  else cState='NOT_APPLICABLE';
+  const cLabel={CONFIRMED:['Đã xác nhận','ok'],SENT:['Đã gửi — chờ khách xác nhận','wait'],PENDING:['Cần gửi yêu cầu xác nhận','info'],NOT_READY:['Chưa thể gửi xác nhận','wait'],NOT_APPLICABLE:['Không yêu cầu xác nhận riêng','ok']}[cState];
+  let cfBody;
+  if(cState==='NOT_APPLICABLE') cfBody=`<div class="alert2 info" style="margin:0;">Yêu cầu đã được xác nhận khi nộp — không cần bước xác nhận riêng trước khi thanh toán.</div>`;
+  else if(cState==='NOT_READY') cfBody=`<div class="alert2 info" style="margin:0;">Yêu cầu đang chờ kết quả thẩm định — chưa thể gửi xác nhận.</div>`;
+  else if(cState==='PENDING') cfBody=`<div class="card" style="padding:16px;"><div style="font-size:13px;color:var(--ink-700);">Kết quả thẩm định có điều chỉnh (phụ phí/điều kiện) — khách cần xác nhận trước khi thanh toán.</div>${app.owner===me?'<button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="sendConfirm()">Gửi khách xác nhận</button>':''}</div>`;
+  else cfBody=`<div class="card" style="padding:16px;"><table class="dtable"><tbody>
+    ${row('Người xác nhận', (cust?cust.name:'—'))}
+    ${row('Vai trò','Bên mua bảo hiểm')}
+    ${row('Số điện thoại', cust?BANCA.maskPhone(cust.phone):'—')}
+    ${row('Nội dung', app.uw&&app.uw.decision!=='APPROVED'?'Xác nhận lại điều kiện/phí điều chỉnh':'Xác nhận thông tin yêu cầu')}
+    ${row('Kênh gửi', BANCA.label('delivery',app.confirm.delivery)||'SMS + Email')}
+    ${row('Gửi lúc',app.confirm.sentAt)} ${row('Hết hạn',app.confirm.expiry||'—')}
+    ${row('Trạng thái', cState==='CONFIRMED'?'<span class="badge badge-ready">Đã xác nhận</span>':'<span class="badge badge-pending">Chờ khách xác nhận</span>')}
+    ${row('Xác nhận lúc', cState==='CONFIRMED'?(app.confirm.confirmedAt||app.updatedAt):'—')}
+   </tbody></table>
+   ${app.confirm.link?`<div style="font-size:11.5px;margin-top:8px;"><a href="javascript:alert('Xem evidence xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
+   ${app.owner===me&&cState==='SENT'?'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" onclick="alert(\'Đã gửi lại link (demo)\')">Gửi lại</button> <button class="btn btn-primary btn-sm" onclick="simConfirm()">✓ Khách đã xác nhận (demo)</button></div>':''}
+  </div>`;
+  inner = statusBanner(cLabel[1], cLabel[0], '', '') + cfBody;
+ }
+ return cpCard(2,'Xác nhận khách hàng', inner);
+}
+// ---- Section 3: Phí cần thanh toán (breakdown khớp tổng phí) ----
+function cpFeeSection(){
+ const total = cpAmount();
+ const pay = app.payment;
+ const paid = (pay && pay.status==='SUCCESS') ? (pay.amount||total) : 0;
+ const remaining = Math.max(0, total - paid);
+ let lines=[], memberHtml='';
+ if(app.productId==='health'){
+  const q=app.quote||{}; const b=q.premiumBreakdown||{};
+  if(b.totalPremium){
+   if(b.basePremium) lines.push(['Phí cơ bản (các thành viên)', b.basePremium, '+']);
+   if(b.addOnPremium) lines.push(['Quyền lợi bổ sung', b.addOnPremium, '+']);
+   if(b.loading) lines.push(['Phụ phí thẩm định', b.loading, '+']);
+   if(b.discount) lines.push(['Giảm phí gia đình', b.discount, '−']);
+   if(b.tax) lines.push(['Thuế (VAT)', b.tax, '+']);
+   if(b.fee) lines.push(['Phí khác', b.fee, '+']);
+  } else lines.push(['Phí bảo hiểm sức khỏe', total, '+']);
+  try{
+   const fr=BANCA.healthFamilyRating(app);
+   if(fr && fr.lines && fr.lines.length){
+    memberHtml = `<div style="margin-top:12px;"><div class="label" style="margin-bottom:4px;">Phí theo thành viên (tham khảo)</div>`+fr.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.name||'—'} · ${healthPkgName(l.package)}</span><b>${l.eligible?BANCA.vnd(l.premium):'—'}</b></div>`;}).join('')+`</div>`;
+   }
+  }catch(e){}
+ } else {
+  if(app.uw && app.uw.newPremium){
+   lines.push(['Phí bảo hiểm gốc', app.premium||0, '+']);
+   const adj=(app.uw.newPremium)-(app.premium||0);
+   if(adj) lines.push(['Điều chỉnh sau thẩm định', Math.abs(adj), adj<0?'−':'+']);
+  } else if(app.quote && app.quote.subtotal!=null){
+   const q=app.quote;
+   if(q.tplPremium) lines.push(['TNDS bắt buộc', q.tplPremium, '+']);
+   if(q.odBase) lines.push(['Phí vật chất xe', q.odBase, '+']);
+   (q.lines||[]).forEach(function(l){ lines.push([l.label, Math.abs(l.amount), l.amount<0?'−':'+']); });
+   if(q.ncdAmount) lines.push(['Giảm phí không tổn thất (NCD)', q.ncdAmount, '−']);
+   if(q.vatAmount) lines.push(['Thuế (VAT)', q.vatAmount, '+']);
+  } else lines.push(['Phí bảo hiểm', total, '+']);
+ }
+ // Reconcile — bảo đảm tổng breakdown KHỚP tổng phí (AC09).
+ const sum = lines.reduce(function(a,l){ return a + (l[2]==='−'? -l[1] : l[1]); }, 0);
+ if(sum!==total){ const dlt=total-sum; lines.push(['Điều chỉnh', Math.abs(dlt), dlt<0?'−':'+']); }
+ const lineHtml = lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;${l[2]==='−'?'color:var(--teal-600);':''}"><span>${l[2]==='−'?'− ':'+ '}${l[0]}</span><span>${BANCA.vnd(l[1])}</span></div>`;}).join('');
+ const chip=(k,v,c)=>`<div style="border:1px solid var(--line);border-radius:9px;padding:10px;"><div style="font-size:10.5px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:16px;font-weight:800;margin-top:3px;color:${c||'var(--ink-900)'};">${v}</div></div>`;
+ const inner=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+    ${chip('Tổng phí',BANCA.vnd(total),'var(--brand-600)')}
+    ${chip('Đã thanh toán',BANCA.vnd(paid),paid>0?'var(--teal-600)':'var(--ink-900)')}
+    ${chip('Còn phải thanh toán',BANCA.vnd(remaining),remaining>0?'var(--amber-600)':'var(--teal-600)')}
+   </div>
+   <div style="border:1px solid var(--line);border-radius:9px;padding:12px;margin-top:12px;">
+    <div class="label" style="margin-bottom:6px;">Chi tiết phí (breakdown)</div>
+    ${lineHtml}
+    <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;"><span>Tổng phí</span><span>${BANCA.vnd(total)}</span></div>
+    ${memberHtml}
+   </div>`;
+ return cpCard(3,'Phí cần thanh toán', inner);
+}
+// ---- Section 4: Ba cách thanh toán (hiển thị trực tiếp) ----
+function cpMethodsSection(){
+ const cv=caseView; const s=cv.states; const pay=app.payment;
+ const payDone = pay && pay.status==='SUCCESS';
+ const payActive = pay && ['PENDING','PROCESSING'].includes(pay.status);
+ let inner;
+ if(payDone) inner=`<div class="alert2" style="margin:0;background:var(--teal-100);color:var(--teal-600);">✓ Đã thanh toán thành công — xem chi tiết ở mục "Trạng thái thanh toán".</div>`;
+ else if(payActive) inner=`<div class="alert2 info" style="margin:0;">Đã khởi tạo yêu cầu thanh toán — theo dõi ở mục "Trạng thái thanh toán".</div>`;
+ else if(s.policyStatus==='ISSUED') inner=`<div class="alert2 info" style="margin:0;">Yêu cầu đã hoàn tất thanh toán và phát hành.</div>`;
+ else {
+  const enabled = cv.canInitiatePayment && app.owner===me;
+  let reason='';
+  if(app.owner!==me) reason='Chỉ nhân viên phụ trách được khởi tạo thanh toán.';
+  else if(!cv.canInitiatePayment){
+   if(!BANCA.confirmationComplete(app)){
+    if(app.productId==='health' && Array.isArray(app.insuredMembers)){
+     const miss=app.insuredMembers.filter(function(m){return m.active!==false && (m.confirmation||{}).status!=='CONFIRMED';}).map(function(m){return m.name||'—';});
+     reason='Chưa thể thanh toán: còn '+miss.length+' thành viên chưa xác nhận'+(miss.length?' ('+miss.join(', ')+')':'')+'.';
+    } else reason='Chưa thể thanh toán: khách chưa xác nhận.';
+   } else reason = cv.nextActionLabel || 'Chưa đủ điều kiện khởi tạo thanh toán.';
+  }
+  const mcard=(exp,icon,title,desc,best)=>{
+   const style = enabled ? 'cursor:pointer;background:#fff;border:1px solid var(--line);' : 'background:var(--paper);border:1px dashed var(--line);opacity:.6;';
+   const btn = enabled ? `<button class="btn btn-primary btn-sm" style="margin-top:4px;" onclick="openPayFlow('${exp}')">Bắt đầu</button>` : `<button class="btn btn-primary btn-sm" style="margin-top:4px;" disabled>Chưa khả dụng</button>`;
+   return `<div style="border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;min-height:158px;${style}">
+     <div style="font-size:22px;">${icon}</div><b style="font-size:13.5px;">${title}</b>
+     <div style="font-size:11.5px;color:var(--ink-500);line-height:1.4;flex:1;">${desc}</div>
+     <div style="font-size:11px;color:var(--ink-300);">Phù hợp: ${best}</div>${btn}
+    </div>`;
+  };
+  inner=`${reason?`<div class="alert2 warn" style="margin:0 0 12px;">${reason}</div>`:''}
+   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+    ${mcard('CUSTOMER_PRESENT_QR','▦','Quét QR tại quầy','Hiển thị mã QR, số tiền, mã tham chiếu, hạn thanh toán.','Khách đang có mặt tại quầy')}
+    ${mcard('CUSTOMER_REMOTE','✉','Gửi yêu cầu thanh toán từ xa','Gửi liên kết thanh toán qua SMS/Email hoặc sao chép liên kết sau khi khách đồng ý.','Khách không có mặt / thanh toán sau')}
+    ${mcard('SELLER_DEVICE_ASSISTED','⌁','Thanh toán trên thiết bị này','Khách tự nhập dữ liệu nhạy cảm và OTP trên cổng thanh toán.','Khách có mặt nhưng không quét QR')}
+   </div>
+   <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chưa tạo yêu cầu thanh toán cho tới khi nhân viên tư vấn xác nhận cấu hình trong từng cách.</div>`;
+ }
+ return cpCard(4,'Cách thanh toán', inner);
+}
+// ---- Section 5: Trạng thái thanh toán hiện tại ----
+function cpCurrentSection(){
+ const pay=app.payment;
+ if(!pay) return cpCard(5,'Trạng thái thanh toán', `<div class="alert2 info" style="margin:0;">Chưa khởi tạo thanh toán.</div>`);
+ const s2=pay.status;
+ const tone={SUCCESS:'ok',PENDING:'wait',PROCESSING:'wait',FAILED:'danger',TIMEOUT:'danger',EXPIRED:'danger',CANCELLED:'danger'}[s2]||'wait';
+ const toneColor={ok:'var(--teal-600)',wait:'var(--amber-600)',danger:'var(--red-600)'}[tone];
+ const facts=[['Số tiền',BANCA.vnd(pay.amount)],['Cách thanh toán',cpMethodVN(pay)],['Người thanh toán',(pay.payerName||(cust&&cust.name)||'—')+(pay.payerType==='CUSTOMER'?' · Khách hàng':'')],['Thời gian', pay.paidAt||pay.createdAt||'—']];
+ if(s2==='PENDING'&&pay.expiresAt) facts.push(['Hết hạn',pay.expiresAt]);
+ const factHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">${facts.map(function(f){return `<div style="border:1px solid var(--line);border-radius:9px;padding:9px;"><div style="font-size:10.5px;color:var(--ink-300);text-transform:uppercase;">${f[0]}</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${f[1]}</div></div>`;}).join('')}</div>`;
+ // QR / link preview khi đang chờ
+ let preview='';
+ if(s2==='PENDING'&&pay.paymentChannel==='QR') preview=`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:9px;padding:12px;text-align:center;"><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Khách quét mã QR để thanh toán</div><div style="width:120px;height:120px;margin:0 auto;background:repeating-linear-gradient(45deg,#111,#111 6px,#fff 6px,#fff 12px);border-radius:6px;"></div><div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Hết hạn ${pay.expiresAt||'—'}</div></div>`;
+ else if(s2==='PENDING'&&pay.paymentChannel==='PAYMENT_LINK') preview=`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:9px;padding:12px;"><div style="font-size:12.5px;">Liên kết đã gửi: <a href="${pay.paymentUrl}" style="color:var(--brand-600);">${pay.paymentUrl}</a></div><div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">Người nhận: ${pay.recipientPhone||pay.recipientEmail||'—'} · Đã gửi · Hết hạn ${pay.expiresAt||'—'}</div></div>`;
+ // Vùng kỹ thuật thu gọn (English tokens ở đây, KHÔNG ngoài).
+ const rowT=(k,v)=>`<tr><td style="color:var(--ink-500);width:180px;font-size:12px;">${k}</td><td style="font-size:12.5px;"><span class="code">${v}</span></td></tr>`;
+ const tech=`<details style="margin-top:12px;"><summary style="cursor:pointer;font-size:12px;color:var(--ink-500);">Chi tiết kỹ thuật</summary><table class="dtable"><tbody>
+   ${rowT('Payment ID',pay.paymentId||'—')}${rowT('Experience',pay.paymentExperience||'—')}${rowT('Payment instrument',pay.paymentInstrument||'—')}${rowT('Delivery channel',pay.deliveryChannel||'NONE')}${rowT('Merchant reference',pay.merchantReference||'—')}${rowT('Gateway reference',pay.gatewayReference||'—')}${rowT('Gateway transaction ID',pay.gatewayTransactionId||'—')}${rowT('Status',pay.status)}
+  </tbody></table></details>`;
+ // Demo tools — chỉ callback gateway đổi SUCCESS; nhân viên tư vấn KHÔNG tự mark success.
+ let tools='';
+ if(s2==='PENDING'&&app.owner===me) tools=`<div style="margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;">
+    <div class="label" style="margin-bottom:6px;">Demo Tools — không thuộc UI production</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+     <button class="btn btn-primary btn-sm" onclick="settlePayment('SUCCESS')">Mô phỏng callback: Thành công</button>
+     <button class="btn btn-secondary btn-sm" onclick="settlePayment('FAILED')">Callback: Thất bại</button>
+     <button class="btn btn-secondary btn-sm" onclick="settlePayment('EXPIRED')">Callback: Hết hạn</button>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Nhân viên tư vấn KHÔNG tự đánh dấu đã thanh toán — kết quả chỉ đến từ callback cổng thanh toán.</div>
+   </div>`;
+ else if(['FAILED','EXPIRED','TIMEOUT'].includes(s2)&&app.owner===me) tools=`<div style="margin-top:12px;"><button class="btn btn-primary btn-sm" onclick="recreatePaymentIntent()">Tạo lại yêu cầu thanh toán</button></div>`;
+ const inner=`<div class="card" style="padding:14px;border-left:4px solid ${toneColor};">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><b style="font-size:14px;color:${toneColor};">${cpStatusVN(s2)}</b>${BANCA.paymentBadge?BANCA.paymentBadge(s2):''}</div>
+    ${factHtml}${preview}${tech}${tools}
+   </div>`;
+ return cpCard(5,'Trạng thái thanh toán', inner);
+}
+// ---- Section 6: Lịch sử thanh toán (row → chi tiết, KHÔNG lặp key-value dưới bảng) ----
+function cpHistorySection(){
+ const pay=app.payment;
+ const txns=[];
+ if(pay) txns.push(pay);
+ let inner;
+ if(!txns.length) inner=`<div class="empty-state" style="padding:18px;">Chưa có giao dịch thanh toán.</div>`;
+ else {
+  const rows=txns.map(function(t){
+   const id=t.gatewayTransactionId||t.gatewayReference||t.merchantReference||t.paymentId||'—';
+   const ref=t.merchantReference||t.gatewayReference||'—';
+   return `<tr style="cursor:pointer;" onclick="openTxnDetail()"><td style="font-size:12px;">${id}</td><td style="font-size:12.5px;">${cpMethodVN(t)}</td><td style="font-size:12.5px;">${(t.payerName||(cust&&cust.name)||'—')}</td><td style="font-size:12px;color:var(--ink-500);">${t.paidAt||t.createdAt||'—'}</td><td style="font-size:12.5px;">${BANCA.vnd(t.amount)}</td><td>${BANCA.paymentBadge?BANCA.paymentBadge(t.status):cpStatusVN(t.status)}</td><td style="font-size:11.5px;color:var(--ink-500);">${ref}</td></tr>`;
+  }).join('');
+  inner=`<div class="card" style="padding:0;overflow:hidden;"><table class="dtable"><thead><tr><th>Mã giao dịch</th><th>Cách thanh toán</th><th>Người thanh toán</th><th>Thời gian</th><th>Số tiền</th><th>Trạng thái</th><th>Tham chiếu</th></tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Bấm vào dòng giao dịch để xem chi tiết.</div>`;
+ }
+ return cpCard(6,'Lịch sử thanh toán', inner);
+}
+function renderConfirmPay(){
+ return cpProcessSection()+cpConfirmSection()+cpFeeSection()+cpMethodsSection()+cpCurrentSection()+cpHistorySection();
 }
 
 // ---- Customer reconfirmation rule (rule-based, không cho nhân viên tư vấn chọn) ----
@@ -2157,7 +2421,7 @@ if(activeTab==='overview'){
    <div class="card" style="padding:16px;">
     <div class="label" style="margin-bottom:8px;">Ma trận thẩm định theo thành viên</div>
     <table class="dtable"><thead><tr><th>Thành viên</th><th>Kết quả</th><th>Phụ phí</th><th>Điều kiện</th><th>Mô phỏng</th></tr></thead><tbody>${rows}</tbody></table>
-    ${overall.code==='READY_PAYMENT'&&app.owner===me?`<a class="btn btn-primary btn-sm" style="margin-top:12px;" href="?id=${app.id}&tab=payment">Chọn cách thanh toán (tổng) →</a>`:''}
+    ${overall.code==='READY_PAYMENT'&&app.owner===me?`<a class="btn btn-primary btn-sm" style="margin-top:12px;" href="?id=${app.id}&tab=confirmpay">Khởi tạo thanh toán (tổng) →</a>`:''}
     ${overall.code==='PARTIAL'?`<div class="alert2 warn" style="margin-top:12px;">Có thành viên bị từ chối — loại thành viên đó (chủ động) rồi tính lại tổng phí trước khi mở thanh toán.</div>`:''}
    </div>`;
 } else if(activeTab==='uw'){
@@ -2232,151 +2496,14 @@ if(activeTab==='overview'){
       ${row('Quyền tiếp tục thanh toán', d.paymentAllowed!==false?'<span class="badge badge-ready">Được phép</span>':'<span class="badge badge-blocked">Chưa</span>')}
     </tbody></table>
     <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Yêu cầu đủ điều kiện phát hành tự động theo bộ quy tắc STP — không qua hàng chờ/thẩm định viên thủ công.</div>
-    ${app.status==='PAYMENT_METHOD_REQUIRED'&&app.owner===me?`<a class="btn btn-primary btn-sm" style="margin-top:12px;" href="?id=${app.id}&tab=payment">Chọn cách thanh toán →</a>`:''}
+    ${app.status==='PAYMENT_METHOD_REQUIRED'&&app.owner===me?`<a class="btn btn-primary btn-sm" style="margin-top:12px;" href="?id=${app.id}&tab=confirmpay">Khởi tạo thanh toán →</a>`:''}
   </div>`;
   body = stpCard;
  } else {
   body = simUwPanel + wsCard + condCard + decCard;
  }
-} else if(activeTab==='confirm' && app.productId==='health' && (app.insuredMembers||[]).some(function(m){return m.underwriting;})){
- // §OTP — Member Confirmation Package: mỗi thành viên 1 phiên xác nhận riêng (OTP/e-sign); trẻ <18 dùng người đại diện.
- const units = BANCA.healthUnitsOf(app).filter(function(u){return u.active!==false;});
- const cards = units.map(function(u){
-  const cf=u.confirmation||{status:'PENDING'};
-  const badge = cf.status==='CONFIRMED'?'<span class="badge badge-ready">Đã xác nhận</span>':cf.status==='SENT'?'<span class="badge badge-pending">Đã gửi — chờ khách</span>':'<span class="badge badge-conditional">Chưa gửi</span>';
-  const who = u.isChild ? `Người đại diện: <b>${u.guardianName||'(chưa nhập)'}</b> (${u.guardianRelationship||'cha/mẹ'}) · ${u.guardianPhone||'—'}` : `SĐT thành viên: <b>${u.phone||(cust&&u.relationship==='Bản thân'?BANCA.maskPhone(cust.phone):'—')}</b>`;
-  return `<div class="card" style="padding:14px;margin-bottom:10px;border-left:3px solid ${cf.status==='CONFIRMED'?'var(--teal-600)':'var(--brand-600)'};">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${badge}</div>
-    <div style="font-size:12px;color:var(--ink-500);margin-top:5px;">Gói: ${healthPkgName(u.package)} · Gộp: sản phẩm + khai báo + tài liệu + consent → 1 phiên/người</div>
-    <div style="font-size:12px;color:var(--ink-500);margin-top:3px;">${who}</div>
-    ${cf.status==='SENT'?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">Gửi lúc ${cf.sentAt||'—'} · OTP ${cf.otp||'PENDING'}</div>`:''}
-    ${app.owner===me?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">${cf.status==='PENDING'?`<button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi xác nhận</button>`:''}${cf.status==='SENT'?`<button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">✓ Khách đã xác nhận (demo)</button>`:''}</div>`:''}
-   </div>`;
- }).join('');
- const allConfirmed = units.every(function(u){return (u.confirmation||{}).status==='CONFIRMED';});
- body = `<div class="alert2 info" style="margin-bottom:12px;">Xác nhận per-member (confirmationMode PER_MEMBER). Người ≥18 tự xác nhận bằng SĐT + OTP riêng; trẻ &lt;18 do người đại diện xác nhận. Đổi dữ liệu quan trọng của 1 người chỉ vô hiệu xác nhận của người đó.</div>
-   ${app.owner===me?`<div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirmAll('${app.id}')">Gửi hàng loạt (mỗi người 1 phiên)</button></div>`:''}
-   ${cards}
-   ${allConfirmed?'<div class="alert2 info" style="margin-top:8px;">✓ Tất cả thành viên đã xác nhận — sẵn sàng thanh toán tổng.</div>':''}`;
-} else if(activeTab==='confirm'){
- // State model xác nhận khách hàng
- const needConfirm = (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))||['PENDING_CUSTOMER_CONFIRM','UW_DECIDED'].includes(st);
- let cState;
- if(app.confirm && ['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'].includes(st)) cState='CONFIRMED';
- else if(app.confirm) cState='SENT';
- else if(needConfirm) cState='PENDING';
- else if(['PENDING_RECEIPT','PENDING_UW','IN_UW','NEED_MORE_INFO'].includes(st)) cState='NOT_READY';
- else cState='NOT_APPLICABLE';
- const cLabel={CONFIRMED:['Đã xác nhận','ok'],SENT:['Đã gửi — chờ khách xác nhận','wait'],PENDING:['Cần gửi yêu cầu xác nhận','info'],NOT_READY:['Chưa thể gửi xác nhận','wait'],NOT_APPLICABLE:['Không yêu cầu xác nhận','ok']}[cState];
- let cfBody;
- if(cState==='NOT_APPLICABLE') cfBody=emptyIllu('✅','Không yêu cầu xác nhận khách hàng','Yêu cầu đã được xác nhận trong quá trình nộp — không cần bước xác nhận riêng.');
- else if(cState==='NOT_READY') cfBody=emptyIllu('⏳','Chưa thể gửi xác nhận khách hàng','Yêu cầu đang chờ kết quả thẩm định.');
- else if(cState==='PENDING') cfBody=`<div class="card" style="padding:16px;"><div style="font-size:13px;color:var(--ink-700);">Kết quả thẩm định có điều chỉnh (phụ phí/điều kiện) — khách cần xác nhận lại trước khi thanh toán.</div>${app.owner===me?'<button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="sendConfirm()">Nộp yêu cầu bảo hiểm xác nhận</button>':''}</div>`;
- else cfBody=`<div class="card" style="padding:16px;"><table class="dtable"><tbody>
-   ${row('Loại xác nhận', app.uw&&app.uw.decision!=='APPROVED'?'Xác nhận lại (có điều chỉnh)':'Xác nhận thông tin')}
-   ${row('Phiên bản hồ sơ','Phiên bản '+(app.version||1))}
-   ${row('Kênh gửi', BANCA.label('delivery',app.confirm.delivery)||'SMS + Email')}
-   ${row('Người nhận', (cust?cust.name:'—')+' · '+(cust?BANCA.maskPhone(cust.phone):''))}
-   ${row('Gửi lúc',app.confirm.sentAt)} ${row('Hết hạn',app.confirm.expiry)}
-   ${row('Trạng thái OTP', BANCA.label('otp',app.confirm.otp)||'—')}
-   ${row('Xác nhận lúc', cState==='CONFIRMED'?(app.confirm.confirmedAt||app.updatedAt):'—')}
-   ${row('Lịch sử gửi lại', (app.confirm.resends||0)+' lần')}
-  </tbody></table>
-  ${app.owner===me&&cState==='SENT'?'<button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="alert(\'Đã gửi lại link (demo)\')">Gửi lại link</button> <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="simConfirm()">✓ Khách đã xác nhận (demo)</button>':''}
- </div>`;
- body = statusBanner(cLabel[1], cLabel[0], cState==='SENT'?`Đã gửi lúc ${app.confirm.sentAt||'—'} · hết hạn ${app.confirm.expiry||'—'}.`:'', '') + cfBody;
-} else if(activeTab==='payment'){
- // ===== P0-8: payment mô phỏng theo phương thức (user chốt): QR→success, Thẻ→fail rồi retry success, CK→timeout =====
- const pay=app.payment;
- const payStatusBadge = s2 => ({SUCCESS:'<span class="badge badge-ready">Thành công</span>',PENDING:'<span class="badge badge-pending">Chờ thanh toán</span>',FAILED:'<span class="badge badge-blocked">Thất bại</span>',TIMEOUT:'<span class="badge badge-blocked">Quá thời gian chờ</span>',EXPIRED:'<span class="badge badge-blocked">Hết hạn</span>'}[s2]||s2);
- const q=app.quote;
- const breakdown = q? (q.subtotal!=null? `<div style="border:1px solid var(--line);border-radius:9px;padding:12px;margin-top:10px;">
-  <div class="label" style="margin-bottom:6px;">Breakdown phí (thác nước)</div>
-  <div style="font-size:12.5px;display:flex;justify-content:space-between;"><span>TNDS bắt buộc</span><span>${BANCA.vnd(q.tplPremium)}</span></div>
-  <div style="font-size:12.5px;display:flex;justify-content:space-between;color:var(--ink-500);"><span>Phí gốc vật chất</span><span>${BANCA.vnd(q.odBase)}</span></div>
-  ${(q.lines||[]).map(l=>`<div style="font-size:12.5px;display:flex;justify-content:space-between;color:var(--ink-500);"><span>${l.amount<0?'−':'+'} ${l.label}</span><span>${BANCA.vnd(Math.abs(l.amount))}</span></div>`).join('')}
-  <div style="font-size:12.5px;display:flex;justify-content:space-between;border-top:1px dashed var(--line);margin-top:4px;padding-top:4px;"><span>= Tạm tính (Subtotal)</span><span>${BANCA.vnd(q.subtotal)}</span></div>
-  ${q.ncdAmount?`<div style="font-size:12.5px;display:flex;justify-content:space-between;color:var(--teal-600);"><span>− NCD ${q.ncdPct}%</span><span>−${BANCA.vnd(q.ncdAmount)}</span></div>`:''}
-  <div style="font-size:12.5px;display:flex;justify-content:space-between;color:var(--amber-600);"><span>+ VAT ${BANCA.VAT_PCT}% (vật chất)</span><span>+${BANCA.vnd(q.vatAmount)}</span></div>
-  ${app.uw&&app.uw.newPremium?`<div style="font-size:12.5px;display:flex;justify-content:space-between;color:var(--amber-600);"><span>Điều chỉnh UW</span><span>${BANCA.vnd(app.uw.newPremium-(q.totalPremium||app.premium))}</span></div>`:''}
-  <div style="font-size:13px;display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;"><span>Tổng thanh toán</span><span>${BANCA.vnd((app.uw&&app.uw.newPremium)||q.totalPremium||app.premium)}</span></div>
- </div>` : `<div style="border:1px solid var(--line);border-radius:9px;padding:12px;margin-top:10px;">
-  <div class="label" style="margin-bottom:6px;">Breakdown phí</div>
-  <div style="font-size:12.5px;display:flex;justify-content:space-between;"><span>Phí cơ bản</span><span>${BANCA.vnd(q.basePremium)}</span></div>
-  <div style="font-size:13px;display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;"><span>Tổng thanh toán</span><span>${BANCA.vnd((app.uw&&app.uw.newPremium)||q.adjustedPremium||app.premium)}</span></div>
- </div>`):'';
- // Nghĩa vụ thanh toán + danh sách giao dịch
- const totalDue=(app.uw&&app.uw.newPremium)||(q&&(q.totalPremium||q.adjustedPremium))||app.premium||0;
- const paidAmt=(pay&&pay.status==='SUCCESS')?pay.amount:0;
- const payOwner='Khách hàng';
- const expLabel = pay ? ((BANCA.PAYMENT_EXPERIENCES[pay.paymentExperience]||{}).label||pay.paymentExperience||'—') : 'Chưa chọn';
- const instLabel = pay ? ((BANCA.PAYMENT_INSTRUMENTS&&BANCA.PAYMENT_INSTRUMENTS[pay.paymentInstrument]||{}).label||pay.paymentInstrument||'—') : 'Chưa chọn';
- const delLabel = pay ? ((BANCA.DELIVERY_CHANNELS&&BANCA.DELIVERY_CHANNELS[pay.deliveryChannel]||{}).label||pay.deliveryChannel||'NONE') : 'NONE';
- const obligationCard=`<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Nghĩa vụ thanh toán</div>
-   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-     ${[['Tổng phí',BANCA.vnd(totalDue)],['Đã thanh toán',BANCA.vnd(paidAmt)],['Còn lại',BANCA.vnd(Math.max(0,totalDue-paidAmt))],['Cách thanh toán',expLabel],['Payment ID',pay&&pay.paymentId?pay.paymentId:'Không có'],['Status',pay?pay.status:'METHOD_REQUIRED'],['Instrument',instLabel],['Delivery channel',delLabel],['Hết hạn',pay&&pay.expiresAt?pay.expiresAt:'—']].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:9px;padding:10px;"><div style="font-size:10.5px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:14px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
-   </div></div>`;
- const txns=[]; if(pay){ txns.push({id:pay.gatewayTransactionId||pay.gatewayReference||pay.merchantReference||('TXN-'+String(app.id).slice(-3)), method:instLabel, at:pay.paidAt||(pay.status==='PENDING'?'—':app.updatedAt), amount:pay.amount, status:pay.status, ref:pay.merchantReference||pay.reference||'—', fail:['FAILED','TIMEOUT','EXPIRED'].includes(pay.status)?'Giao dịch không thành công — cần thử lại':''}); }
- const txStatusBadge=s2=>({SUCCESS:'<span class="badge badge-ready">Thành công</span>',PENDING:'<span class="badge badge-pending">Chờ</span>',PROCESSING:'<span class="badge badge-pending">Đang xử lý</span>',FAILED:'<span class="badge badge-blocked">Thất bại</span>',TIMEOUT:'<span class="badge badge-blocked">Quá giờ</span>',EXPIRED:'<span class="badge badge-blocked">Hết hạn</span>',REFUNDED:'<span class="badge badge-version">Đã hoàn</span>'}[s2]||s2);
- const txnCard=`<div class="card" style="padding:0;margin-bottom:12px;overflow:hidden;"><div style="padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;">Danh sách giao dịch</div>${txns.length?`<table class="dtable"><thead><tr><th>Mã GD</th><th>Phương thức</th><th>Thời gian</th><th>Số tiền</th><th>Trạng thái</th><th>Reference</th></tr></thead><tbody>${txns.map(tx=>`<tr><td style="font-size:12px;">${tx.id}</td><td style="font-size:12.5px;">${tx.method}</td><td style="font-size:12px;color:var(--ink-500);">${tx.at}</td><td style="font-size:12.5px;">${BANCA.vnd(tx.amount)}</td><td>${txStatusBadge(tx.status)}${tx.fail?`<div style="font-size:11px;color:var(--red-600);">${tx.fail}</div>`:''}</td><td style="font-size:11.5px;color:var(--ink-500);">${tx.ref}</td></tr>`).join('')}</tbody></table>`:'<div class="empty-state" style="padding:20px;">Chưa có giao dịch.</div>'}</div>`;
- if(pay){
-  const failed=['FAILED','TIMEOUT','EXPIRED'].includes(pay.status);
-  body=obligationCard+txnCard+`<div class="card" style="padding:16px;"><table class="dtable"><tbody>
-   ${row('Mã thanh toán',pay.paymentId||'—')}
-   ${row('Experience',(BANCA.PAYMENT_EXPERIENCES[pay.paymentExperience]||{}).label||pay.paymentExperience||'—')}
-   ${row('Payment instrument',(BANCA.PAYMENT_INSTRUMENTS&&BANCA.PAYMENT_INSTRUMENTS[pay.paymentInstrument]||{}).label||pay.paymentInstrument||'—')}
-   ${row('Delivery channel',(BANCA.DELIVERY_CHANNELS&&BANCA.DELIVERY_CHANNELS[pay.deliveryChannel]||{}).label||pay.deliveryChannel||'NONE')}
-   ${row('Merchant reference',pay.merchantReference||'—')}
-   ${row('Hình thức',(BANCA.PAYMENT_EXPERIENCES[pay.paymentExperience]||{}).label||pay.paymentExperience||'—')}
-   ${row('Người thanh toán',(pay.payerName||'—')+(pay.payerType?' ('+pay.payerType+')':''))}
-   ${(pay.recipientPhone||pay.recipientEmail)?row('Gửi tới',pay.recipientPhone||pay.recipientEmail):''}
-   ${row('Số tiền',BANCA.vnd(pay.amount)+' '+(pay.currency||'VND'))}
-   ${row('Trạng thái',BANCA.paymentBadge?BANCA.paymentBadge(pay.status):payStatusBadge(pay.status))}
-   ${pay.status==='PENDING'?row('Hết hạn',pay.expiresAt||'—'):''}
-   ${pay.paidAt?row('Thanh toán lúc',pay.paidAt):''}
-   ${pay.gatewayReference?row('Gateway reference',pay.gatewayReference):''}
-   ${pay.gatewayTransactionId?row('Gateway transaction ID',pay.gatewayTransactionId):''}
-  </tbody></table>
-  ${breakdown}
-  ${pay.status==='PENDING'&&pay.paymentChannel==='QR'?`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:9px;padding:12px;text-align:center;"><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Khách quét QR để thanh toán</div><div style="width:120px;height:120px;margin:0 auto;background:repeating-linear-gradient(45deg,#111,#111 6px,#fff 6px,#fff 12px);border-radius:6px;"></div><div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Payload: ${(pay.qrPayload||'').slice(0,24)}… · Hết hạn ${pay.expiresAt||'—'}</div></div>`:''}
-  ${pay.status==='PENDING'&&pay.paymentChannel==='PAYMENT_LINK'?`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:9px;padding:12px;"><div style="font-size:12.5px;">Link đã gửi: <a href="${pay.paymentUrl}" style="color:var(--brand-600);">${pay.paymentUrl}</a></div><div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">Người nhận: ${pay.recipientPhone||pay.recipientEmail||'—'} · Delivery: Đã gửi · Hết hạn ${pay.expiresAt||'—'}</div></div>`:''}
-  ${pay.status==='PENDING'&&app.owner===me?`
-   <div style="margin-top:14px;">
-    <div class="label" style="margin-bottom:6px;">Demo tools — không thuộc production UI</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-     <button class="btn btn-primary btn-sm" onclick="settlePayment('SUCCESS')">✓ Khách thanh toán thành công</button>
-     <button class="btn btn-secondary btn-sm" onclick="settlePayment('FAILED')">✕ Thất bại</button>
-     <button class="btn btn-secondary btn-sm" onclick="settlePayment('EXPIRED')">⏱ Hết hạn</button>
-    </div>
-    <div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Nhân viên tư vấn KHÔNG tự đánh dấu đã thanh toán — kết quả đến từ callback gateway (mô phỏng).</div>
-   </div>`:''}
-  ${['FAILED','EXPIRED'].includes(pay.status)&&app.owner===me?`<button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="recreatePaymentIntent()">Tạo lại yêu cầu thanh toán</button>`:''}
-  ${app.owner===me&&pay.status!=='SUCCESS'?(()=>{ // SMS nhắc thanh toán (yêu cầu 16:35)
-   const smsLog=((BANCA.overlay.applications&&BANCA.overlay.applications[app.id])||{}).__smsLog||[];
-   return `<div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:12px;">
-    <div class="label" style="margin-bottom:6px;">Nhắn tin nhắc khách hàng</div>
-    <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;">
-     <textarea id="sms-text" style="flex:1;min-width:280px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;font-family:inherit;" rows="3">[JanusBank] Kinh gui Quy khach ${(cust||{}).name||''}: Yeu cau bao hiem ${app.id} da san sang thanh toan. So tien: ${BANCA.vnd(pay.amount)}. Han: ${(app.sla||'').slice(0,10)}. Thanh toan tai: https://portal.janus.vn/pay/${app.id.toLowerCase()}</textarea>
-     <button class="btn btn-primary btn-sm" onclick="sendSms()">📱 Gửi SMS</button>
-    </div>
-    ${smsLog.length?`<div style="margin-top:8px;font-size:11.5px;color:var(--ink-500);">${smsLog.map(x=>`<div>✓ Đã gửi SMS tới ${(cust||{}).phone||''} lúc ${x}</div>`).join('')}</div>`:''}
-   </div>`;
-  })():''}
-  </div><div id="pay-toast"></div>`;
- } else if(caseView.canCreatePaymentIntent){
-  // §2/§3 — Đã chấp thuận, CHƯA tạo payment intent → CTA chọn cách thanh toán (resolver).
-  body=obligationCard+`<div class="card" style="padding:16px;border-left:4px solid var(--teal-600);">
-   <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-ready">Đã chấp thuận</span><b style="font-size:14px;">Chờ chọn cách thanh toán</b></div>
-   <div style="font-size:12.5px;color:var(--ink-500);margin:8px 0 12px;">Yêu cầu đã đủ điều kiện phát hành. Chưa khởi tạo yêu cầu thanh toán — chọn cách thanh toán để tạo yêu cầu (chưa có payment ID / chưa PENDING).</div>
-   ${app.owner===me?`<button class="btn btn-primary" onclick="openPaymentMethod()">Chọn cách thanh toán</button>`:'<span class="chip">Chỉ owner được thao tác</span>'}
-   ${breakdown}
-  </div>`;
- } else {
-  // §2 — chưa đủ điều kiện → payment tab KHÓA + lý do (theo resolver).
-  body=obligationCard+emptyIllu('🔒','Thanh toán đang khóa', caseView.nextActionLabel||'Đang chờ hoàn tất bước trước thanh toán.');
- }
-} else if(activeTab==='comm'){
- body=`<div class="alert2 info" style="margin-bottom:12px;">Nhật ký các kênh liên hệ với khách (SMS · Email · Notification · Điện thoại) — theo dõi trạng thái gửi/mở/hành động.</div>`+communicationLog();
+} else if(CONFIRMPAY_ALIASES.includes(activeTab)){
+ body = renderConfirmPay();
 } else if(activeTab==='policy' && caseView.phase==='POLICY_ISSUE_FAILED'){
  // §IX — phát hành lỗi: payment giữ SUCCESS, KHÔNG thu lại tiền, CTA thử lại/hỗ trợ.
  body=`<div class="card" style="padding:18px;border-left:4px solid var(--red-600);background:#fdecec;">
@@ -2408,7 +2535,7 @@ if(activeTab==='overview'){
     <div><b style="color:var(--ink-700);">Dự kiến tái tục</b><br>${effTo}</div>
    </div>
   </div>`;
- body = app.policyId? issuedHead + gcnPanel(app)+`
+ body = (app.policyId && caseView.states.policyStatus==='ISSUED')? issuedHead + gcnPanel(app)+`
  ${BANCA.commissionVisible('policy')?(()=>{const pol=BANCA.policyById(app.policyId); const cm=pol?BANCA.commissionOfPolicy(pol):null; return cm?`<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--teal-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>${BANCA.vnd(cm.amount)}</b> · trạng thái ${cm.stateLabel} · cơ sở tính HH ${BANCA.vnd(cm.base)} · tỷ lệ ${(cm.rate*100).toFixed(0)}%</div><div style="font-size:11px;color:var(--ink-300);margin-top:3px;">Read-only · cập nhật theo sync ${cm.syncAt}; clawback/đối soát xử lý ở màn admin đối tác.</div></div>`:''})():''}
  ` : (()=>{
    const ck=(done,label)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${done?'var(--teal-600)':'var(--line)'};color:${done?'#fff':'var(--ink-500)'};">${done?'✓':'○'}</span><span style="${done?'':'color:var(--ink-500);'}">${label}</span></div>`;
@@ -2476,7 +2603,7 @@ const verSelect = cmeta.versions.length>1
 // Notification banner (Epic 12)
 function caseNotification(){
  if(casePh==='NEED_MORE_INFORMATION') return ['var(--amber-600)','var(--amber-100)','🟡','Cần bổ sung',supCount+' nội dung'+(app.deadline?' · hạn '+app.deadline:'')];
- if(casePh==='ISSUED') return ['var(--teal-600)','var(--teal-100)','🟢','Hợp đồng đã phát hành thành công',''];
+ if(casePh==='ISSUED' && caseView.states.policyStatus==='ISSUED') return ['var(--teal-600)','var(--teal-100)','🟢','Hợp đồng đã phát hành thành công',''];
  if(casePh==='REJECTED') return ['var(--red-600)','var(--red-100)','🔴','Yêu cầu bị từ chối',''];
  if(casePh==='PAYMENT_PENDING') return ['var(--brand-600)','var(--brand-100)','💳','Chờ khách thanh toán',''];
  if(casePh==='APPROVED_WITH_CONDITION') return ['var(--brand-600)','var(--brand-100)','📝','Duyệt có điều kiện — cần khách xác nhận lại',''];
@@ -2561,7 +2688,7 @@ window.simulateUw = function(decision){
   location.href='?id='+app.id+'&tab=uw'; return;
  }
  if(decision==='APPROVED'){
-  BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',todo:'Chọn cách thanh toán',updatedAt:now,
+  BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',todo:'Khởi tạo thanh toán',updatedAt:now,
    uw:{decision:'APPROVED',officer,decidedAt:now,letter,customerViewed:true,reason:'Đủ điều kiện, không điều chỉnh phí.'}});
   alert('Kết quả: DUYỆT — không điều chỉnh. Chuyển sang chọn cách thanh toán.');
   location.href='?id='+app.id+'&tab=payment'; return;
@@ -2587,7 +2714,7 @@ window.simulateUw = function(decision){
 };
 // P0.4b — mô phỏng khách xác nhận điều kiện → mở Thanh toán.
 window.simConfirm = function(){
- BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',todo:'Chọn cách thanh toán',updatedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5),
+ BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',todo:'Khởi tạo thanh toán',updatedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5),
   confirm:Object.assign({},app.confirm||{},{otp:'VERIFIED',confirmedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5)})});
  alert('Khách đã xác nhận điều kiện (demo) → chọn cách thanh toán.');
  location.href='?id='+app.id+'&tab=payment';
@@ -2601,7 +2728,7 @@ window.healthMemberUw = function(id, unitId, decision){
  app.insuredMembers=members;
  const overall=BANCA.healthDeriveOverallUw(app);
  const patch={insuredMembers:members, updatedAt:now};
- if(overall.code==='READY_PAYMENT'){ patch.status='PAYMENT_METHOD_REQUIRED'; patch.underwritingStatus='DECIDED'; patch.paymentStatus='METHOD_REQUIRED'; patch.underwritingDecision='APPROVED_STP'; patch.todo='Chọn cách thanh toán'; if(!app.stpDecision){ const s=BANCA.makeStpDecision('health',{decidedAt:now,applicationId:id}); if(!s.error) patch.stpDecision=s; } }
+ if(overall.code==='READY_PAYMENT'){ patch.status='PAYMENT_METHOD_REQUIRED'; patch.underwritingStatus='DECIDED'; patch.paymentStatus='METHOD_REQUIRED'; patch.underwritingDecision='APPROVED_STP'; patch.todo='Khởi tạo thanh toán'; if(!app.stpDecision){ const s=BANCA.makeStpDecision('health',{decidedAt:now,applicationId:id}); if(!s.error) patch.stpDecision=s; } }
  else if(overall.code==='NEED_MORE_INFO'){ patch.status='NEED_MORE_INFO'; patch.todo='Bổ sung theo yêu cầu thẩm định'; }
  else { patch.status='PENDING_UW'; }
  BANCA.patchApp(id, patch);
@@ -2624,36 +2751,46 @@ window.healthMemberConfirmAll = function(id){
  alert('Đã gửi gói xác nhận cho từng thành viên (mỗi người 1 phiên OTP/e-sign riêng).');
  location.href='?id='+id+'&tab=confirm';
 };
-// §3 — Modal chọn cách thanh toán → tạo payment intent (chỉ khi đó mới PENDING_PAYMENT).
-window.openPaymentMethod = function(){
- // §III/AC-09 — chỉ mở khi resolver cho phép tạo intent.
- if(!BANCA.deriveCaseViewState(app).canCreatePaymentIntent){ alert('Chưa đủ điều kiện chọn cách thanh toán (hồ sơ chưa được duyệt hoặc đã có yêu cầu thanh toán).'); return; }
- const amount=(app.uw&&app.uw.newPremium)||(app.quote&&(app.quote.premium||app.quote.adjustedPremium||app.quote.totalPremium))||app.premium||0;
+// §5 — 3 cách thanh toán HIỂN THỊ TRỰC TIẾP: click 1 card → mở THẲNG flow tương ứng (KHÔNG có bước "Chọn cách thanh toán").
+// Payment intent chỉ được tạo khi nhân viên tư vấn xác nhận cấu hình trong flow (nút "Tạo…").
+window.openPayFlow = function(experience){
+ // §III/AC-09 — chỉ mở khi resolver cho phép khởi tạo thanh toán.
+ if(!BANCA.deriveCaseViewState(app).canInitiatePayment){ alert('Chưa đủ điều kiện khởi tạo thanh toán (chưa xác nhận đủ / chưa được duyệt / đã có yêu cầu thanh toán).'); return; }
+ const amount=cpAmount();
+ const c=BANCA.customerById(app.customerId)||{};
  const root=document.getElementById('start-sale-root')||document.body;
  const d=document.createElement('div'); d.className='modal-overlay2 open'; d.onclick=function(ev){ if(ev.target===d) d.remove(); };
- const expCard=(exp,icon,title,desc,best,rec)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:180px;">${rec?'<span class="badge badge-ready" style="align-self:flex-start;">Recommended</span>':''}<div style="font-size:22px;">${icon}</div><b>${title}</b><div style="font-size:12px;color:var(--ink-500);line-height:1.45;">${desc}</div><div style="font-size:11.5px;color:var(--ink-300);">Phù hợp: ${best}</div><button class="btn btn-primary btn-sm" style="margin-top:auto;" onclick="paymentStep2('${exp}')">Tiếp tục</button></div>`;
- d.innerHTML=`<div class="modal2" style="max-width:920px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Chọn trải nghiệm thanh toán — ${BANCA.vnd(amount)}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body" id="pay-method-body">
-   <div style="font-size:12px;color:var(--ink-500);margin-bottom:12px;">Bước 1: chọn experience. Payment intent chỉ được tạo sau khi hoàn tất cấu hình bước 2.</div>
-   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-    ${expCard('CUSTOMER_PRESENT_QR','▦','Quét QR tại quầy','Hiển thị QR, số tiền, reference, hạn thanh toán và trạng thái realtime.','Khách đang có mặt tại quầy',true)}
-    ${expCard('CUSTOMER_REMOTE','✉','Nhận yêu cầu thanh toán từ xa','Gửi payment link qua SMS/Email hoặc copy link sau khi khách đồng ý nhận yêu cầu.','Khách không có mặt hoặc cần thanh toán sau',false)}
-    ${expCard('SELLER_DEVICE_ASSISTED','⌁','Thanh toán trên thiết bị này','Khách tự nhập dữ liệu nhạy cảm và OTP trên flow thanh toán; nhân viên tư vấn không được xác nhận thành công thay khách.','Khách có mặt nhưng không quét QR',false)}
-   </div>
- </div></div>`;
+ const heads={CUSTOMER_PRESENT_QR:'Quét QR tại quầy', CUSTOMER_REMOTE:'Gửi yêu cầu thanh toán từ xa', SELLER_DEVICE_ASSISTED:'Thanh toán trên thiết bị này'};
+ let inner;
+ if(experience==='CUSTOMER_PRESENT_QR'){
+  inner=`<div class="card" style="padding:14px;"><table class="dtable"><tbody><tr><td>Số tiền</td><td><b>${BANCA.vnd(amount)}</b></td></tr><tr><td>Mã tham chiếu</td><td class="code">MR-${app.id}</td></tr><tr><td>Hết hạn</td><td>2026-07-24 11:30</td></tr></tbody></table><div style="font-size:11.5px;color:var(--ink-500);margin-top:8px;">Sau khi tạo, hệ thống hiển thị mã QR để khách quét. Kết quả thanh toán do cổng thanh toán trả về.</div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'CUSTOMER_PRESENT_QR',instrument:'QR',delivery:'NONE'})">Tạo mã QR thanh toán</button></div>`;
+ } else if(experience==='CUSTOMER_REMOTE'){
+  inner=`<div class="card" style="padding:14px;"><div style="display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-top:2px;"><label>Kênh gửi</label><select id="pay-delivery" onchange="document.getElementById('pay-recipient').value=this.value==='EMAIL'?'${c.email||'khach@email.vn'}':'${c.phone||''}'" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><option value="SMS">SMS</option><option value="EMAIL">Email</option><option value="COPY_LINK">Sao chép liên kết</option></select><label>Người nhận</label><input id="pay-recipient" value="${c.phone||''}" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Đồng ý</label><label style="font-size:12.5px;"><input id="pay-consent" type="checkbox"> Khách đồng ý nhận yêu cầu thanh toán</label><label>Liên kết hết hạn</label><input value="2026-07-24 11:30" readonly style="padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--paper);"><label>Xem trước tin nhắn</label><textarea readonly style="padding:8px;border:1px solid var(--line);border-radius:7px;font-family:inherit;">Janus Bank: Yeu cau ${app.id} can thanh toan ${BANCA.vnd(amount)}. Link het han 2026-07-24 11:30.</textarea></div><button class="btn btn-primary" style="margin-top:12px;" onclick="if(!document.getElementById('pay-consent').checked){document.getElementById('pay-consent').focus();return;}createPaymentIntent({experience:'CUSTOMER_REMOTE',instrument:'BANK_TRANSFER',delivery:document.getElementById('pay-delivery').value,recipient:document.getElementById('pay-recipient').value})">Tạo và gửi yêu cầu thanh toán</button></div>`;
+ } else {
+  inner=`<div class="card" style="padding:14px;"><div style="display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-top:2px;"><label>Người thanh toán</label><input id="payer-name" value="${c.name||''}" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Quan hệ</label><input id="payer-rel" value="Bên mua bảo hiểm" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Hình thức</label><select id="pay-instrument" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><option value="CARD">Thẻ</option><option value="BANK_ACCOUNT">Tài khoản ngân hàng</option></select><label>Dữ liệu nhạy cảm</label><div class="alert2 warn" style="margin:0;">Khách tự nhập trên cổng thanh toán. Nhân viên tư vấn không nhìn thấy số thẻ/tài khoản và không được tự xác nhận thành công.</div><label>Mã OTP</label><div class="alert2 info" style="margin:0;">Khách xác nhận OTP trên cổng thanh toán.</div></div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'SELLER_DEVICE_ASSISTED',instrument:document.getElementById('pay-instrument').value,delivery:'NONE',payerName:document.getElementById('payer-name').value,payerRelationship:document.getElementById('payer-rel').value})">Tạo phiên thanh toán</button></div>`;
+ }
+ d.innerHTML=`<div class="modal2" style="max-width:620px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>${heads[experience]||'Thanh toán'} — ${BANCA.vnd(amount)}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">${inner}<div style="margin-top:10px;text-align:right;"><button class="btn btn-secondary btn-sm" onclick="this.closest('.modal-overlay2').remove()">Hủy</button></div></div></div>`;
  root.appendChild(d);
 };
-window.paymentStep2 = function(experience){
- const amount=(app.uw&&app.uw.newPremium)||(app.quote&&(app.quote.premium||app.quote.adjustedPremium||app.quote.totalPremium))||app.premium||0;
- const c=BANCA.customerById(app.customerId)||{};
- const body=document.getElementById('pay-method-body'); if(!body) return;
- const base=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><button class="btn btn-secondary btn-sm" onclick="openPaymentMethod();this.closest('.modal-overlay2').remove()">← Đổi experience</button><b>${BANCA.vnd(amount)}</b></div>`;
- if(experience==='CUSTOMER_PRESENT_QR'){
-  body.innerHTML=base+`<div class="card" style="padding:14px;"><div class="label">Bước 2A — Generate QR</div><table class="dtable"><tbody><tr><td>Số tiền</td><td><b>${BANCA.vnd(amount)}</b></td></tr><tr><td>Reference</td><td class="code">MR-${app.id}</td></tr><tr><td>Expiry</td><td>2026-07-24 11:30</td></tr><tr><td>Realtime status</td><td><span class="badge badge-conditional">METHOD_REQUIRED</span></td></tr></tbody></table><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'CUSTOMER_PRESENT_QR',instrument:'QR',delivery:'NONE'})">Tạo QR thanh toán</button></div>`;
- } else if(experience==='CUSTOMER_REMOTE'){
-  body.innerHTML=base+`<div class="card" style="padding:14px;"><div class="label">Bước 2B — Gửi yêu cầu thanh toán từ xa</div><div style="display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-top:10px;"><label>Kênh gửi</label><select id="pay-delivery" onchange="document.getElementById('pay-recipient').value=this.value==='EMAIL'?'${c.email||'khach@email.vn'}':'${c.phone||''}'" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><option value="SMS">SMS</option><option value="EMAIL">Email</option><option value="COPY_LINK">Copy link</option></select><label>Người nhận</label><input id="pay-recipient" value="${c.phone||''}" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Consent</label><label style="font-size:12.5px;"><input id="pay-consent" type="checkbox"> Khách đồng ý nhận yêu cầu thanh toán</label><label>Link expiry</label><input value="2026-07-24 11:30" readonly style="padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--paper);"><label>Message preview</label><textarea readonly style="padding:8px;border:1px solid var(--line);border-radius:7px;font-family:inherit;">Janus Bank: Yeu cau ${app.id} can thanh toan ${BANCA.vnd(amount)}. Link het han 2026-07-24 11:30.</textarea></div><button class="btn btn-primary" style="margin-top:12px;" onclick="if(!document.getElementById('pay-consent').checked){document.getElementById('pay-consent').focus();return;}createPaymentIntent({experience:'CUSTOMER_REMOTE',instrument:'BANK_TRANSFER',delivery:document.getElementById('pay-delivery').value,recipient:document.getElementById('pay-recipient').value})">Tạo và gửi yêu cầu thanh toán</button></div>`;
- } else {
-  body.innerHTML=base+`<div class="card" style="padding:14px;"><div class="label">Bước 2C — Thanh toán trên thiết bị này</div><div style="display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-top:10px;"><label>Người thanh toán</label><input id="payer-name" value="${c.name||''}" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Quan hệ</label><input id="payer-rel" value="Bên mua bảo hiểm" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Payment instrument</label><select id="pay-instrument" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><option value="CARD">Thẻ</option><option value="BANK_ACCOUNT">Tài khoản ngân hàng</option></select><label>Dữ liệu nhạy cảm</label><div class="alert2 warn" style="margin:0;">Khách tự nhập trên cổng thanh toán. Nhân viên tư vấn không nhìn thấy số thẻ/tài khoản và không được mark success.</div><label>OTP</label><div class="alert2 info" style="margin:0;">Khách xác nhận OTP trên cổng thanh toán.</div></div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'SELLER_DEVICE_ASSISTED',instrument:document.getElementById('pay-instrument').value,delivery:'NONE',payerName:document.getElementById('payer-name').value,payerRelationship:document.getElementById('payer-rel').value})">Tạo phiên thanh toán</button></div>`;
- }
+// Chi tiết 1 giao dịch trong lịch sử thanh toán (row → modal, KHÔNG lặp bảng key-value dưới bảng).
+window.openTxnDetail = function(){
+ const pay=app.payment; if(!pay) return;
+ const root=document.getElementById('start-sale-root')||document.body;
+ const d=document.createElement('div'); d.className='modal-overlay2 open'; d.onclick=function(ev){ if(ev.target===d) d.remove(); };
+ const rowT=(k,v)=>`<tr><td style="color:var(--ink-500);width:180px;font-size:12.5px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`;
+ const techRows=[['Payment ID',pay.paymentId||'—'],['Experience',pay.paymentExperience||'—'],['Payment instrument',pay.paymentInstrument||'—'],['Delivery channel',pay.deliveryChannel||'NONE'],['Merchant reference',pay.merchantReference||'—'],['Gateway reference',pay.gatewayReference||'—'],['Gateway transaction ID',pay.gatewayTransactionId||'—'],['Status',pay.status]].map(function(x){return rowT(x[0],'<span class="code">'+x[1]+'</span>');}).join('');
+ d.innerHTML=`<div class="modal2" style="max-width:560px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Chi tiết giao dịch — ${pay.gatewayTransactionId||pay.gatewayReference||pay.merchantReference||pay.paymentId}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
+   <table class="dtable"><tbody>
+     ${rowT('Số tiền', BANCA.vnd(pay.amount)+' '+(pay.currency||'VND'))}
+     ${rowT('Cách thanh toán', cpMethodVN(pay))}
+     ${rowT('Người thanh toán', (pay.payerName||(cust&&cust.name)||'—')+(pay.payerType==='CUSTOMER'?' · Khách hàng':''))}
+     ${rowT('Trạng thái', BANCA.paymentBadge?BANCA.paymentBadge(pay.status):cpStatusVN(pay.status))}
+     ${rowT('Thời gian', pay.paidAt||pay.createdAt||'—')}
+     ${pay.expiresAt?rowT('Hết hạn', pay.expiresAt):''}
+   </tbody></table>
+   <details style="margin-top:10px;"><summary style="cursor:pointer;font-size:12px;color:var(--ink-500);">Chi tiết kỹ thuật</summary><table class="dtable"><tbody>${techRows}</tbody></table></details>
+ </div></div>`;
+ root.appendChild(d);
 };
 window.createPaymentIntent = function(cfg){
  // AC-13/§VIII — chống tạo nhiều active payment intent cho cùng application.
@@ -2756,7 +2893,7 @@ window.retryIssue = function(){
 };
 // Tạo lại yêu cầu thanh toán khi hết hạn/hủy.
 window.recreatePaymentIntent = function(){
- BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',paymentStatus:'METHOD_REQUIRED',payment:null,todo:'Chọn cách thanh toán',updatedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5)});
+ BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',paymentStatus:'METHOD_REQUIRED',payment:null,todo:'Khởi tạo thanh toán',updatedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5)});
  location.href='?id='+app.id+'&tab=payment';
 };
 // Thu hồi yêu cầu — modal in-page (chỉ cho phép khi vừa nộp, chưa tiếp nhận/UW/payment/issue)

@@ -137,9 +137,12 @@ BANCA.applications = [
    payment:{paymentId:'PAY-2026-3308', applicationId:'APP-2026-108', amount:9120000, currency:'VND', paymentChannel:'CARD', paymentExperience:'SELLER_ASSISTED', paymentInitiator:'SELLER', payerType:'CUSTOMER', status:'SUCCESS', paidAt:'2026-07-18 10:15', gatewayReference:'TXN-88231'},
    vehicle:{brand:'Ford', model:'Territory', year:2024, plate:'50E-135.79', engineNo:'EG3579X', seats:5, value:870000000}},
   {id:'APP-2026-109', submissionState:'SUBMITTED', owner:'RM-02', customerId:'CUS-005', productId:'motor', productName:'Bảo hiểm vật chất xe', package:'Basic',
-   status:'PENDING_ISSUE', submittedAt:'2026-07-05 09:20', updatedAt:'2026-07-19 16:00', premium:4820000, sla:'2026-07-21 16:00', todo:'Chờ Core phát hành',
-   uw:{decision:'APPROVED_WITH_EXCLUSION', exclusion:'Loại trừ thủy kích do khu vực ngập', decidedAt:'2026-07-10 10:30', letter:'UW-LETTER-2026-109.pdf', customerViewed:true},
-   payment:{method:'BANK_TRANSFER', reference:'PAY-2026-3310', amount:4820000, status:'SUCCESS', paidAt:'2026-07-19 15:45', txnRef:'TXN-88300'},
+   status:'PENDING_ISSUE', applicationStatus:'PROCESSING', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED_WITH_CONDITION', paymentStatus:'SUCCESS', policyStatus:'ISSUING',
+   submittedAt:'2026-07-05 09:20', updatedAt:'2026-07-19 16:00', premium:4820000, sla:'2026-07-21 16:00', todo:'Chờ Core phát hành',
+   uw:{decision:'APPROVED_WITH_EXCLUSION', exclusion:'Loại trừ thủy kích do khu vực ngập', decidedAt:'2026-07-10 10:30', letter:'UW-LETTER-2026-109.pdf', customerViewed:true, newPremium:4820000},
+   // MIGRATION: chấp thuận-có-điều-kiện đã thanh toán → PHẢI có xác nhận khách (tránh combo "confirmation incomplete + payment success").
+   confirm:{link:'https://portal.janus.vn/c/app109', sentAt:'2026-07-11 09:00', confirmedAt:'2026-07-11 10:15', expiry:'2026-07-18 09:00', delivery:'DELIVERED', otp:'VERIFIED'},
+   payment:{method:'BANK_TRANSFER', reference:'PAY-2026-3310', paymentChannel:'BANK_TRANSFER', paymentExperience:'CUSTOMER_REMOTE', paymentInitiator:'SELLER', payerType:'CUSTOMER', amount:4820000, status:'SUCCESS', paidAt:'2026-07-19 15:45', gatewayTransactionId:'TXN-88300', gatewayReference:'AUTH-88300', merchantReference:'MR-APP-2026-109'},
    vehicle:{brand:'Toyota', model:'Wigo', year:2020, plate:'51C-990.12', engineNo:'EG9012X', seats:5, value:280000000}},
   {id:'APP-2026-110', submissionState:'SUBMITTED', owner:'RM-01', customerId:'CUS-010', productId:'motor', productName:'Bảo hiểm vật chất xe', package:'Premium',
    status:'ISSUED', submittedAt:'2026-06-28 10:30', updatedAt:'2026-07-15 09:00', premium:11200000, sla:null, todo:'Xem hợp đồng', policyId:'JB-POL-2026-0207',
@@ -161,7 +164,7 @@ BANCA.applications = [
    status:'ISSUED', applicationStatus:'COMPLETED', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED_STP', paymentStatus:'SUCCESS', policyStatus:'ISSUED',
    submittedAt:'2026-07-21 09:30', updatedAt:'2026-07-22 10:15', premium:5775000, sla:null, todo:'Xem hợp đồng', policyId:'JB-HEALTH-2026-2201',
    buyerIsInsured:true, effectiveDate:'2026-07-22',
-   insuredMembers:[{name:'Lê Hoàng Nam',dob:'1990-02-18',relationship:'Bản thân',age:36},{name:'Lê Minh Anh',dob:'2018-09-05',relationship:'Con',age:7}],
+   insuredMembers:[{name:'Lê Hoàng Nam',dob:'1990-02-18',relationship:'Bản thân',age:36,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',underwriting:{decision:'APPROVED_STP',label:'Chấp thuận tự động',paymentAllowed:true},confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-21 10:05'}},{name:'Lê Minh Anh',dob:'2018-09-05',relationship:'Con',age:7,insuredUnitId:'IU-2',active:true,package:'HEALTH_BASIC',guardianName:'Lê Hoàng Nam',guardianRelationship:'Cha',underwriting:{decision:'APPROVED_STP',label:'Chấp thuận tự động',paymentAllowed:true},confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-21 10:06'}}],
    riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true},
    quote:{quoteId:'Q-HEALTH-2201',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:5775000,premiumBreakdown:{basePremium:5250000,addOnPremium:0,loading:0,discount:0,tax:525000,fee:0,totalPremium:5775000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Lê Hoàng Nam',age:36,relationship:'Bản thân'},{name:'Lê Minh Anh',age:7,relationship:'Con'}]}},
    stpDecision:{decisionCode:'APPROVED_STP',decisionSource:'RULE_ENGINE',ruleSetCode:'HEALTH_BASIC_UW',ruleVersion:'1.0',decidedAt:'2026-07-21 09:32',additionalPremium:0,conditions:[],exclusions:[],additionalDocuments:[],paymentAllowed:true,customerConfirmationRequired:false,unitName:'Health STP'},
@@ -187,6 +190,41 @@ BANCA.applications = [
    ],
    routing:{code:'UW_REQUIRED',label:'Cần thẩm định',reasons:['Có thành viên cần thẩm định sức khỏe — trạng thái tổng tính theo từng người.'],nextStage:'UNDERWRITING',nextAction:'AWAIT_UNDERWRITING',appStatus:'PENDING_UW'},
    quote:{quoteId:'Q-HEALTH-2202',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:12180000,premiumBreakdown:{basePremium:11073000,addOnPremium:0,loading:0,discount:0,tax:1107000,fee:0,totalPremium:12180000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Trần Minh Châu',age:40,relationship:'Bản thân',package:'HEALTH_STD'},{name:'Nguyễn Thị Mai',age:37,relationship:'Vợ/Chồng',package:'HEALTH_STD'},{name:'Trần Gia Bảo',age:11,relationship:'Con',package:'HEALTH_BASIC'}]}},
+   vehicle:null},
+  // Health family — TẤT CẢ member đã thẩm định chấp thuận nhưng CHƯA đủ xác nhận (1 người mới gửi, chưa CONFIRMED) → thanh toán bị khóa (AC08).
+  {id:'APP-2026-HLT3', submissionState:'SUBMITTED', owner:'RM-01', customerId:'CUS-004', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   status:'PAYMENT_METHOD_REQUIRED', applicationStatus:'PROCESSING', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED_STP', paymentStatus:'METHOD_REQUIRED', policyStatus:'NOT_STARTED',
+   submittedAt:'2026-07-23 08:40', updatedAt:'2026-07-23 09:10', premium:10500000, sla:'2026-07-26 17:00', todo:'Chờ tất cả thành viên xác nhận',
+   buyerIsInsured:true, effectiveDate:'2026-07-25',
+   insuredMembers:[
+    {name:'Phạm Quốc Hùng',dob:'1984-06-10',relationship:'Bản thân',age:42,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',gender:'Nam',identityNumber:'079184000777',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 08:42',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-23 09:05'}},
+    {name:'Phạm Thị Lan',dob:'1987-03-22',relationship:'Vợ/Chồng',age:39,insuredUnitId:'IU-2',active:true,package:'HEALTH_STD',gender:'Nữ',identityNumber:'079187000888',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 08:42',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'SENT',sentAt:'2026-07-23 09:08',otp:'PENDING'}},
+    {name:'Phạm Gia Khánh',dob:'2016-01-12',relationship:'Con',age:10,insuredUnitId:'IU-3',active:true,package:'HEALTH_BASIC',gender:'Nam',guardianName:'Phạm Quốc Hùng',guardianRelationship:'Cha',guardianPhone:'0903334455',docs:{BIRTH_CERT:'UPLOADED'},
+     riskAnswers:{congenitalCondition:false,birthComplication:false,hospitalizedLast12Months:false,seriousIllness:false,guardianTruthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 08:42',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-23 09:06'}}
+   ],
+   quote:{quoteId:'Q-HEALTH-2203',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:10500000,premiumBreakdown:{basePremium:9545000,addOnPremium:0,loading:0,discount:0,tax:955000,fee:0,totalPremium:10500000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Phạm Quốc Hùng',age:42,relationship:'Bản thân',package:'HEALTH_STD'},{name:'Phạm Thị Lan',age:39,relationship:'Vợ/Chồng',package:'HEALTH_STD'},{name:'Phạm Gia Khánh',age:10,relationship:'Con',package:'HEALTH_BASIC'}]}},
+   demoMeta:{title:'Health gia đình — chờ xác nhận đủ',currentPoint:'Xác nhận & thanh toán',expectedFlow:'1 thành viên chưa xác nhận → 3 cách thanh toán bị khóa cho tới khi đủ xác nhận'},
+   vehicle:null},
+  // Health family — ĐỦ điều kiện: tất cả member chấp thuận + đã xác nhận → 3 cách thanh toán mở (chưa khởi tạo intent).
+  {id:'APP-2026-HLT4', submissionState:'SUBMITTED', owner:'RM-01', customerId:'CUS-006', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   status:'PAYMENT_METHOD_REQUIRED', applicationStatus:'PROCESSING', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED_STP', paymentStatus:'METHOD_REQUIRED', policyStatus:'NOT_STARTED',
+   submittedAt:'2026-07-23 08:00', updatedAt:'2026-07-23 09:20', premium:6300000, sla:'2026-07-26 17:00', todo:'Khởi tạo thanh toán',
+   buyerIsInsured:true, effectiveDate:'2026-07-25',
+   insuredMembers:[
+    {name:'Đỗ Minh Quân',dob:'1989-09-09',relationship:'Bản thân',age:36,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',gender:'Nam',identityNumber:'079189000999',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 08:02',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-23 09:12'}},
+    {name:'Đỗ Thảo Nhi',dob:'2014-07-01',relationship:'Con',age:12,insuredUnitId:'IU-2',active:true,package:'HEALTH_BASIC',gender:'Nữ',guardianName:'Đỗ Minh Quân',guardianRelationship:'Cha',guardianPhone:'0907778899',docs:{BIRTH_CERT:'UPLOADED'},
+     riskAnswers:{congenitalCondition:false,birthComplication:false,hospitalizedLast12Months:false,seriousIllness:false,guardianTruthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 08:02',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-23 09:13'}}
+   ],
+   quote:{quoteId:'Q-HEALTH-2204',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:6300000,premiumBreakdown:{basePremium:5727000,addOnPremium:0,loading:0,discount:0,tax:573000,fee:0,totalPremium:6300000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Đỗ Minh Quân',age:36,relationship:'Bản thân',package:'HEALTH_STD'},{name:'Đỗ Thảo Nhi',age:12,relationship:'Con',package:'HEALTH_BASIC'}]}},
+   demoMeta:{title:'Health gia đình — đủ điều kiện thanh toán',currentPoint:'Xác nhận & thanh toán',expectedFlow:'Tất cả xác nhận → 3 cách thanh toán mở → callback gateway → phát hành'},
    vehicle:null}
 ];
 BANCA.appById = id => BANCA.applications.find(a=>a.id===id);

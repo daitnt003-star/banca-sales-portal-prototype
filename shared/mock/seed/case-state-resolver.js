@@ -108,17 +108,57 @@ BANCA.caseStates = function(app){
 };
 
 /* ---------------------------------------------------------------
+ * Gating helpers dùng chung (business gating cho thanh toán).
+ * ------------------------------------------------------------- */
+// Số tiền cần thanh toán — ưu tiên phí điều chỉnh sau thẩm định, rồi quote, rồi premium.
+BANCA._payAmount = function(app){
+  app = app || {};
+  const q = app.quote || {};
+  return (app.uw && app.uw.newPremium)
+    || q.premium || q.totalPremium || q.adjustedPremium
+    || (q.premiumBreakdown && q.premiumBreakdown.totalPremium)
+    || app.premium || 0;
+};
+// Xác nhận khách hàng đã hoàn tất chưa.
+//  - Health (multi-insured có theo dõi per-member): TẤT CẢ thành viên bắt buộc phải CONFIRMED.
+//  - Motor/đơn lẻ chấp thuận-có-điều-kiện: cần app.confirm (OTP verified / confirmedAt).
+//  - Chấp thuận thường (APPROVED/APPROVED_STP): xác nhận đã thực hiện khi nộp.
+BANCA.confirmationComplete = function(app){
+  app = app || {};
+  const s = BANCA.caseStates(app);
+  if(app.productId==='health' && Array.isArray(app.insuredMembers)
+     && app.insuredMembers.some(function(m){ return m.confirmation || m.underwriting; })){
+    const active = app.insuredMembers.filter(function(m){ return m.active!==false; });
+    if(!active.length) return false;
+    return active.every(function(m){ return (m.confirmation||{}).status==='CONFIRMED'; });
+  }
+  if(s.underwritingDecision==='APPROVED_WITH_CONDITION')
+    return !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt));
+  return ['APPROVED','APPROVED_STP'].includes(s.underwritingDecision);
+};
+
+/* ---------------------------------------------------------------
  * deriveCaseViewState(app) — CANONICAL resolver (§III).
  * Trả về view-state duy nhất cho mọi component.
  * ------------------------------------------------------------- */
 BANCA.deriveCaseViewState = function(app){
   const s = BANCA.caseStates(app);
+  // ---- Business gating: canInitiatePayment ----
+  // Chỉ true khi: đã chấp thuận + xác nhận đủ + quote còn hiệu lực + amount>0
+  // + không có blocker + chưa có payment đang chạy/đã thành công.
+  const _approved  = ['APPROVED_STP','APPROVED'].includes(s.underwritingDecision) || s.underwritingDecision==='APPROVED_WITH_CONDITION';
+  const _confirmed = BANCA.confirmationComplete(app);
+  const _amount    = BANCA._payAmount(app);
+  const _noActivePay = !['PENDING','PROCESSING','SUCCESS'].includes(s.paymentStatus);
+  const _noBlocker = s.applicationStatus!=='CANCELLED' && s.underwritingDecision!=='DECLINED' && s.underwritingStatus!=='NEED_MORE_INFORMATION';
+  const _quoteValid = _amount>0 && !(app && app.quote && ['EXPIRED','INVALID'].includes(app.quote.quoteStatus));
+  const canInitiatePayment = _approved && _confirmed && _quoteValid && _amount>0 && _noBlocker && _noActivePay;
   const owner = (app && app.owner===((BANCA.current&&BANCA.current())));
   const A = {
     trackUw:   {key:'trackUw',   label:'Theo dõi thẩm định', tab:'uw'},
     supplement:{key:'supplement',label:'Bổ sung thông tin',  tab:'supplement'},
     confirm:   {key:'confirm',   label:'Xác nhận điều kiện',  tab:'confirm'},
-    chooseMethod:{key:'chooseMethod',label:'Chọn cách thanh toán', tab:'payment'},
+    chooseMethod:{key:'chooseMethod',label:'Khởi tạo thanh toán', tab:'payment'},
     trackPay:  {key:'trackPay',  label:'Theo dõi thanh toán', tab:'payment'},
     retryPay:  {key:'retryPay',  label:'Thử lại thanh toán',  tab:'payment'},
     trackIssue:{key:'trackIssue',label:'Theo dõi phát hành',  tab:'overview'},
@@ -131,7 +171,7 @@ BANCA.deriveCaseViewState = function(app){
     states:s, phase:null, displayStatus:'', statusTone:'wait',
     primaryAction:null, secondaryActions:[], currentStep:null, nextActionLabel:'',
     paymentAccessible:false, underwritingAccessible:true,
-    canCreatePaymentIntent:false, workQueueType:null
+    canCreatePaymentIntent:canInitiatePayment, canInitiatePayment:canInitiatePayment, workQueueType:null
   };
   const R = o => Object.assign(base, o);
 
@@ -155,17 +195,18 @@ BANCA.deriveCaseViewState = function(app){
       primaryAction:A.trackUw, nextActionLabel: s.underwritingMode==='STP'?'Đang chấp thuận tự động':'Đang chờ thẩm định',
       paymentAccessible:false, workQueueType: s.underwritingMode==='STP'?null:'UW'});
 
-  // 5. Approved with condition nhưng khách chưa xác nhận
-  if(s.underwritingDecision==='APPROVED_WITH_CONDITION' && !app.confirm && s.paymentStatus!=='SUCCESS')
-    return R({phase:'CUSTOMER_CONFIRMATION_REQUIRED', displayStatus:'Chờ khách xác nhận điều kiện', statusTone:'info',
-      primaryAction:A.confirm, secondaryActions:[A.trackUw], nextActionLabel:'Khách cần xác nhận điều kiện trước khi thanh toán',
+  // 5. Đã chấp thuận nhưng chưa hoàn tất xác nhận khách hàng
+  //    (Motor chấp thuận-có-điều-kiện HOẶC Health per-member chưa đủ CONFIRMED).
+  if(_approved && s.paymentStatus!=='SUCCESS' && !['PENDING','PROCESSING'].includes(s.paymentStatus) && !_confirmed)
+    return R({phase:'CUSTOMER_CONFIRMATION_REQUIRED', displayStatus:'Chờ khách xác nhận', statusTone:'info',
+      primaryAction:A.confirm, secondaryActions:[A.trackUw], nextActionLabel:'Khách cần xác nhận trước khi thanh toán',
       paymentAccessible:false, workQueueType:'CONFIRM'});
 
-  // 6. Payment method required
+  // 6. Đã xác nhận đủ, chưa khởi tạo thanh toán (payment method required)
   if(s.paymentStatus==='METHOD_REQUIRED')
-    return R({phase:'PAYMENT_METHOD_REQUIRED', displayStatus:'Chờ chọn cách thanh toán', statusTone:'info',
-      primaryAction:A.chooseMethod, nextActionLabel:'Chọn cách khách hàng sẽ thanh toán',
-      paymentAccessible:true, canCreatePaymentIntent:true, workQueueType:'CHOOSE_PAYMENT'});
+    return R({phase:'PAYMENT_METHOD_REQUIRED', displayStatus:'Chờ thanh toán', statusTone:'info',
+      primaryAction:A.chooseMethod, nextActionLabel:'Khởi tạo thanh toán cho khách',
+      paymentAccessible:true, canCreatePaymentIntent:canInitiatePayment, workQueueType:'CHOOSE_PAYMENT'});
 
   // 7. Payment pending / failed / expired
   if(s.paymentStatus==='PENDING')

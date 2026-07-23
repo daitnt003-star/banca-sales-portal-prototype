@@ -36,8 +36,8 @@
   'shared/js/mock-store.js',
   'shared/js/app-shell.js'
  ];
- const V = 'v=20260722zm'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260723a'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
- document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css">');
+ document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
 })();
 function BANCA_READY(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded',fn); }

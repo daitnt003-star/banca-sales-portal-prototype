@@ -8,7 +8,7 @@ if(p.status!=='ACTIVE'){
   shell('Tư vấn nhanh','Không có quyền truy cập',`<div class="card"><div class="alert2 danger">Tài khoản ngừng hoạt động — không thể sử dụng Tư vấn nhanh.</div></div>`,{startSale:false});
 } else {
 
-// merge seed sessions + phiên tạo live (localStorage) của chính seller
+// merge seed sessions + phiên tạo live (localStorage) của chính nhân viên tư vấn
 function liveAdvice(){
   const out=[];
   for(let i=0;i<localStorage.length;i++){
@@ -55,13 +55,13 @@ function adviceActions(a){
     return `<a class="btn btn-primary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a>${canDelete?` <button class="btn btn-secondary btn-sm" style="color:var(--red-600);" onclick="advDeleteDraft('${a.id}')">Xoá nháp</button>`:''}`;
   }
   if(s==='SAVED'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Chuyển sang bán hàng</a>`:''}`;
+    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo yêu cầu bảo hiểm từ tư vấn này</a>`:''}`;
   }
   if(s==='FOLLOW_UP_LATER'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Chuyển sang bán hàng</a>`:''}`;
+    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo yêu cầu bảo hiểm từ tư vấn này</a>`:''}`;
   }
   if(s==='CONVERTED_TO_SALE'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.convertedCaseId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}">Mở hồ sơ bán</a>`:''}`;
+    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.convertedCaseId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}">Mở yêu cầu</a>`:''}`;
   }
   return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a>`;
 }
@@ -91,8 +91,8 @@ const rowHtml = rows.map(a=>{
 }).join('');
 
 const listBody = rows.length
-  ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable adv-table"><thead><tr><th>Mã tư vấn</th><th>Khách hàng</th><th>Nguồn</th><th>Nhu cầu</th><th>Gói quan tâm</th><th>Phí minh họa</th><th>Trạng thái</th><th>Tư vấn viên</th><th>Hồ sơ</th><th>Cập nhật</th><th style="text-align:right;">Thao tác</th></tr></thead><tbody>${rowHtml}</tbody></table></div>`
-  : `<div class="card"><div class="empty-state" style="padding:28px;">Chưa có phiên tư vấn nào ở nhóm này. Bấm <b>💡 Tư vấn nhanh</b> ở góc trên để bắt đầu một phiên mới — không tạo hồ sơ hay báo giá.</div></div>`;
+  ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable adv-table"><thead><tr><th>Mã tư vấn</th><th>Khách hàng</th><th>Nguồn</th><th>Nhu cầu</th><th>Gói quan tâm</th><th>Phí minh họa</th><th>Trạng thái</th><th>Tư vấn viên</th><th>Yêu cầu</th><th>Cập nhật</th><th style="text-align:right;">Thao tác</th></tr></thead><tbody>${rowHtml}</tbody></table></div>`
+  : `<div class="card"><div class="empty-state" style="padding:28px;">Chưa có phiên tư vấn nào ở nhóm này. Bấm <b>💡 Tư vấn nhanh</b> ở góc trên để bắt đầu một phiên mới — không tạo yêu cầu hay báo giá.</div></div>`;
 
 // Toolbar gọn — nút bắt đầu tư vấn đã có ở thanh CTA phía trên (💡 Tư vấn nhanh), không lặp ở đây.
 const toolbar = `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">

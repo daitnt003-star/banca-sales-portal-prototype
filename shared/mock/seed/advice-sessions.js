@@ -1,7 +1,7 @@
 // ============================================================
 // Quick Advisory (Tư vấn nhanh) — seed & config
 // Luồng ĐỘC LẬP với bán hàng. KHÔNG tạo Sales Session/Quote/HSYCBH
-// khi tư vấn. Chỉ nối sang bán qua hành động "Chuyển sang bán hàng".
+// khi tư vấn. Chỉ nối sang bán qua hành động "Tạo yêu cầu bảo hiểm từ tư vấn này".
 // Phí ở đây LUÔN là minh họa (illustrative band), không phải phí chính thức.
 // ============================================================
 window.BANCA = window.BANCA || {};
@@ -49,18 +49,18 @@ BANCA.budgetLabel = id => (BANCA.BUDGET_BANDS.find(b=>b.id===id)||{}).label || i
 // Mỗi option map tới product/package thật, có fit theo need + phí minh họa (band).
 BANCA.ADVICE_OFFERS = {
   HEALTH: [
-    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'health', productName:'Health Individual', packageRef:'BASIC',    packageName:'Basic',    fit:72, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['HEALTH'], gaps:['FAMILY_HEALTH'], why:'Đáp ứng viện phí cơ bản với chi phí thấp nhất.', verify:['Tuổi','Tiền sử bệnh']},
-    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'health', productName:'Health Individual', packageRef:'STANDARD', packageName:'Standard', fit:90, premiumBand:'9–11 triệu/năm', premiumMonthly:'~830K/tháng', meets:['HEALTH','ACCIDENT'], gaps:['FAMILY_HEALTH'], why:'Cân bằng giữa quyền lợi nội trú, ngoại trú và mức phí.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp']},
-    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'health', productName:'Health Individual', packageRef:'PREMIUM',  packageName:'Premium',  fit:84, premiumBand:'16–20 triệu/năm', premiumMonthly:'~1.5 triệu/tháng', meets:['HEALTH','ACCIDENT','FAMILY_HEALTH'], gaps:[], why:'Quyền lợi cao nhất, gồm ngoại trú và nha khoa.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp']}
+    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'BASIC',    packageName:'Basic',    fit:72, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['HEALTH'], gaps:['FAMILY_HEALTH'], why:'Đáp ứng viện phí cơ bản với chi phí thấp nhất.', verify:['Tuổi','Tiền sử bệnh']},
+    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'STANDARD', packageName:'Standard', fit:90, premiumBand:'9–11 triệu/năm', premiumMonthly:'~830K/tháng', meets:['HEALTH','ACCIDENT'], gaps:['FAMILY_HEALTH'], why:'Cân bằng giữa quyền lợi nội trú, ngoại trú và mức phí.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp']},
+    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'PREMIUM',  packageName:'Premium',  fit:84, premiumBand:'16–20 triệu/năm', premiumMonthly:'~1.5 triệu/tháng', meets:['HEALTH','ACCIDENT','FAMILY_HEALTH'], gaps:[], why:'Quyền lợi cao nhất, gồm ngoại trú và nha khoa.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp']}
   ],
   MOTOR: [
-    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'motor', productName:'Motor Comprehensive', packageRef:'BASIC',    packageName:'Cơ bản',   fit:70, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['MOTOR'], gaps:[], why:'TNDS + vật chất cơ bản, phí thấp.', verify:['Giá trị xe','Năm SX']},
-    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'motor', productName:'Motor Comprehensive', packageRef:'STANDARD', packageName:'Tiêu chuẩn', fit:88, premiumBand:'8–10 triệu/năm', premiumMonthly:'~750K/tháng', meets:['MOTOR'], gaps:[], why:'Thêm quyền lợi thủy kích, mất cắp bộ phận.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng']},
-    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'motor', productName:'Motor Comprehensive', packageRef:'PREMIUM',  packageName:'Nâng cao', fit:82, premiumBand:'11–13 triệu/năm', premiumMonthly:'~1 triệu/tháng', meets:['MOTOR','ACCIDENT'], gaps:[], why:'Bảo vệ toàn diện + PA lái phụ xe, cứu hộ mở rộng.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng']}
+    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'BASIC',    packageName:'Cơ bản',   fit:70, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['MOTOR'], gaps:[], why:'TNDS + vật chất cơ bản, phí thấp.', verify:['Giá trị xe','Năm SX']},
+    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'STANDARD', packageName:'Tiêu chuẩn', fit:88, premiumBand:'8–10 triệu/năm', premiumMonthly:'~750K/tháng', meets:['MOTOR'], gaps:[], why:'Thêm quyền lợi thủy kích, mất cắp bộ phận.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng']},
+    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'PREMIUM',  packageName:'Nâng cao', fit:82, premiumBand:'11–13 triệu/năm', premiumMonthly:'~1 triệu/tháng', meets:['MOTOR','ACCIDENT'], gaps:[], why:'Bảo vệ toàn diện + PA lái phụ xe, cứu hộ mở rộng.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng']}
   ],
   ACCIDENT: [
-    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'pa', productName:'Personal Accident', packageRef:'BASIC',    packageName:'Basic',    fit:78, premiumBand:'1–2 triệu/năm', premiumMonthly:'~150K/tháng', meets:['ACCIDENT'], gaps:['INCOME'], why:'Trợ cấp tai nạn cơ bản, phí rất thấp.', verify:['Nghề nghiệp']},
-    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'pa', productName:'Personal Accident', packageRef:'STANDARD', packageName:'Standard', fit:85, premiumBand:'2–3 triệu/năm', premiumMonthly:'~230K/tháng', meets:['ACCIDENT','INCOME'], gaps:[], why:'Bổ sung trợ cấp thu nhập khi nằm viện.', verify:['Nghề nghiệp']}
+    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'BASIC',    packageName:'Basic',    fit:78, premiumBand:'1–2 triệu/năm', premiumMonthly:'~150K/tháng', meets:['ACCIDENT'], gaps:['INCOME'], why:'Trợ cấp tai nạn cơ bản, phí rất thấp.', verify:['Nghề nghiệp']},
+    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'STANDARD', packageName:'Standard', fit:85, premiumBand:'2–3 triệu/năm', premiumMonthly:'~230K/tháng', meets:['ACCIDENT','INCOME'], gaps:[], why:'Bổ sung trợ cấp thu nhập khi nằm viện.', verify:['Nghề nghiệp']}
   ]
 };
 // Map nhu cầu → nhóm sản phẩm (sửa bug gói sai nhóm so với nhu cầu chính)
@@ -114,7 +114,7 @@ BANCA.adviceSessions = [
     needProfile:[{needId:'FAMILY_HEALTH', label:'Sức khỏe gia đình', weight:'HIGH'}],
     primaryNeed:'HEALTH', budgetBand:'1M_2M', desiredTerm:'1 năm',
     compareSet:['STANDARD','PREMIUM'],
-    selectedOffer:{productRef:'health', productName:'Health Individual', packageRef:'STANDARD', packageName:'Standard', premiumBand:'9–11 triệu/năm'},
+    selectedOffer:{productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'STANDARD', packageName:'Standard', premiumBand:'9–11 triệu/năm'},
     followUpDate:'2026-07-25', createdBy:'RM-01', updatedAt:'2026-07-20 16:10', expiresAt:'2026-08-19 23:59'
   },
   {
@@ -123,7 +123,7 @@ BANCA.adviceSessions = [
     needProfile:[{needId:'MOTOR', label:'Bảo vệ xe', weight:'HIGH'}],
     primaryNeed:'MOTOR', budgetBand:'1M_2M', desiredTerm:'1 năm',
     compareSet:['STANDARD','PREMIUM'],
-    selectedOffer:{productRef:'motor', productName:'Motor Comprehensive', packageRef:'PREMIUM', packageName:'Nâng cao', premiumBand:'11–13 triệu/năm'},
+    selectedOffer:{productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'PREMIUM', packageName:'Nâng cao', premiumBand:'11–13 triệu/năm'},
     convertedCaseId:'APP-2026-102', createdBy:'RM-01', updatedAt:'2026-07-19 09:30', expiresAt:'2026-08-18 23:59'
   },
   {

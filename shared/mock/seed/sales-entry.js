@@ -20,7 +20,7 @@ BANCA.sourceBadge = function(kind){
   return `<span class="chip" style="background:${b.bg};color:${b.fg};">${b.label}</span>`;
 };
 
-// Seller readiness cho 1 product theo persona hiện tại
+// Điều kiện được phép bán cho 1 product theo persona hiện tại
 BANCA.readinessFor = function(productId, me){
   me = me || BANCA.current();
   const p = (BANCA.products||[]).find(x=>x.id===productId);
@@ -40,14 +40,14 @@ BANCA.recommendForCustomer = function(cust){
     const m = loan.match(/([\d.]+)\s*tr/);
     const val = m ? m[1]+' triệu' : 'giá trị xe theo khoản vay';
     return {productId:'motor', source:'CRM',
-      reason:`Khách vừa có khoản vay mua ô tô (${loan}). Motor Comprehensive đang được phân phối cho kênh hiện tại và bạn được phép báo giá.`};
+      reason:`Khách vừa có khoản vay mua ô tô (${loan}). Bảo hiểm vật chất xe đang được phân phối cho kênh hiện tại và bạn được phép báo giá.`};
   }
   // Có bảo hiểm Motor sắp hết hạn → Motor (tái tục/mới)
   const exp = (cust.existingInsurance||[]).find(x=>/Motor/i.test(x)&&/hết hạn/i.test(x));
   if(exp) return {productId:'motor', source:'RULE', reason:`Khách có ${exp} — nên tư vấn gia hạn/thay thế bảo hiểm xe.`};
   // Priority chưa có bảo hiểm sức khỏe → Health
   if(cust.segment==='Priority' && !(cust.existingInsurance||[]).some(x=>/Health|sức khỏe/i.test(x))){
-    return {productId:'health', source:'RULE', reason:'Khách phân khúc Priority chưa có bảo hiểm sức khỏe — phù hợp Health Individual.'};
+    return {productId:'health', source:'RULE', reason:'Khách phân khúc Priority chưa có bảo hiểm sức khỏe — phù hợp Bảo hiểm sức khỏe.'};
   }
   // Không đủ tín hiệu → không recommend (đề xuất Tư vấn nhanh)
   return null;

@@ -1,4 +1,4 @@
-// Commission mock/config — derived from issued policies, read-only for seller/manager.
+// Commission mock/config — derived from issued policies, read-only for nhân viên tư vấn/manager.
 // Rule: accrued estimate for current calendar month, synced with KPI timestamp.
 window.BANCA = window.BANCA || {};
 BANCA.partnerConfig = BANCA.partnerConfig || {
@@ -7,9 +7,9 @@ BANCA.partnerConfig = BANCA.partnerConfig || {
   syncAt:'20/07/2026 11:30'
 };
 BANCA.commissionRates = [
-  {product:'Motor Comprehensive', package:'Basic', channel:'BANCA', rate:0.08, validFrom:'2026-01-01', validTo:'2026-12-31'},
-  {product:'Motor Comprehensive', package:'Standard', channel:'BANCA', rate:0.10, validFrom:'2026-01-01', validTo:'2026-12-31'},
-  {product:'Motor Comprehensive', package:'Premium', channel:'BANCA', rate:0.12, validFrom:'2026-01-01', validTo:'2026-12-31'},
+  {product:'Bảo hiểm vật chất xe', package:'Basic', channel:'BANCA', rate:0.08, validFrom:'2026-01-01', validTo:'2026-12-31'},
+  {product:'Bảo hiểm vật chất xe', package:'Standard', channel:'BANCA', rate:0.10, validFrom:'2026-01-01', validTo:'2026-12-31'},
+  {product:'Bảo hiểm vật chất xe', package:'Premium', channel:'BANCA', rate:0.12, validFrom:'2026-01-01', validTo:'2026-12-31'},
   {product:'Motor TNDS', package:'TNDS bắt buộc', channel:'BANCA', rate:0.02, validFrom:'2026-01-01', validTo:'2026-12-31'}
 ];
 BANCA.commissionVisible = function(layer){

@@ -1,5 +1,5 @@
 // Customer context snapshot — Portal KHÔNG quản lý Customer Master.
-// scope: PORTFOLIO | ASSIGNED | CONTEXT_GRANTED | PROSPECT (khách mới do seller tạo)
+// scope: PORTFOLIO | ASSIGNED | CONTEXT_GRANTED | PROSPECT (khách mới do nhân viên tư vấn tạo)
 window.BANCA = window.BANCA || {};
 BANCA.customers = [
   {id:'CUS-001', cif:'JB0012345', name:'Lê Hoàng Nam',    dob:'1985-04-12', phone:'0905121234', email:'nam.le@example.com',   segment:'Priority', idNumber:'079085004321', address:'12 Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM', branch:'HCM01', ownerRM:'RM-01', scope:{'RM-01':'PORTFOLIO'}, loanRef:'LN-2024-8891 (Vay mua ô tô 720tr)', existingInsurance:['Nhân thọ Janus Life']},
@@ -11,7 +11,7 @@ BANCA.customers = [
   {id:'CUS-007', cif:'JB0067890', name:'Trịnh Mỹ Linh',   dob:'1988-06-25', phone:'0965438899', email:'linh.trinh@example.com',segment:'Priority', idNumber:'079088003333', address:'99 Pasteur, Q.3, TP.HCM', branch:'HCM01', ownerRM:'RM-01', scope:{'RM-01':'PORTFOLIO','TS-01':'ASSIGNED'}, loanRef:null, existingInsurance:[]},
   {id:'CUS-008', cif:'JB0078901', name:'Hoàng Đức Long',  dob:'1975-12-08', phone:'0925435511', email:'long.hoang@example.com',segment:'Mass', idNumber:'079075002222', address:'Tân Bình, TP.HCM', branch:'CALL',  ownerRM:'TS-01', scope:{'TS-01':'ASSIGNED'}, loanRef:'LN-2025-4471 (Vay tiêu dùng)', existingInsurance:[]},
   {id:'CUS-009', cif:null,        name:'Mai Xuân Phúc',   dob:'1998-03-11', phone:'0905436677', email:'phuc.mai@example.com', segment:'Prospect',  branch:null,    ownerRM:'RM-02', scope:{'RM-02':'PROSPECT'}, loanRef:null, existingInsurance:[]},
-  {id:'CUS-010', cif:'JB0089012', name:'Lý Thu Trang',    dob:'1991-08-19', phone:'0955433322', email:'trang.ly@example.com', segment:'Priority',  branch:'HCM01', ownerRM:'RM-01', scope:{'RM-01':'SERVICING'}, loanRef:null, existingInsurance:['Motor Comprehensive JB-POL-2025-0102']}
+  {id:'CUS-010', cif:'JB0089012', name:'Lý Thu Trang',    dob:'1991-08-19', phone:'0955433322', email:'trang.ly@example.com', segment:'Priority',  branch:'HCM01', ownerRM:'RM-01', scope:{'RM-01':'SERVICING'}, loanRef:null, existingInsurance:['Bảo hiểm vật chất xe JB-POL-2025-0102']}
 ];
 BANCA.customerById = id => BANCA.customers.find(c=>c.id===id);
 // Danh sách khách trong scope của persona hiện tại (không cho search toàn hàng)

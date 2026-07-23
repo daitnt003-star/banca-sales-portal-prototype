@@ -9,9 +9,9 @@ window.BANCA = window.BANCA || {};
  * "Team Lead" chỉ là 1 cấu hình phổ biến, không phải role kỹ thuật cố định.
  * ==========================================================================*/
 
-// Seller mặc định (homeLayout PERSONAL, không supervisory action).
+// Nhân viên tư vấn mặc định (homeLayout PERSONAL, không supervisory action).
 BANCA.DEFAULT_PROFILE = {
-  label:'Seller', sellingEnabled:true, homeLayout:'PERSONAL',
+  label:'Nhân viên tư vấn', sellingEnabled:true, homeLayout:'PERSONAL',
   scopeResolution:'OWN', availableScopes:['SELF'], defaultScope:'SELF',
   supervisoryActions:[], underwritingAuthority:'NONE',
   channelMode:'PORTAL', caseMutability:'LIVE', orgSource:'MANUAL', syncedAt:null,
@@ -173,7 +173,7 @@ BANCA.customerCell = function(cust){
   const phone=(cust&&cust.phone)?`<div style="font-size:12px;color:var(--ink-300);">${BANCA.maskPhone?BANCA.maskPhone(cust.phone):cust.phone}</div>`:'';
   return name+phone;
 };
-// Cột riêng "Người bán": CHỈ tên người bán.
+// Cột riêng "Nhân viên phụ trách": CHỈ tên người bán.
 BANCA.sellerCell = function(referrer, advisor, seller){
   const sName = seller ? (BANCA.pName?BANCA.pName(seller):seller) : '—';
   return `<b style="font-weight:600;">${sName}</b>`;

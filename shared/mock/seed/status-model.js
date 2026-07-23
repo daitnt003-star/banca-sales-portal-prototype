@@ -22,6 +22,7 @@ BANCA.APP_STATUS = {
   NEED_MORE_INFO:           {label:'Cần bổ sung',              group:'SUPPLEMENT',cls:'badge-blocked'},
   UW_DECIDED:               {label:'Đã có kết quả thẩm định',  group:'UW',       cls:'badge-conditional'},
   PENDING_CUSTOMER_CONFIRM: {label:'Chờ khách xác nhận',       group:'CONFIRM',  cls:'badge-conditional'},
+  PAYMENT_METHOD_REQUIRED:  {label:'Chờ chọn cách thanh toán', group:'PAYMENT',  cls:'badge-conditional'},
   PENDING_PAYMENT:          {label:'Chờ thanh toán',           group:'PAYMENT',  cls:'badge-conditional'},
   PAID:                     {label:'Đã thanh toán',            group:'PAYMENT',  cls:'badge-ready'},
   PENDING_ISSUE:            {label:'Chờ phát hành hợp đồng',   group:'ISSUE',    cls:'badge-pending'},
@@ -50,7 +51,7 @@ BANCA.WARNING_FLAGS = {
   CUSTOMER_CONFIRMATION_REQUIRED: {label:'Cần khách xác nhận',     cls:'badge-conditional'}
 };
 
-// Underwriting decision (model riêng, không phải application_status)
+// Thẩm định decision (model riêng, không phải application_status)
 BANCA.UW_DECISIONS = {
   APPROVED:                {label:'Chấp thuận',                 cls:'badge-ready'},
   APPROVED_WITH_LOADING:   {label:'Chấp thuận có tăng phí',     cls:'badge-conditional'},
@@ -74,7 +75,7 @@ BANCA.LABELS = {
   source: {BANK_CUSTOMER:'Khách hàng ngân hàng', NEW_PROSPECT:'Khách hàng mới', QUICK_ADVISE:'Tư vấn nhanh', REFERRAL:'Lead/Referral', RENEWAL:'Tái tục'},
   delivery: {DELIVERED:'Đã gửi tới khách', PENDING:'Đang gửi', FAILED:'Gửi thất bại'},
   otp: {PENDING:'Chưa xác thực', VERIFIED:'Đã xác thực'},
-  scope: {OWN:'Của tôi', ASSIGNED:'Được giao', PORTFOLIO:'Danh mục', SERVICING:'Đang phục vụ', CONTEXT_GRANTED:'Theo ngữ cảnh', PROSPECT:'Prospect', TEAM:'Đội nhóm', BRANCH:'Chi nhánh', DELEGATED_CASE:'Case ủy quyền'}
+  scope: {OWN:'Của tôi', ASSIGNED:'Được giao', PORTFOLIO:'Danh mục', SERVICING:'Đang phục vụ', CONTEXT_GRANTED:'Theo ngữ cảnh', PROSPECT:'Prospect', TEAM:'Đội nhóm', BRANCH:'Chi nhánh', DELEGATED_CASE:'Ủy quyền'}
 };
 BANCA.label = (group,key) => (BANCA.LABELS[group]||{})[key] || key;
 BANCA.appStatusBadge = s => {const m=BANCA.APP_STATUS[s]||{label:s,cls:'badge-pending'};return `<span class="badge ${m.cls}">${m.label}</span>`;};

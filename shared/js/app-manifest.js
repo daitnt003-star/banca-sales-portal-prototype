@@ -22,7 +22,7 @@ BANCA.manifest =
     },
     {
       "id": "unsubmitted-applications",
-      "title": "Hồ sơ chưa nộp",
+      "title": "Yêu cầu bảo hiểm chưa nộp",
       "route": "modules/unsubmitted-applications/index.html",
       "permission": "VIEW_WORKSPACE",
       "navGroup": "business",
@@ -30,7 +30,7 @@ BANCA.manifest =
     },
     {
       "id": "submitted-applications",
-      "title": "Hồ sơ đã nộp",
+      "title": "Yêu cầu bảo hiểm đã nộp",
       "route": "modules/submitted-applications/index.html",
       "permission": "VIEW_WORKSPACE",
       "navGroup": "business",
@@ -38,7 +38,7 @@ BANCA.manifest =
     },
     {
       "id": "application-workspace",
-      "title": "Application Workspace",
+      "title": "Không gian xử lý yêu cầu",
       "route": "modules/application-workspace/index.html",
       "permission": "VIEW_WORKSPACE",
       "navGroup": "hidden"

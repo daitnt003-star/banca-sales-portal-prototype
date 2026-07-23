@@ -3,17 +3,17 @@ window.BANCA = window.BANCA || {};
 BANCA.certifications = {
   'RM-01':[
     {name:'Chứng chỉ đại lý bảo hiểm phi nhân thọ', type:'LICENSE', lines:'Phi nhân thọ (tất cả)', issued:'2024-03-15', expires:'2027-03-15', status:'VALID', file:'cert-rm01-nonlife.pdf'},
-    {name:'Đào tạo sản phẩm Motor Comprehensive', type:'TRAINING', lines:'Motor', issued:'2025-01-10', expires:null, status:'COMPLETED', file:'train-rm01-motor.pdf'},
-    {name:'Đào tạo sản phẩm Personal Accident', type:'TRAINING', lines:'PA', issued:'2025-02-20', expires:null, status:'COMPLETED', file:'train-rm01-pa.pdf'}
+    {name:'Đào tạo sản phẩm Bảo hiểm vật chất xe', type:'TRAINING', lines:'Motor', issued:'2025-01-10', expires:null, status:'COMPLETED', file:'train-rm01-motor.pdf'},
+    {name:'Đào tạo sản phẩm Bảo hiểm tai nạn cá nhân', type:'TRAINING', lines:'PA', issued:'2025-02-20', expires:null, status:'COMPLETED', file:'train-rm01-pa.pdf'}
   ],
   'RM-02':[
     {name:'Chứng chỉ đại lý bảo hiểm phi nhân thọ', type:'LICENSE', lines:'Phi nhân thọ (tất cả)', issued:'2024-08-01', expires:'2026-08-01', status:'EXPIRING', note:'Còn 12 ngày — gia hạn để giữ quyền bind', file:'cert-rm02-nonlife.pdf'},
-    {name:'Đào tạo sản phẩm Motor Comprehensive', type:'TRAINING', lines:'Motor', issued:'2024-09-05', expires:null, status:'COMPLETED', file:'train-rm02-motor.pdf'},
-    {name:'Đào tạo bắt buộc Health Individual', type:'TRAINING', lines:'Health', issued:null, expires:null, status:'MISSING', note:'Chưa hoàn thành — Health bị BLOCKED', file:null}
+    {name:'Đào tạo sản phẩm Bảo hiểm vật chất xe', type:'TRAINING', lines:'Motor', issued:'2024-09-05', expires:null, status:'COMPLETED', file:'train-rm02-motor.pdf'},
+    {name:'Đào tạo bắt buộc Bảo hiểm sức khỏe', type:'TRAINING', lines:'Health', issued:null, expires:null, status:'MISSING', note:'Chưa hoàn thành — Health bị BLOCKED', file:null}
   ],
   'TS-01':[
     {name:'Chứng chỉ đại lý bảo hiểm phi nhân thọ', type:'LICENSE', lines:'Phi nhân thọ (tất cả)', issued:'2025-01-20', expires:'2028-01-20', status:'VALID', file:'cert-ts01-nonlife.pdf'},
-    {name:'Đào tạo sản phẩm Motor Comprehensive', type:'TRAINING', lines:'Motor', issued:'2025-02-15', expires:null, status:'COMPLETED', file:'train-ts01-motor.pdf'},
+    {name:'Đào tạo sản phẩm Bảo hiểm vật chất xe', type:'TRAINING', lines:'Motor', issued:'2025-02-15', expires:null, status:'COMPLETED', file:'train-ts01-motor.pdf'},
     {name:'Đào tạo quy trình Telesales', type:'TRAINING', lines:'Chung', issued:'2025-01-25', expires:null, status:'COMPLETED', file:'train-ts01-tele.pdf'}
   ],
   'TL-01':[

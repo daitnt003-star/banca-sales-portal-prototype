@@ -69,7 +69,7 @@ window.advSetPrimary = function(nid){ state.primaryNeed=nid; save(); renderStep(
 window.advSetWeight = function(nid,w){ state.priorities[nid]=w; save(); renderStep(); };
 window.advToggleCompare = function(pkg){ const i=state.compareSet.indexOf(pkg); if(i>=0) state.compareSet.splice(i,1); else { if(state.compareSet.length>=3){ advToast('So sánh tối đa 3 gói trong bản demo.'); return; } state.compareSet.push(pkg); } if(state.status==='RECOMMENDED') state.status='COMPARING'; save(); renderStep(); };
 window.advSelectOffer = function(pkg){ const offers=BANCA.adviceOffersFor(state.primaryNeed); const o=offers.find(x=>x.packageRef===pkg); if(o){ state.selectedOffer={productRef:o.productRef, productName:o.productName, packageRef:o.packageRef, packageName:o.packageName, premiumBand:o.premiumBand}; } save(); renderStep(); };
-window.advSaveSession = function(){ state.status='SAVED'; save(); syncSeed(); advToast('Đã lưu bản tư vấn '+state.id+'. Không tạo hồ sơ hay báo giá.'); setTimeout(()=>{ location.href=r+'modules/quick-advisory/index.html?tab=SAVED'; },800); };
+window.advSaveSession = function(){ state.status='SAVED'; save(); syncSeed(); advToast('Đã lưu bản tư vấn '+state.id+'. Không tạo yêu cầu hay báo giá.'); setTimeout(()=>{ location.href=r+'modules/quick-advisory/index.html?tab=SAVED'; },800); };
 window.advFollowUp = function(){
   advModal(`<div style="font-size:14px;margin-bottom:8px;">Hẹn theo dõi lại phiên <b>${state.id}</b></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -147,12 +147,12 @@ window.advConvertTab = function(tab, q){
 window.advAttachBank = function(custId){ const c=BANCA.customerById(custId); state.customerRef=custId; state.customerName=c?c.name:null; state.mode='BANK_CUSTOMER'; save(); advConvertConfirmModal(); };
 window.advAttachLead = function(leadId){ const x=(BANCA.referrals||[]).find(r=>r.id===leadId)||{}; state.leadId=leadId; state.customerRef=x.customerId||null; state.customerName=x.customerName||null; state.campaign=x.source||null; state.mode='REFERRAL'; save(); advConvertConfirmModal(); };
 window.advAttachProspect = function(){ const nm=(document.getElementById('adv-prospect-name').value||'').trim(); if(!nm){ advToast('Nhập tên khách.'); return; } state.customerName=nm; state.mode='NEW_PROSPECT'; save(); advConvertConfirmModal(); };
-// ===== Chuyển sang bán hàng — customer-first, tạo Handoff =====
+// ===== Tạo yêu cầu bảo hiểm từ tư vấn này — customer-first, tạo Handoff =====
 function advConvertConfirmModal(){
   const o=state.selectedOffer||{};
   const cust=state.customerRef?BANCA.customerById(state.customerRef):null;
   const meName=(BANCA.personas[me]||{}).name||me;
-  advModal(`<div style="font-size:15px;font-weight:700;margin-bottom:4px;">Chuyển sang bán hàng</div>
+  advModal(`<div style="font-size:15px;font-weight:700;margin-bottom:4px;">Tạo yêu cầu bảo hiểm từ tư vấn này</div>
    <div style="font-size:11.5px;color:var(--ink-300);margin-bottom:10px;">Xác định khách hàng → xác nhận tư vấn → chọn phân công → bàn giao.</div>
    <div class="label" style="margin-bottom:4px;">① Khách hàng (đã xác định)</div>
    <div class="card" style="padding:10px;font-size:12.5px;margin-bottom:10px;"><b>${state.customerName||'—'}</b>${cust&&cust.cif?' · CIF '+cust.cif:(state.leadId?' · Lead '+state.leadId:' · Prospect')} · Consent: <span class="badge badge-ready" style="font-size:9px;">Hợp lệ</span></div>
@@ -205,7 +205,7 @@ window.advDoConvert = function(){
     setTimeout(()=>location.href=r+'modules/quick-advisory/index.html', 900);
   } else {
     const h=BANCA.createHandoff(Object.assign({routingMode:'AUTO_ROUTE', targetSeller:null, state:'UNASSIGNED_EXCEPTION', unassignedReason:'Auto-route demo: chờ Team Lead xử lý ngoại lệ.'}, base));
-    advToast('Đã gửi auto-route — nếu không có seller phù hợp sẽ vào ngoại lệ.');
+    advToast('Đã gửi auto-route — nếu không có nhân viên tư vấn phù hợp sẽ vào ngoại lệ.');
     setTimeout(()=>location.href=r+'modules/quick-advisory/index.html', 900);
   }
 };
@@ -293,7 +293,7 @@ function sidebar(){
       ${[['concern','Mối quan tâm'],['budget','Ngân sách/rào cản phí'],['barrier','Rào cản'],['followup','Hẹn theo dõi'],['free','Ghi chú tự do']].map(([k,l])=>`<div style="margin-bottom:8px;"><div style="font-size:11px;color:var(--ink-500);margin-bottom:2px;">${l}</div><input id="an-${k}" value="${(an[k]||'').replace(/"/g,'&quot;')}" onchange="advSetAdvisorField('${k}',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;"></div>`).join('')}
     </div>
     <div class="card" style="padding:12px 14px;font-size:12px;color:var(--ink-500);background:var(--amber-100);border-color:transparent;">
-      ⚠️ Phí hiển thị là <b>minh họa</b>. Chỉ khi bấm <b>Chuyển sang bán hàng</b> mới tạo phiên bán & tính phí chính thức.
+      ⚠️ Phí hiển thị là <b>minh họa</b>. Chỉ khi bấm <b>Tạo yêu cầu bảo hiểm từ tư vấn này</b> mới tạo phiên bán & tính phí chính thức.
     </div>
   </aside>`;
 }
@@ -307,8 +307,8 @@ function footer(){
     if(locked){ primary = `<span class="chip" style="background:#eef0f4;color:var(--ink-500);">🔒 Phiên đã khoá (${state.status==='CONVERTED_TO_SALE'?'đã chuyển bán':'chưa quan tâm'})</span>`; }
     else { const chk = convertReady();
     primary = chk.ok
-      ? `<button class="btn btn-primary" onclick="advConvert()">Chuyển sang bán hàng →</button>`
-      : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;"><span style="font-size:12px;color:var(--amber-600);max-width:340px;text-align:right;">⚠️ ${chk.reason}</span>${(!state.selectedOffer)?`<button class="btn btn-secondary" onclick="advGo('recommend')">← Chọn gói</button>`:''}<button class="btn btn-primary" disabled style="opacity:.45;cursor:not-allowed;" title="${chk.reason}">Chuyển sang bán hàng →</button></div>`; }
+      ? `<button class="btn btn-primary" onclick="advConvert()">Tạo yêu cầu bảo hiểm từ tư vấn này →</button>`
+      : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;"><span style="font-size:12px;color:var(--amber-600);max-width:340px;text-align:right;">⚠️ ${chk.reason}</span>${(!state.selectedOffer)?`<button class="btn btn-secondary" onclick="advGo('recommend')">← Chọn gói</button>`:''}<button class="btn btn-primary" disabled style="opacity:.45;cursor:not-allowed;" title="${chk.reason}">Tạo yêu cầu bảo hiểm từ tư vấn này →</button></div>`; }
   } else if(next){
     const disabled = (step==='needs' && !state.primaryNeed);
     primary = `${disabled?'<span style="font-size:11.5px;color:var(--amber-600);">Chọn ít nhất 1 nhu cầu để tiếp tục</span> ':''}<button class="btn btn-primary" ${disabled?'disabled style="opacity:.5;"':''} onclick="advGo('${next}')">Tiếp tục →</button>`;
@@ -326,10 +326,10 @@ function footer(){
 // ----- Tooltip / glossary (Việt hóa thuật ngữ) -----
 const GLOSSARY = {
   fit:'Fit score — mức độ phù hợp của gói với nhu cầu đã chọn (càng cao càng khớp).',
-  issue:'Hình thức cấp đơn — cách hồ sơ được phát hành: tự động (auto) hoặc cần thẩm định/giới thiệu (referral).',
+  issue:'Hình thức cấp đơn — cách yêu cầu được phát hành: tự động (auto) hoặc cần thẩm định/giới thiệu (referral).',
   indicative:'Phí minh họa (indicative) — ước tính tham khảo, KHÔNG phải phí cam kết. Phí chính thức tính lại khi chuyển sang bán.',
   referral:'Referral — giới thiệu; sản phẩm cần chuyển qua bước giới thiệu/thẩm định trước khi cấp đơn.',
-  authorized:'Được phép bán — seller có quyền tư vấn/báo giá sản phẩm này theo kênh hiện tại.'
+  authorized:'Được phép bán — nhân viên tư vấn có quyền tư vấn/báo giá sản phẩm này theo kênh hiện tại.'
 };
 function tip(term){ return `<span class="help-hint" tabindex="0" title="${(GLOSSARY[term]||'').replace(/"/g,'&quot;')}">?</span>`; }
 function issueModeOf(pkgRef){ return (pkgRef==='PREMIUM') ? 'referral' : 'auto'; }
@@ -350,10 +350,10 @@ window.advTransferSeller = function(pkgRef){
   const o = offers.find(x=>x.packageRef===pkgRef)||{};
   const P = BANCA.personas||{};
   const meObj = P[me]||{};
-  // Danh sách seller đủ điều kiện (ACTIVE, không phải mình, không service error)
+  // Danh sách nhân viên tư vấn đủ điều kiện (ACTIVE, không phải mình, không service error)
   const all = Object.keys(P).map(id=>({id,...P[id]}))
     .filter(s=>s.id!==me && s.status==='ACTIVE' && !s.serviceError && ['Retail RM','Sales Team Leader'].includes(s.role));
-  // Seller gợi ý: cùng team + cùng branch ưu tiên, Retail RM trước
+  // Nhân viên tư vấn gợi ý: cùng team + cùng branch ưu tiên, Retail RM trước
   const scoreOf=s=>(s.team===meObj.team?2:0)+(s.branch===meObj.branch?1:0)+(s.role==='Retail RM'?1:0);
   const sorted=[...all].sort((a,b)=>scoreOf(b)-scoreOf(a));
   const suggested=sorted[0];
@@ -362,11 +362,11 @@ window.advTransferSeller = function(pkgRef){
       <div><div style="font-size:13px;font-weight:700;">${s.name} ${hi?'<span style="font-size:10px;background:var(--teal-600);color:#fff;padding:1px 6px;border-radius:5px;margin-left:4px;">GỢI Ý</span>':''}</div><div style="font-size:11.5px;color:var(--ink-500);">${s.role} · ${s.branch}${s.team?' · '+s.team:''} · Đủ điều kiện bán</div></div>
       <button class="btn btn-primary btn-sm" onclick="advDoTransfer('${s.id}','${(s.name||'').replace(/'/g,'')}')">Chuyển</button>
     </div>`;
-  advModal(`<div style="font-size:15px;font-weight:700;margin-bottom:2px;">Chuyển tư vấn cho seller đủ điều kiện</div>
-   <div style="font-size:12.5px;color:var(--ink-500);margin-bottom:12px;">Gói <b>${o.packageName||''}</b> · ${o.productName||''}. Bạn chưa đủ điều kiện bán — chọn seller nhận bàn giao bản tư vấn (demo).</div>
-   ${suggested?`<div class="label" style="margin-bottom:6px;">⭐ Seller gợi ý</div>${row(suggested,true)}`:''}
-   <div class="label" style="margin:12px 0 6px;">Danh sách seller đủ điều kiện</div>
-   ${rest.length?rest.map(s=>row(s,false)).join(''):'<div style="font-size:12px;color:var(--ink-300);">Không có seller khác.</div>'}
+  advModal(`<div style="font-size:15px;font-weight:700;margin-bottom:2px;">Chuyển tư vấn cho nhân viên tư vấn đủ điều kiện</div>
+   <div style="font-size:12.5px;color:var(--ink-500);margin-bottom:12px;">Gói <b>${o.packageName||''}</b> · ${o.productName||''}. Bạn chưa đủ điều kiện bán — chọn nhân viên tư vấn nhận bàn giao bản tư vấn (demo).</div>
+   ${suggested?`<div class="label" style="margin-bottom:6px;">⭐ Nhân viên tư vấn gợi ý</div>${row(suggested,true)}`:''}
+   <div class="label" style="margin:12px 0 6px;">Danh sách nhân viên tư vấn đủ điều kiện</div>
+   ${rest.length?rest.map(s=>row(s,false)).join(''):'<div style="font-size:12px;color:var(--ink-300);">Không có nhân viên tư vấn khác.</div>'}
    <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="btn btn-secondary btn-sm" onclick="advModalClose()">Đóng</button></div>`);
 };
 window.advDoTransfer = function(sellerId, sellerName){ state.transferredTo=sellerId; save(); advModalClose(); advToast('Đã chuyển tư vấn cho '+sellerName+' (demo).'); };
@@ -432,7 +432,22 @@ function bodyRecommend(){
     <div style="margin-top:10px;"><div style="height:10px;background:var(--line);border-radius:6px;overflow:hidden;"><div style="width:${fg.pct}%;height:100%;background:var(--red-600);"></div></div><div style="font-size:11px;color:var(--ink-300);margin-top:4px;">Mức độ khoảng trống ~${fg.pct}% — bảo hiểm giúp lấp phần này.</div></div>
     <div style="font-size:11.5px;color:var(--ink-300);margin-top:6px;">Ước tính minh họa để giải thích vì sao nên có bảo hiểm — không phải con số cam kết.</div>
   </div>`;
-  return gapCard+`<div class="card" style="padding:18px;margin-bottom:12px;"><h3 style="margin:0 0 4px;font-size:17px;">⭐ Gợi ý phương án cho: ${BANCA.needLabel(state.primaryNeed)}</h3><p style="margin:0;color:var(--ink-500);font-size:13.5px;">Mỗi phương án đều giải thích rõ vì sao đề xuất. Phí là minh họa.</p></div>
+  // §10 — Quick Advice Health: ước tính gia đình theo nhóm tuổi (không thu khai báo/OTP/tài liệu y tế).
+  const famEst = (offers[0] && offers[0].productRef==='health' && BANCA.healthQuickAdviceEstimate) ? (function(){
+    const pkgCode = (BANCA.HEALTH_ADVICE_PKG||{})[(state.selectedOffer&&state.selectedOffer.packageRef)||offers[0].packageRef] || 'HEALTH_STD';
+    const est = BANCA.healthQuickAdviceEstimate({packageCode:pkgCode});
+    const rows = est.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.label} × ${l.count}</span><b>${BANCA.vnd(l.sub)}</b> <span style="font-size:10.5px;color:var(--ink-300);">(${BANCA.vnd(l.per)}/người)</span></div>`;}).join('');
+    return `<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--brand-600);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:20px;">👨‍👩‍👧</span><b style="font-size:15px;">Ước tính gói gia đình (${((BANCA.healthPackages||{})[pkgCode]||{}).name||pkgCode})</b></div>
+      <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:8px;">Gia đình minh họa: ${est.members} người theo nhóm tuổi. Quick advice — chưa thu khai báo sức khỏe / người thụ hưởng / OTP / tài liệu y tế.</div>
+      ${rows}
+      ${est.discount?`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--teal-600);padding:4px 0;"><span>Chiết khấu gia đình (≥3 người)</span><b>−${BANCA.vnd(est.discount)}</b></div>`:''}
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:8px 0 0;border-top:1px solid var(--line);margin-top:4px;color:var(--brand-600);"><span>Tổng gia đình (ước tính)</span><span>${BANCA.vnd(est.total)}</span></div>
+      <div style="font-size:11.5px;color:var(--amber-600);margin-top:8px;">⚠ ${est.waiting}</div>
+      <div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">Cần kiểm khi tạo yêu cầu: ${est.verify.join(' · ')}.</div>
+    </div>`;
+  })() : '';
+  return gapCard+famEst+`<div class="card" style="padding:18px;margin-bottom:12px;"><h3 style="margin:0 0 4px;font-size:17px;">⭐ Gợi ý phương án cho: ${BANCA.needLabel(state.primaryNeed)}</h3><p style="margin:0;color:var(--ink-500);font-size:13.5px;">Mỗi phương án đều giải thích rõ vì sao đề xuất. Phí là minh họa.</p></div>
   <div class="opt-grid">${offers.map(o=>{
     const exp=BANCA.explainOffer(o, state.budgetBand);
     const isHero=o.fit===bestFit;
@@ -460,12 +475,12 @@ function bodyRecommend(){
       </div>
       <div style="font-size:11.5px;color:var(--ink-300);">Tài liệu dự kiến: ${docHintOf(o.productRef)}</div>
       <div style="font-size:11.5px;color:var(--ink-300);">Cần xác minh khi bán: ${o.verify.join(', ')}</div>
-      ${!eligible?`<div style="border:1px solid var(--red-600);background:#fdecec;border-radius:8px;padding:8px;font-size:11.5px;"><div>Phù hợp nhu cầu: <b style="color:var(--teal-600);">CÓ</b> · Được phép bán: <b style="color:var(--red-600);">KHÔNG</b></div><div style="color:var(--red-600);margin-top:2px;">${rd.reason||'Seller chưa đủ điều kiện bán sản phẩm này.'}</div></div>`:''}
+      ${!eligible?`<div style="border:1px solid var(--red-600);background:#fdecec;border-radius:8px;padding:8px;font-size:11.5px;"><div>Phù hợp nhu cầu: <b style="color:var(--teal-600);">CÓ</b> · Được phép bán: <b style="color:var(--red-600);">KHÔNG</b></div><div style="color:var(--red-600);margin-top:2px;">${rd.reason||'Nhân viên tư vấn chưa đủ điều kiện bán sản phẩm này.'}</div></div>`:''}
       <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
         <button class="btn btn-sm ${inCompare?'btn-primary':'btn-secondary'}" onclick="advToggleCompare('${o.packageRef}')">${inCompare?'✓ Đang so sánh':'Thêm vào so sánh'}</button>
         ${eligible
           ? `<button class="btn btn-sm ${selected?'btn-primary':'btn-secondary'}" onclick="advSelectOffer('${o.packageRef}')">${selected?'✓ Đã chọn':'Chọn phương án'}</button>`
-          : `<button class="btn btn-sm btn-secondary" onclick="advTransferSeller('${o.packageRef}')">Chuyển seller đủ điều kiện</button>`}
+          : `<button class="btn btn-sm btn-secondary" onclick="advTransferSeller('${o.packageRef}')">Chuyển nhân viên tư vấn đủ điều kiện</button>`}
       </div>
     </div>`;
   }).join('')}</div>`;
@@ -521,7 +536,7 @@ function bodyResult(){
       <tr><td style="color:var(--ink-500);">Cần bổ sung khi chuyển bán</td><td>${o?((BANCA.adviceOffersFor(state.primaryNeed).find(x=>x.packageRef===o.packageRef)||{}).verify||[]).join(', ')||'—':'Chọn gói trước'}</td></tr>
     </tbody></table>
     ${(()=>{ const offers=BANCA.adviceOffersFor(state.primaryNeed); const ds=BANCA.decisionSupport(offers, o?o.packageRef:null); return ds.length?`<div class="card" style="padding:14px;margin-top:12px;background:var(--brand-100);border-color:transparent;"><div class="label" style="margin-bottom:8px;">Hỗ trợ ra quyết định</div>${ds.map(([q,a])=>`<div style="margin-bottom:8px;"><div style="font-size:12.5px;font-weight:700;">${q}</div><div style="font-size:12.5px;color:var(--ink-600);">${a}</div></div>`).join('')}</div>`:''; })()}
-    <div style="margin-top:14px;"><div class="label" style="margin-bottom:6px;">Có thể bổ sung (gợi ý — không tự thêm)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.RIDER_CATALOG.map(rd=>{const on=(state.upsell||[]).includes(rd.id);return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advToggleUpsell('${rd.id}')">${on?'✓ ':''}${rd.label} +${BANCA.vnd(rd.addMonthly)}/tháng</button>`;}).join('')}</div>${(state.upsell||[]).length?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:6px;">Đã ghi nhận gợi ý bổ sung: ${(state.upsell||[]).map(id=>(BANCA.RIDER_CATALOG.find(r=>r.id===id)||{}).label).join(', ')} — chỉ gợi ý, khách quyết định khi lập hồ sơ.</div>`:''}</div>
+    <div style="margin-top:14px;"><div class="label" style="margin-bottom:6px;">Có thể bổ sung (gợi ý — không tự thêm)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.RIDER_CATALOG.map(rd=>{const on=(state.upsell||[]).includes(rd.id);return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advToggleUpsell('${rd.id}')">${on?'✓ ':''}${rd.label} +${BANCA.vnd(rd.addMonthly)}/tháng</button>`;}).join('')}</div>${(state.upsell||[]).length?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:6px;">Đã ghi nhận gợi ý bổ sung: ${(state.upsell||[]).map(id=>(BANCA.RIDER_CATALOG.find(r=>r.id===id)||{}).label).join(', ')} — chỉ gợi ý, khách quyết định khi tạo yêu cầu.</div>`:''}</div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span class="label">Xuất bản tư vấn:</span><button class="btn btn-secondary btn-sm" onclick="advExport('PDF')">📄 Tải PDF</button><button class="btn btn-secondary btn-sm" onclick="advExport('EMAIL')">✉️ Email</button><button class="btn btn-secondary btn-sm" onclick="advExport('QR')">🔳 Chia sẻ QR</button></div>
     ${(()=>{ const dur=state.startedAt?Math.max(1,Math.round((Date.now()-state.startedAt)/60000)):'—'; return `<div class="card" style="padding:12px 14px;margin-top:12px;background:var(--paper);border-color:transparent;"><div class="label" style="margin-bottom:6px;">Phiên tư vấn</div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-500);"><span>Tư vấn viên: <b style="color:var(--ink-700);">${(BANCA.personas[state.createdBy]||{}).name||state.createdBy}</b></span><span>Bắt đầu: <b style="color:var(--ink-700);">${state.startedAt?new Date(state.startedAt).toLocaleTimeString('vi-VN').slice(0,5):'—'}</b></span><span>Lưu gần nhất: <b style="color:var(--ink-700);">${state.updatedAt}</b></span><span>Thời lượng: <b style="color:var(--ink-700);">${dur} phút</b></span><span>Phiên bản: <b style="color:var(--ink-700);">v${state.version}</b></span></div>${state.mode==='ANONYMOUS'?'<div style="font-size:11.5px;color:var(--amber-600);margin-top:6px;">⚠️ Phiên ẩn danh — chưa lưu vào CRM cho đến khi chuyển sang bán hàng.</div>':''}</div>`; })()}
     <div style="margin-top:12px;font-size:12px;color:var(--ink-300);">Disclaimer: Kết quả tư vấn và phí chỉ mang tính minh họa, chưa phải cam kết bảo hiểm. Phí chính thức được tính lại tại bước lập báo giá khi chuyển sang bán hàng.</div>
@@ -530,7 +545,7 @@ function bodyResult(){
       <button class="btn btn-secondary" onclick="advFollowUp()">Hẹn tư vấn sau</button>
       <button class="btn btn-secondary" onclick="advNotInterestedConfirm()" style="color:var(--red-600);">Ghi nhận chưa quan tâm</button>
     </div>`}
-    <div style="margin-top:8px;font-size:11.5px;color:var(--ink-300);">Nút <b>Chuyển sang bán hàng</b> ở thanh dưới. ${!chk.ok?'<span style="color:var(--amber-600);">'+chk.reason+'</span>':''}</div>
+    <div style="margin-top:8px;font-size:11.5px;color:var(--ink-300);">Nút <b>Tạo yêu cầu bảo hiểm từ tư vấn này</b> ở thanh dưới. ${!chk.ok?'<span style="color:var(--amber-600);">'+chk.reason+'</span>':''}</div>
   </div>`;
 }
 

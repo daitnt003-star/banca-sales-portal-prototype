@@ -45,7 +45,7 @@ const showCommission = BANCA.commissionVisible('home');
 
 const wsUrl = id => r+'modules/application-workspace/index.html?id='+id;
 
-// 2. Hồ sơ chưa nộp gần đây (max 5)
+// 2. Yêu cầu bảo hiểm chưa nộp gần đây (max 5)
 const draftRows = drafts.slice(0,5).map(a=>`<tr>
  <td><a href="${wsUrl(a.id)}" style="font-weight:600;color:var(--brand-600);">${a.id}</a></td>
  <td>${custName(a.customerId)}</td><td style="font-size:12px;">${a.productName}</td>
@@ -55,7 +55,7 @@ const draftRows = drafts.slice(0,5).map(a=>`<tr>
  <td style="font-size:11.5px;color:var(--ink-500);">${a.updatedAt}</td>
  <td><a class="btn btn-primary btn-sm" href="${wsUrl(a.id)}">Tiếp tục</a></td></tr>`).join('');
 
-// 3. Hồ sơ cần bổ sung
+// 3. Yêu cầu cần bổ sung
 const needRows = needMore.map(a=>`<tr>
  <td><a href="${wsUrl(a.id)}" style="font-weight:600;color:var(--brand-600);">${a.id}</a></td>
  <td>${custName(a.customerId)}</td>
@@ -81,7 +81,7 @@ const notiHtml = notis.length? notis.map(n=>{
 // 7. KPI
 const kpiHtml=`<div class="kpi-strip light">
  <div class="kpi"><span>Premium tháng này</span><b>${BANCA.vnd(kpi.premium)}</b></div>
- ${showCommission?`<div class="kpi" style="cursor:pointer;" onclick="location.href='${r}modules/policies/index.html?commission=mine'"><span>Hoa hồng dự kiến tháng này<span class="help-hint" tabindex="0" title="Ước tính hoa hồng cộng dồn (accrued) cho các hồ sơ đã phát hành trong tháng. Số chính thức phụ thuộc đối soát và có thể bị thu hồi (clawback) nếu hủy hợp đồng trong thời gian cân nhắc.">?</span></span><b>${BANCA.vnd(commission.amount)}</b><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${commission.count} hồ sơ · accrued</div></div>`:''}
+ ${showCommission?`<div class="kpi" style="cursor:pointer;" onclick="location.href='${r}modules/policies/index.html?commission=mine'"><span>Hoa hồng dự kiến tháng này<span class="help-hint" tabindex="0" title="Ước tính hoa hồng cộng dồn (accrued) cho các yêu cầu đã phát hành trong tháng. Số chính thức phụ thuộc đối soát và có thể bị thu hồi (clawback) nếu hủy hợp đồng trong thời gian cân nhắc.">?</span></span><b>${BANCA.vnd(commission.amount)}</b><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${commission.count} yêu cầu · accrued</div></div>`:''}
  <div class="kpi"><span>Đã phát hành</span><b>${kpi.policies}</b></div>
  <div class="kpi"><span>Tỷ lệ chuyển đổi</span><b>${kpi.conversion}</b></div>
  <div class="kpi"><span>Tiến độ chỉ tiêu</span><b>${kpi.target}</b></div>
@@ -91,7 +91,7 @@ const kpiHtml=`<div class="kpi-strip light">
 function handoffInbox(){
   const list = BANCA.handoffsForSeller ? BANCA.handoffsForSeller(me) : [];
   if(!list.length) return `<div class="section-title"><h2>Bàn giao mới</h2></div><div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--ink-500);">Không có bàn giao mới.</div>`;
-  const badge = t => t==='SALES_HANDOFF'?'<span class="badge badge-ready" style="font-size:10px;">Chuyển sang bán hàng</span>':t==='CASE_REASSIGNMENT'?'<span class="badge badge-conditional" style="font-size:10px;">Chuyển phụ trách</span>':'<span class="badge badge-version" style="font-size:10px;">Công việc hỗ trợ</span>';
+  const badge = t => t==='SALES_HANDOFF'?'<span class="badge badge-ready" style="font-size:10px;">Tạo yêu cầu bảo hiểm từ tư vấn này</span>':t==='CASE_REASSIGNMENT'?'<span class="badge badge-conditional" style="font-size:10px;">Chuyển phụ trách</span>':'<span class="badge badge-version" style="font-size:10px;">Công việc hỗ trợ</span>';
   const cta = t => t==='SALES_HANDOFF'?'Tiếp nhận & bán hàng':t==='CASE_REASSIGNMENT'?'Tiếp nhận & xử lý':'Bắt đầu công việc';
   const srcBadge = h => `<span class="badge badge-version" style="font-size:9px;" title="${h.sourceSystem||''}">${h.source==='BANK_CRM'?'Bank CRM':h.source==='REFERRAL'?'Lead/Referral':'Portal'}</span>`;
   const card = h => `<div class="card" style="padding:14px 16px;margin-bottom:10px;border-left:4px solid ${h.type==='SALES_HANDOFF'?'var(--teal-600)':h.type==='CASE_REASSIGNMENT'?'var(--amber-600)':'var(--brand-600)'};">
@@ -100,7 +100,7 @@ function handoffInbox(){
         <div style="font-weight:700;font-size:14px;margin-top:6px;">${h.customerName}${h.cif?' · CIF '+h.cif:''}</div>
         <div style="font-size:12.5px;color:var(--ink-500);">${h.productName||''}${h.packageName?' · '+h.packageName:''}${h.needSummary?' · '+h.needSummary:''}</div>
       </div>
-      <div style="text-align:right;font-size:11.5px;color:var(--ink-500);">SLA bàn giao · hạn tiếp nhận<br><b style="color:var(--ink-700);">${h.acceptBy||'—'}</b><div style="font-size:10px;color:var(--ink-300);">SLA hồ sơ tính sau khi tiếp nhận</div></div>
+      <div style="text-align:right;font-size:11.5px;color:var(--ink-500);">SLA bàn giao · hạn tiếp nhận<br><b style="color:var(--ink-700);">${h.acceptBy||'—'}</b><div style="font-size:10px;color:var(--ink-300);">SLA yêu cầu tính sau khi tiếp nhận</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:11.5px;color:var(--ink-500);margin-top:8px;">
       ${h.type!=='DELEGATION'?`<div>Người giới thiệu: <b>${BANCA.participantName(h,'REFERRER')||'—'}</b></div><div>Người tư vấn: <b>${BANCA.participantName(h,'ADVISOR')||'—'}</b></div>`:''}
@@ -116,13 +116,13 @@ function handoffInbox(){
       <button class="btn btn-secondary btn-sm" onclick="hoReview('${h.id}')">Xem khách hàng</button>
     </div>
   </div>`;
-  return `<div class="section-title"><h2>Bàn giao mới</h2><span class="subtitle">${list.length} bàn giao chờ tiếp nhận · seller chỉ review khách hàng, không chọn lại</span></div>${list.map(card).join('')}`;
+  return `<div class="section-title"><h2>Bàn giao mới</h2><span class="subtitle">${list.length} bàn giao chờ tiếp nhận · nhân viên tư vấn chỉ review khách hàng, không chọn lại</span></div>${list.map(card).join('')}`;
 }
 window.hoModal=(html)=>{ let el=document.getElementById('ho-modal'); if(!el){el=document.createElement('div');el.id='ho-modal';document.body.appendChild(el);} el.innerHTML=`<div class="modal-overlay2 open" onclick="if(event.target===this)hoClose()"><div class="modal2" style="max-width:480px;" onclick="event.stopPropagation()">${html}</div></div>`; };
 window.hoClose=()=>{ const el=document.getElementById('ho-modal'); if(el)el.innerHTML=''; };
 window.hoToast=(m)=>{ const t=document.createElement('div'); t.textContent=m; t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;'; document.body.appendChild(t); setTimeout(()=>t.remove(),2400); };
-window.hoReview=(id)=>{ const h=BANCA.handoffById(id); hoModal(`<div class="modal2-head"><b>Khách hàng · chỉ review</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Seller không chọn lại khách khi tiếp nhận — chỉ xem ngữ cảnh, nguồn, consent.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12.5px;"><div>Khách: <b>${h.customerName}</b></div><div>CIF: ${h.cif||'—'}</div><div>Nguồn: ${h.sourceSystem||h.source}</div><div>Lead: ${h.leadRef||'—'}</div><div>Sản phẩm: ${h.productName||'—'}</div><div>Consent: ${h.consent==='VALID'?'<span class="badge badge-ready" style="font-size:9px;">Hợp lệ</span>':'<span class="badge badge-conditional" style="font-size:9px;">Chờ</span>'}</div></div><div style="border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;font-size:11.5px;color:var(--ink-300);">Ngoại lệ: nếu sai khách/CIF/duplicate — <a href="#" onclick="hoChangeCust('${id}');return false;" style="color:var(--amber-600);">Yêu cầu điều chỉnh khách hàng</a> (revalidate + có thể re-rating).</div><div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Đóng</button></div></div>`); };
-window.hoChangeCust=(id)=>{ const opts=(BANCA.myCustomers?BANCA.myCustomers():[]).filter(c=>c.scope[me]!=='PROSPECT').slice(0,8); hoModal(`<div class="modal2-head"><b>Yêu cầu điều chỉnh khách hàng (ngoại lệ)</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div class="card" style="padding:8px 10px;background:#fff6e6;border-color:#ffe0a3;font-size:11.5px;color:#8a5a00;margin-bottom:10px;">Đổi khách sẽ revalidate consent/portfolio/eligibility/quote. Quote KH cũ KHÔNG giữ cho KH mới (re-rating). Nếu seller không còn hợp lệ → về hàng chờ phân công.</div><div class="label" style="margin-bottom:6px;">Khách hàng đúng</div><select id="ho-newcust" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;">${opts.map(c=>`<option value="${c.id}">${c.name} · CIF ${c.cif||'—'}</option>`).join('')}</select><div class="label" style="margin-bottom:6px;">Lý do (bắt buộc)</div><input id="ho-cust-reason" placeholder="Chọn sai / duplicate / sai CIF / integration lỗi" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="hoDoChangeCust('${id}')">Xác nhận</button></div></div>`); };
+window.hoReview=(id)=>{ const h=BANCA.handoffById(id); hoModal(`<div class="modal2-head"><b>Khách hàng · chỉ review</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Nhân viên tư vấn không chọn lại khách khi tiếp nhận — chỉ xem ngữ cảnh, nguồn, consent.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12.5px;"><div>Khách: <b>${h.customerName}</b></div><div>CIF: ${h.cif||'—'}</div><div>Nguồn: ${h.sourceSystem||h.source}</div><div>Lead: ${h.leadRef||'—'}</div><div>Sản phẩm: ${h.productName||'—'}</div><div>Consent: ${h.consent==='VALID'?'<span class="badge badge-ready" style="font-size:9px;">Hợp lệ</span>':'<span class="badge badge-conditional" style="font-size:9px;">Chờ</span>'}</div></div><div style="border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;font-size:11.5px;color:var(--ink-300);">Ngoại lệ: nếu sai khách/CIF/duplicate — <a href="#" onclick="hoChangeCust('${id}');return false;" style="color:var(--amber-600);">Yêu cầu điều chỉnh khách hàng</a> (revalidate + có thể re-rating).</div><div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Đóng</button></div></div>`); };
+window.hoChangeCust=(id)=>{ const opts=(BANCA.myCustomers?BANCA.myCustomers():[]).filter(c=>c.scope[me]!=='PROSPECT').slice(0,8); hoModal(`<div class="modal2-head"><b>Yêu cầu điều chỉnh khách hàng (ngoại lệ)</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div class="card" style="padding:8px 10px;background:#fff6e6;border-color:#ffe0a3;font-size:11.5px;color:#8a5a00;margin-bottom:10px;">Đổi khách sẽ revalidate consent/portfolio/eligibility/quote. Quote KH cũ KHÔNG giữ cho KH mới (re-rating). Nếu nhân viên tư vấn không còn hợp lệ → về hàng chờ phân công.</div><div class="label" style="margin-bottom:6px;">Khách hàng đúng</div><select id="ho-newcust" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;">${opts.map(c=>`<option value="${c.id}">${c.name} · CIF ${c.cif||'—'}</option>`).join('')}</select><div class="label" style="margin-bottom:6px;">Lý do (bắt buộc)</div><input id="ho-cust-reason" placeholder="Chọn sai / duplicate / sai CIF / integration lỗi" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="hoDoChangeCust('${id}')">Xác nhận</button></div></div>`); };
 window.hoDoChangeCust=(id)=>{ const cid=document.getElementById('ho-newcust').value; const reason=(document.getElementById('ho-cust-reason').value||'').trim(); if(!reason)return hoToast('Nhập lý do.'); const c=BANCA.customerById(cid)||{}; const res=BANCA.changeCustomer(id,cid,c.name,reason,me); hoClose(); hoToast(res&&res.invalidated?'Đã đổi khách — assignment vô hiệu, về hàng chờ. Quote cần re-rating.':'Đã đổi khách — quote cần re-rating.'); setTimeout(()=>location.reload(),900); };
 window.hoAccept=(id)=>{ const h=BANCA.handoffById(id); BANCA.acceptHandoff(id, me); hoClose();
   hoToast(h.type==='SALES_HANDOFF'?'Đã tiếp nhận — mở phiên bán hàng.':h.type==='CASE_REASSIGNMENT'?'Đã tiếp nhận hồ sơ.':'Đã bắt đầu công việc hỗ trợ.');
@@ -131,7 +131,7 @@ window.hoAccept=(id)=>{ const h=BANCA.handoffById(id); BANCA.acceptHandoff(id, m
     else { location.href=r+'modules/application-workspace/index.html?entry=CONVERTED_FROM_ADVICE&adviceId='+(h.adviceId||'')+'&handoff='+id; } }, 700); };
 window.hoDecline=(id)=>{ hoModal(`<div class="modal2-head"><b>Từ chối bàn giao</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div class="label" style="margin-bottom:6px;">Lý do (bắt buộc)</div><select id="ho-reason" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;">${(BANCA.DECLINE_REASONS||[]).map(x=>`<option>${x}</option>`).join('')}</select><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="hoDoDecline('${id}')">Xác nhận từ chối</button></div></div>`); };
 window.hoDoDecline=(id)=>{ const reason=document.getElementById('ho-reason').value; BANCA.declineHandoff(id, reason, me); hoClose(); hoToast('Đã từ chối — trả lại hàng chờ với lý do.'); setTimeout(()=>location.reload(),700); };
-window.hoNeedInfo=(id)=>{ hoModal(`<div class="modal2-head"><b>Yêu cầu bổ sung thông tin</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Gửi yêu cầu cho người tư vấn/phân công — bàn giao chuyển "Cần bổ sung", chưa tiếp nhận.</div><textarea id="ho-info" placeholder="Cần bổ sung gì? (chứng từ, thông tin khách...)" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;"></textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="hoDoNeedInfo('${id}')">Gửi yêu cầu</button></div></div>`); };
+window.hoNeedInfo=(id)=>{ hoModal(`<div class="modal2-head"><b>Yêu cầu bổ sung thông tin</b><span class="modal2-close" onclick="hoClose()">&times;</span></div><div class="modal2-body"><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Nộp yêu cầu bảo hiểm cho người tư vấn/phân công — bàn giao chuyển "Cần bổ sung", chưa tiếp nhận.</div><textarea id="ho-info" placeholder="Cần bổ sung gì? (chứng từ, thông tin khách...)" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;"></textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="hoClose()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="hoDoNeedInfo('${id}')">Nộp yêu cầu bảo hiểm</button></div></div>`); };
 window.hoDoNeedInfo=(id)=>{ const note=(document.getElementById('ho-info').value||'').trim(); if(!note)return hoToast('Nhập nội dung cần bổ sung.'); BANCA.needMoreInfo(id,note,me); hoClose(); hoToast('Đã gửi yêu cầu bổ sung.'); setTimeout(()=>location.reload(),700); };
 
 // ===== P0: "Việc cần làm ngay" — action queue gộp mọi việc có SLA/blocker theo 1 thứ tự =====
@@ -154,16 +154,16 @@ function collectActionItems(){
     items.push({sev:h.priority==='HIGH'?'HIGH':'MED', kind:'Bàn giao chờ tiếp nhận', cust:h.customerName, sub:h.productName||BANCA.handoffTypeLabel(h.type),
       id:h.id, due:h.acceptBy, ctaHtml:`<button class="btn btn-primary btn-sm" onclick="hoAccept('${h.id}')">Tiếp nhận</button>`});
   });
-  // 2) Hồ sơ cần bổ sung (sau nộp)
-  needMore.forEach(a=>{ items.push({sev:'HIGH', kind:'Hồ sơ cần bổ sung', cust:custName(a.customerId), sub:(a.supplement&&a.supplement.items?a.supplement.items.join('; '):''),
+  // 2) Yêu cầu cần bổ sung (sau nộp)
+  needMore.forEach(a=>{ items.push({sev:'HIGH', kind:'Yêu cầu cần bổ sung', cust:custName(a.customerId), sub:(a.supplement&&a.supplement.items?a.supplement.items.join('; '):''),
     id:a.id, due:a.deadline, ctaHtml:`<a class="btn btn-primary btn-sm" href="${wsUrl(a.id)}&tab=supplement">Bổ sung</a>`}); });
   // 3) Báo giá sắp/đã hết hạn (nháp)
   drafts.filter(a=>{ if((a.warnings||[]).some(w=>['QUOTE_EXPIRING','QUOTE_NEED_RERATE'].includes(w)))return true; const st=a.quote?BANCA.quoteStatus(a.quote,null):null; return st==='EXPIRED'||st==='EXPIRING_SOON'; })
     .forEach(a=>{ items.push({sev:'MED', kind:'Báo giá sắp hết hạn', cust:custName(a.customerId), sub:a.quote?(a.quote.id+' v'+a.quote.version):'', id:a.id, due:a.quote?a.quote.validUntil:null,
       ctaHtml:`<a class="btn btn-primary btn-sm" href="${wsUrl(a.id)}&step=PACKAGE_AND_QUOTE">Tính phí lại</a>`}); });
-  // 4) Hồ sơ có thể nộp hôm nay (đã tới bước review, không có warning chặn)
+  // 4) Yêu cầu có thể nộp hôm nay (đã tới bước review, không có warning chặn)
   drafts.filter(a=>(a.currentStage==='REVIEW_AND_SUBMIT'||a.progress>=100) && !(a.warnings||[]).some(w=>['MISSING_INFORMATION','MISSING_DOCUMENT','QUOTE_NEED_RERATE','CANNOT_SUBMIT'].includes(w)))
-    .forEach(a=>{ items.push({sev:'LOW', kind:'Hồ sơ có thể nộp', cust:custName(a.customerId), sub:a.productName||'', id:a.id, due:null,
+    .forEach(a=>{ items.push({sev:'LOW', kind:'Yêu cầu có thể nộp', cust:custName(a.customerId), sub:a.productName||'', id:a.id, due:null,
       ctaHtml:`<a class="btn btn-primary btn-sm" href="${wsUrl(a.id)}&step=REVIEW_AND_SUBMIT">Kiểm tra & nộp</a>`}); });
   const rank={HIGH:0,MED:1,LOW:2};
   return items.map(it=>({...it, rt:relDue(it.due)})).sort((a,b)=>{ const ao=a.rt.overdue?0:1,bo=b.rt.overdue?0:1; if(ao!==bo)return ao-bo; if(rank[a.sev]!==rank[b.sev])return rank[a.sev]-rank[b.sev]; return a.rt.order-b.rt.order; });
@@ -174,9 +174,9 @@ function actionQueueBlock(){
   // Summary hành động (thay lời chào + thống kê khô)
   const chips=[];
   const ho=cnt('Bàn giao chờ tiếp nhận'); if(ho) chips.push(['💬',ho+' bàn giao chờ tiếp nhận','var(--brand-600)']);
-  const sup=cnt('Hồ sơ cần bổ sung'); if(sup) chips.push(['🚨',sup+' hồ sơ cần bổ sung','var(--red-600)']);
+  const sup=cnt('Yêu cầu cần bổ sung'); if(sup) chips.push(['🚨',sup+' yêu cầu cần bổ sung','var(--red-600)']);
   const q=cnt('Báo giá sắp hết hạn'); if(q) chips.push(['⏳',q+' báo giá sắp hết hạn','var(--amber-600)']);
-  const sb=cnt('Hồ sơ có thể nộp'); if(sb) chips.push(['✅',sb+' hồ sơ có thể nộp','var(--teal-600)']);
+  const sb=cnt('Yêu cầu có thể nộp'); if(sb) chips.push(['✅',sb+' yêu cầu có thể nộp','var(--teal-600)']);
   const summary = chips.length
     ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">${chips.map(([ic,t,c])=>`<span style="display:inline-flex;align-items:center;gap:6px;background:var(--paper-card);border:1px solid var(--line);border-left:3px solid ${c};border-radius:8px;padding:7px 12px;font-size:12.5px;color:var(--ink-700);"><span>${ic}</span>${t}</span>`).join('')}</div>`
     : `<div style="margin-bottom:12px;font-size:13px;color:var(--teal-600);">✓ Không có việc gấp — bạn đã xử lý hết hàng chờ hôm nay. 🎉</div>`;
@@ -190,7 +190,7 @@ function actionQueueBlock(){
       <td>${it.ctaHtml}</td>
     </tr>`; }).join('');
   const table = items.length
-    ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Ưu tiên</th><th>Hạn / SLA</th><th>Khách hàng</th><th>Việc</th><th>Hồ sơ</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>${items.length>8?`<div style="font-size:12px;color:var(--ink-500);margin-top:6px;">+ ${items.length-8} việc khác — xem trong Hồ sơ chưa nộp / đã nộp.</div>`:''}`
+    ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Ưu tiên</th><th>Hạn / SLA</th><th>Khách hàng</th><th>Việc</th><th>Yêu cầu</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>${items.length>8?`<div style="font-size:12px;color:var(--ink-500);margin-top:6px;">+ ${items.length-8} việc khác — xem trong Yêu cầu bảo hiểm chưa nộp / đã nộp.</div>`:''}`
     : '';
   return `${summary}<div class="section-title"><h2>Việc cần làm ngay</h2><span class="subtitle">Gộp mọi việc có SLA hoặc ảnh hưởng phát hành · xử lý từ trên xuống</span></div>${table}`;
 }
@@ -200,7 +200,7 @@ homeScopeTabs+`
 <section class="home-head">
  <div class="home-head-id">
   <div class="h1" style="margin:0 0 2px;">Xin chào ${p.name}</div>
-  <div class="subtitle">${p.role} · ${p.branch||p.partner||''}${p.team?' · '+p.team:''} · ${drafts.length} hồ sơ chưa nộp · ${needMore.length} cần bổ sung · ${submitted.length} đang xử lý</div>
+  <div class="subtitle">${p.role} · ${p.branch||p.partner||''}${p.team?' · '+p.team:''} · ${drafts.length} yêu cầu chưa nộp · ${needMore.length} cần bổ sung · ${submitted.length} đang xử lý</div>
  </div>
 </section>
 
@@ -208,10 +208,10 @@ ${actionQueueBlock()}
 
 ${handoffInbox()}
 
-<div class="section-title"><h2>Hồ sơ chưa nộp gần đây</h2><a href="${r}modules/unsubmitted-applications/index.html" style="font-size:12.5px;color:var(--brand-600);">Xem tất cả (${drafts.length}) →</a></div>
-${drafts.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã hồ sơ</th><th>Khách hàng</th><th>Sản phẩm</th><th>Bước hiện tại</th><th>Hoàn thành</th><th>Cảnh báo</th><th>Cập nhật</th><th></th></tr></thead><tbody>${draftRows}</tbody></table></div>`:`<div class="card"><div class="empty-state">Chưa có hồ sơ nháp. Bấm "Bắt đầu bán hàng" để tạo hồ sơ đầu tiên.</div></div>`}
+<div class="section-title"><h2>Yêu cầu bảo hiểm chưa nộp gần đây</h2><a href="${r}modules/unsubmitted-applications/index.html" style="font-size:12.5px;color:var(--brand-600);">Xem tất cả (${drafts.length}) →</a></div>
+${drafts.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Sản phẩm</th><th>Bước hiện tại</th><th>Hoàn thành</th><th>Cảnh báo</th><th>Cập nhật</th><th></th></tr></thead><tbody>${draftRows}</tbody></table></div>`:`<div class="card"><div class="empty-state">Chưa có yêu cầu nháp. Bấm "Tạo yêu cầu bảo hiểm" để tạo yêu cầu đầu tiên.</div></div>`}
 
-<div class="section-title"><h2>Trạng thái xử lý hồ sơ đã nộp</h2><span class="subtitle">Click để xem danh sách theo trạng thái</span></div>
+<div class="section-title"><h2>Trạng thái xử lý yêu cầu đã nộp</h2><span class="subtitle">Click để xem danh sách theo trạng thái</span></div>
 ${cardHtml}
 
 <div class="section-title"><h2>Hiệu suất cá nhân</h2><span class="subtitle">Tháng này · sync ${BANCA.partnerConfig.syncAt}</span></div>
@@ -222,7 +222,7 @@ ${kpiHtml}
   <div class="section-title"><h2>Hợp đồng</h2><a href="${r}modules/policies/index.html" style="font-size:12.5px;color:var(--brand-600);">Xem tất cả →</a></div>
   <div class="card" style="flex:1;max-height:340px;overflow-y:auto;">
    <div class="label">Mới phát hành</div>
-   ${newPols.length? newPols.map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);"><div><a href="${r}modules/policies/index.html?view=detail&id=${x.id}" style="font-weight:600;font-size:13px;color:var(--brand-600);">${x.id}</a><div style="font-size:11.5px;color:var(--ink-500);">${custName(x.customerId)} · ${x.vehicle.brand} ${x.vehicle.model}</div></div><span class="badge badge-ready">Mới</span></div>`).join(''):'<div style="font-size:12px;color:var(--ink-300);padding:6px 0;">Không có</div>'}
+   ${newPols.length? newPols.map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);"><div><a href="${r}modules/policies/index.html?view=detail&id=${x.id}" style="font-weight:600;font-size:13px;color:var(--brand-600);">${x.id}</a><div style="font-size:11.5px;color:var(--ink-500);">${custName(x.customerId)} · ${x.vehicle?(x.vehicle.brand+' '+x.vehicle.model):(x.productName||x.package||'')}</div></div><span class="badge badge-ready">Mới</span></div>`).join(''):'<div style="font-size:12px;color:var(--ink-300);padding:6px 0;">Không có</div>'}
    <div class="label" style="margin-top:12px;">Sắp tái tục</div>
    ${renewals.length? renewals.map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);"><div><a href="${r}modules/policies/index.html?view=detail&id=${x.id}" style="font-weight:600;font-size:13px;color:var(--brand-600);">${x.id}</a><div style="font-size:11.5px;color:var(--ink-500);">${custName(x.customerId)} · hết hạn ${x.effectiveTo}</div></div><span class="badge badge-conditional">Tái tục</span></div>`).join(''):'<div style="font-size:12px;color:var(--ink-300);padding:6px 0;">Không có</div>'}
   </div>

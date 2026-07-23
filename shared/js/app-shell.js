@@ -1,8 +1,4 @@
 function rel(){return location.pathname.includes('/modules/')?'../../':location.pathname.includes('/dev/')?'../':''}
-// ---- Ngôn ngữ (VI mặc định, EN tùy chọn) ----
-BANCA.lang = (function(){ try{ return localStorage.getItem('bancaLang')==='en'?'en':'vi'; }catch(e){ return 'vi'; } })();
-BANCA.t = function(vi, en){ return BANCA.lang==='en' ? (en||vi) : vi; };
-BANCA.setLang = function(l){ try{ localStorage.setItem('bancaLang', l==='en'?'en':'vi'); }catch(e){} location.reload(); };
 // Privacy helpers — mặc định che PII, reveal là hành động chủ động có audit demo tại từng màn.
 BANCA.maskPhone = BANCA.maskPhone || function(v){ v=String(v||''); return v.length>=9 ? v.slice(0,3)+' *** '+v.slice(-3) : (v||'—'); };
 BANCA.maskId = BANCA.maskId || function(v){ v=String(v||''); return v.length>=6 ? v.slice(0,3)+' ****** '+v.slice(-3) : (v||'—'); };
@@ -38,21 +34,23 @@ const FPT_LOGO_SVG = `<svg viewBox="0 0 50.3 25" xmlns="http://www.w3.org/2000/s
 // Menu chính theo Spec v1 mục 3.1 — [label, url, icon, group, permission]
 function navItems(){
  const T=BANCA.t;
- const GRP={sales:T('BÁN HÀNG','SALES'),process:T('XỬ LÝ','PROCESSING'),after:T('SAU BÁN','AFTER-SALE'),manage:T('QUẢN LÝ','MANAGEMENT')};
- // IA nhóm theo vòng đời bán hàng (bản đánh giá P2): Bán hàng → Xử lý → Sau bán → Quản lý.
+ const GRP={sales:T('sales'),after:T('afterSale'),support:T('support'),manage:T('management')};
+ // IA theo glossary: Bán hàng → Sau bán → Hỗ trợ → Quản lý.
  const items=[
-  [T('Trang chủ','Home'),'modules/seller-workspace/index.html','home',null,'VIEW_WORKSPACE'],
-  [T('Tư vấn nhanh','Quick advisory'),'modules/quick-advisory/index.html','advise',GRP.sales,'VIEW_WORKSPACE'],
-  [T('Hồ sơ chưa nộp','Unsubmitted'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE'],
-  [T('Hồ sơ đã nộp','Submitted'),'modules/submitted-applications/index.html','sent',GRP.process,'VIEW_WORKSPACE'],
-  [T('Hợp đồng','Policies'),'modules/policies/index.html','doc',GRP.after,'VIEW_WORKSPACE'],
-  [T('Đội nhóm','Team'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE'],
-  [T('Trợ giúp','Help'),'modules/help/index.html','help',null,'VIEW_WORKSPACE'],
+  [T('home'),'modules/seller-workspace/index.html','home',null,'VIEW_WORKSPACE'],
+  [T('quickAdvisory'),'modules/quick-advisory/index.html','advise',GRP.sales,'VIEW_WORKSPACE'],
+  [T('insuranceRequest'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE', true],
+  [T('unsubmitted'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE'],
+  [T('submitted'),'modules/submitted-applications/index.html','sent',GRP.sales,'VIEW_WORKSPACE'],
+  [T('policy'),'modules/policies/index.html','doc',GRP.after,'VIEW_WORKSPACE'],
+  [T('help'),'modules/help/index.html','help',GRP.support,'VIEW_WORKSPACE'],
+  [T('management'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE', true],
+  [T('Đội nhóm'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE'],
  ];
- // Nhóm BÁN HÀNG (tư vấn/tạo hồ sơ) là hoạt động bán cá nhân → ẩn với persona không bán (quản lý thuần).
+ // Nhóm BÁN HÀNG (tư vấn/tạo yêu cầu) là hoạt động bán cá nhân → ẩn với persona không bán (quản lý thuần).
  const _mp = BANCA.resolveManagerProfile ? BANCA.resolveManagerProfile(BANCA.current()) : {sellingEnabled:true};
  const canSell = _mp.sellingEnabled!==false;
- return items.filter(i=>BANCA.can(i[4]) && !(i[3]==='BÁN HÀNG' && !canSell));
+ return items.filter(i=>BANCA.can(i[4]) && !(i[3]===GRP.sales && !canSell) && !i[5]);
 }
 
 function navIcon(k){
@@ -84,15 +82,15 @@ function shell(active,title,body,opts){
  const canSell = p.status==='ACTIVE' && !p.serviceError && _mp.sellingEnabled!==false;
  // CTA header phân cấp rõ nghĩa (bản đánh giá P0-3):
  //  · "Tư vấn nhanh" = khi khách CHƯA chắc nhu cầu/gói.
- //  · "Tạo hồ sơ bán hàng" = khi đã biết khách + sản phẩm (mở modal chọn ngữ cảnh).
- //  · "Tiếp tục hồ sơ gần nhất" = nếu đang có nháp dang dở (giảm thao tác).
- const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ ${BANCA.t('Tạo hồ sơ bán hàng','New sales case')}</button>` : '';
- const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('Tư vấn nhanh','Quick advisory')}</button>` : '';
+ //  · "Tạo yêu cầu bảo hiểm" = khi đã biết khách + sản phẩm (mở modal chọn ngữ cảnh).
+ //  · "Tiếp tục yêu cầu gần nhất" = nếu đang có nháp dang dở (giảm thao tác).
+ const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ ${BANCA.t('createInsuranceRequest')}</button>` : '';
+ const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('quickAdvisory')}</button>` : '';
  let resumeBtn='';
  if(canSell){
    try{ const _me=BANCA.current();
      const _drafts=(BANCA.myApps?BANCA.myApps('NOT_SUBMITTED'):[]).filter(a=>a.owner===_me).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
-     if(_drafts.length){ const d=_drafts[0]; resumeBtn=`<button class="btn btn-secondary" onclick="location.href='${r}modules/application-workspace/index.html?id=${d.id}'" style="white-space:nowrap;" title="Hồ sơ ${d.id} · ${custName?custName(d.customerId):''}">↩ ${BANCA.t('Tiếp tục hồ sơ gần nhất','Resume latest case')}</button>`; }
+     if(_drafts.length){ const d=_drafts[0]; resumeBtn=`<button class="btn btn-secondary" onclick="location.href='${r}modules/application-workspace/index.html?id=${d.id}'" style="white-space:nowrap;" title="Yêu cầu ${d.id} · ${custName?custName(d.customerId):''}">↩ ${BANCA.t('continueLatestRequest')}</button>`; }
    }catch(e){}
  }
 
@@ -108,7 +106,7 @@ function shell(active,title,body,opts){
     <div class="sb1-footer">
       <div class="sb1-user" onclick="toggleAvatarMenu(event)" style="cursor:pointer;position:relative;">
         <div class="avatar">${initials}</div>
-        <div class="uinfo"><div class="uname">${(p&&p.name)||BANCA.current()}</div><div class="urole">${(p&&p.role)||'Seller'}</div></div>
+        <div class="uinfo"><div class="uname">${(p&&p.name)||BANCA.current()}</div><div class="urole">${(p&&p.role)||BANCA.t('seller')}</div></div>
         <div id="avatar-menu" style="display:none;position:absolute;bottom:52px;left:8px;right:8px;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(10,25,60,.25);overflow:hidden;z-index:60;">
           <div onclick="event.stopPropagation();location.href='${r}modules/employee-profile/index.html'" style="padding:10px 14px;font-size:13px;color:#1c2b4a;cursor:pointer;" onmouseover="this.style.background='#f2f6ff'" onmouseout="this.style.background='#fff'">Hồ sơ nhân viên</div>
           <div style="padding:10px 14px;font-size:13px;color:#8b98b0;">Thiết lập cá nhân</div>
@@ -144,6 +142,15 @@ function shell(active,title,body,opts){
   </div>
 </div>
 <div id="start-sale-root"></div>`;
+ // innerHTML KHÔNG chạy <script> — re-execute các script được nhúng trong body (vd doc-mgmt Policy Detail).
+ try{
+  document.querySelectorAll('main#main-content script').forEach(function(old){
+   const s=document.createElement('script');
+   for(let i=0;i<old.attributes.length;i++){ s.setAttribute(old.attributes[i].name, old.attributes[i].value); }
+   s.textContent=old.textContent;
+   old.parentNode.replaceChild(s, old);
+  });
+ }catch(e){}
 }
 
 function toggleAvatarMenu(e){
@@ -161,9 +168,9 @@ function openStartSale(){
  const root=document.getElementById('start-sale-root');
  const groups=[
   {label:'CÓ SẴN NGỮ CẢNH', items:[
-    {id:'BANK_CUSTOMER', icon:'🏦', t:'Khách hàng ngân hàng', d:'Xem ngữ cảnh & đề xuất trước khi tạo hồ sơ', badge:'CRM'},
+    {id:'BANK_CUSTOMER', icon:'🏦', t:'Khách hàng ngân hàng', d:'Xem ngữ cảnh & đề xuất trước khi tạo yêu cầu', badge:'CRM'},
     {id:'REFERRAL',      icon:'📨', t:'Lead / Referral được giao', d:'Bắt đầu từ lead — có thể kèm sản phẩm hoặc nhu cầu', badge:'REFERRAL'},
-    {id:'RENEWAL',       icon:'🔄', t:'Tái tục hợp đồng', d:'Xem hợp đồng cũ trước khi tạo hồ sơ tái tục', badge:'RENEWAL'}
+    {id:'RENEWAL',       icon:'🔄', t:'Tái tục hợp đồng', d:'Xem hợp đồng cũ trước khi tạo yêu cầu tái tục', badge:'RENEWAL'}
   ]},
   {label:'BẮT ĐẦU TỪ SẢN PHẨM', items:[
     {id:'PRODUCT_FIRST', icon:'📦', t:'Sản phẩm được phép bán', d:'Xem tóm tắt sản phẩm rồi chọn khách hàng', badge:'PORTAL'}
@@ -174,7 +181,7 @@ function openStartSale(){
  ];
  root.innerHTML=`<div class="modal-overlay2 open" onclick="closeStartSale(event)">
   <div class="modal2" style="max-width:560px;" onclick="event.stopPropagation()">
-    <div class="modal2-head"><b>Tạo hồ sơ bán hàng — chọn ngữ cảnh</b><span class="modal2-close" onclick="closeStartSale()">&times;</span></div>
+    <div class="modal2-head"><b>Tạo yêu cầu bảo hiểm — chọn ngữ cảnh</b><span class="modal2-close" onclick="closeStartSale()">&times;</span></div>
     <div class="modal2-body" id="ss-body">
       ${groups.map(g=>`<div class="label" style="margin:6px 0 8px;">${g.label}</div>${g.items.map(m=>`<div class="card" style="display:flex;gap:12px;align-items:center;cursor:pointer;margin-bottom:10px;padding:14px;" onclick="startSaleMode('${m.id}')">
         <div style="font-size:22px;">${m.icon}</div>
@@ -192,7 +199,7 @@ function ssBack(target){ return `<div style="margin-bottom:12px;"><a href="javas
 function readinessLine(productId){
  const rd=BANCA.readinessFor(productId);
  return rd.ready
-  ? `<span class="badge badge-ready">Seller đủ điều kiện (READY)</span>`
+  ? `<span class="badge badge-ready">Đủ điều kiện bán (READY)</span>`
   : `<span class="badge badge-conditional">Readiness: ${rd.state}</span>${rd.reason?` <span style="font-size:11.5px;color:var(--ink-500);">${rd.reason}</span>`:''}`;
 }
 function kv(k,v){ return `<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="color:var(--ink-500);">${k}</span><span style="text-align:right;font-weight:600;">${v}</span></div>`; }
@@ -211,7 +218,7 @@ function startSaleMode(mode){
  } else if(mode==='PRODUCT_FIRST'){
   ssProductList('PRODUCT_FIRST', null);
  } else if(mode==='NEW_PROSPECT'){
-  body.innerHTML=ssBack("openStartSale()")+`<div class="label" style="margin-bottom:8px;">Khách hàng mới — định danh tối thiểu + consent (chưa tạo hồ sơ)</div>
+  body.innerHTML=ssBack("openStartSale()")+`<div class="label" style="margin-bottom:8px;">Khách hàng mới — định danh tối thiểu + consent (chưa tạo yêu cầu)</div>
    <div class="card" style="padding:14px;">
     <div class="field"><label style="font-size:12px;">Họ tên *</label><input id="np-name" placeholder="VD: Nguyễn Văn A" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"></div>
     <div class="field" style="margin-top:8px;"><label style="font-size:12px;">Số điện thoại / Email *</label><input id="np-phone" placeholder="09xx xxx xxx" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"></div>
@@ -233,8 +240,8 @@ function startSaleMode(mode){
   const soon=BANCA.myPolicies().filter(p=>p.renewalStatus==='RENEWAL_DUE');
   body.innerHTML=ssBack("openStartSale()")+`<div class="label" style="margin-bottom:8px;">Hợp đồng sắp hết hạn (renewal window)</div>`+
    (soon.length? soon.map(p=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:12px 14px;">
-     <div><b style="font-size:13px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}<div style="font-size:11.5px;color:var(--ink-500);">${(BANCA.customerById(p.customerId)||{}).name} · ${p.vehicle.brand} ${p.vehicle.model} ${p.vehicle.plate} · hết hạn ${p.effectiveTo}</div></div>
-     ${p.renewalDraftId?`<a class="btn btn-secondary btn-sm" href="${rel()}modules/application-workspace/index.html?id=${p.renewalDraftId}">Mở hồ sơ tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="ssRenewalContext('${p.id}')">Xem ngữ cảnh</button>`}</div>`).join('')
+     <div><b style="font-size:13px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}<div style="font-size:11.5px;color:var(--ink-500);">${(BANCA.customerById(p.customerId)||{}).name} · ${p.vehicle?(p.vehicle.brand+' '+p.vehicle.model+' '+p.vehicle.plate):(p.productName||p.package||'')} · hết hạn ${p.effectiveTo}</div></div>
+     ${p.renewalDraftId?`<a class="btn btn-secondary btn-sm" href="${rel()}modules/application-workspace/index.html?id=${p.renewalDraftId}">Mở yêu cầu tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="ssRenewalContext('${p.id}')">Xem ngữ cảnh</button>`}</div>`).join('')
    : `<div class="empty-state">Không có hợp đồng trong renewal window.</div>`);
  }
 }
@@ -312,7 +319,7 @@ function ssLeadContext(refId){
    </div>`
   : `<div class="card" style="padding:16px;margin-top:10px;border-left:4px solid var(--amber-600);">
     <b style="color:var(--amber-600);">Lead chưa có sản phẩm xác định</b>
-    <div style="font-size:13px;color:var(--ink-500);margin:6px 0 10px;">${x.need?('Nhu cầu ghi nhận: '+x.need+'. '):''}Chọn sản phẩm phù hợp hoặc mở Tư vấn nhanh trước khi tạo hồ sơ.</div>
+    <div style="font-size:13px;color:var(--ink-500);margin:6px 0 10px;">${x.need?('Nhu cầu ghi nhận: '+x.need+'. '):''}Chọn sản phẩm phù hợp hoặc mở Tư vấn nhanh trước khi tạo yêu cầu.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-primary btn-sm" onclick="ssProductList('REFERRAL','${x.customerId||''}')">Chọn sản phẩm</button>
       <button class="btn btn-secondary btn-sm" onclick="closeStartSale();location.href=rel()+'modules/advisory-workspace/index.html?new=1'">Mở Tư vấn nhanh</button>
@@ -345,7 +352,7 @@ function ssRenewalContext(polId){
  body.innerHTML=ssBack("startSaleMode('RENEWAL')")+`
   <div class="card" style="padding:16px;">
    <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:15px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}</div>
-   ${kv('Khách hàng', c.name||'—')}${kv('Xe', p.vehicle.brand+' '+p.vehicle.model+' · '+p.vehicle.plate)}${kv('Gói hiện tại', p.package||'—')}${kv('Phí kỳ trước', p.premium?BANCA.vnd(p.premium):'—')}${kv('Hết hạn', p.effectiveTo)}
+   ${kv('Khách hàng', c.name||'—')}${p.vehicle?kv('Xe', p.vehicle.brand+' '+p.vehicle.model+' · '+p.vehicle.plate):kv('Đối tượng', p.productName||p.package||'—')}${kv('Gói hiện tại', p.package||'—')}${kv('Phí kỳ trước', p.premium?BANCA.vnd(p.premium):'—')}${kv('Hết hạn', p.effectiveTo)}
    <div style="font-size:12.5px;color:var(--ink-500);margin-top:8px;">Đề xuất tái tục cùng gói; kiểm tra thay đổi dữ liệu KH/rủi ro (khoản vay, giá trị xe) ở bước Thông tin & Đối tượng.</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
@@ -384,19 +391,19 @@ function ssEntryReview(){
  const firstStep = (ctx.product==='motor' && (cust||ctx.mode==='RENEWAL')) ? 'Đối tượng bảo hiểm (Xe)' : 'Thông tin khách hàng';
  const sourceKind = ctx.source||'PORTAL';
  body.innerHTML=ssBack("startSaleMode('"+ctx.mode+"')")+`
-  <div class="label" style="margin-bottom:8px;">Xác nhận trước khi tạo hồ sơ</div>
+  <div class="label" style="margin-bottom:8px;">Xác nhận trước khi tạo yêu cầu</div>
   <div class="card" style="padding:16px;">
    ${kv('Nguồn vào', ctx.mode+' '+BANCA.sourceBadge(sourceKind))}
    ${kv('Khách hàng', custLabel)}
    ${kv('Sản phẩm / offer', prod?prod.name:'—')}
-   ${kv('Lý do đề xuất / chọn', ctx.reason||'Seller chọn thủ công')}
+   ${kv('Lý do đề xuất / chọn', ctx.reason||'Nhân viên tư vấn chọn thủ công')}
    ${kv('Nguồn dữ liệu', {CRM:'Bank CRM',REFERRAL:'Referral',RENEWAL:'Hợp đồng cũ',ADVICE:'Tư vấn nhanh',PORTAL:'Portal',CAMPAIGN:'Campaign'}[sourceKind]||sourceKind)}
-   ${kv('Seller readiness', rd.ready?'READY':(rd.state||'—'))}
+   ${kv('Điều kiện được phép bán', rd.ready?'READY':(rd.state||'—'))}
    ${kv('Bước bắt đầu', firstStep)}
    ${missing.length?`<div class="alert2 warn" style="margin-top:10px;"><b>Còn thiếu:</b> ${missing.join(', ')}</div>`:''}
   </div>
-  <button class="btn btn-primary" style="margin-top:12px;width:100%;" ${missing.length?'disabled style="opacity:.5;width:100%;"':''} onclick="ssCreateDraft()">Tạo hồ sơ và tiếp tục →</button>
-  <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chỉ khi bấm nút này hệ thống mới tạo Sales Session + Hồ sơ chưa nộp. Phí/định danh xử lý trong Sales Process.</div>`;
+  <button class="btn btn-primary" style="margin-top:12px;width:100%;" ${missing.length?'disabled style="opacity:.5;width:100%;"':''} onclick="ssCreateDraft()">Tạo yêu cầu và tiếp tục →</button>
+  <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chỉ khi bấm nút này hệ thống mới tạo Sales Session + Yêu cầu bảo hiểm chưa nộp. Phí/định danh xử lý trong Sales Process.</div>`;
 }
 function ssCreateDraft(){
  const ctx=__ssCtx;

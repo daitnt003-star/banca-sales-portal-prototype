@@ -1,13 +1,13 @@
 window.BANCA = window.BANCA || {};
 /* ============================================================================
  * HANDOFF & PARTICIPANT MODEL (2026-07-22)
- * Luồng: Tư vấn → xác định KHÁCH HÀNG (trước seller) → participants → phân công
- *        (Direct/Team Queue/Auto) → seller tiếp nhận → Sales Session/HSYCBH.
+ * Luồng: Tư vấn → xác định KHÁCH HÀNG (trước nhân viên tư vấn) → participants → phân công
+ *        (Direct/Team Queue/Auto) → nhân viên tư vấn tiếp nhận → Sales Session/HSYCBH.
  * Participant là VAI TRÒ THAM GIA trên từng giao dịch, KHÔNG phải role đăng nhập.
  * Referrer/Advisor/SellingProducer/CaseOwner lưu ĐỘC LẬP, không ghi đè khi chuyển giao.
  * ==========================================================================*/
 BANCA.PARTICIPATION_ROLE = ['REFERRER','ADVISOR','SELLING_PRODUCER','CASE_OWNER','SERVICING_SELLER','ASSIGNMENT_ACTOR','SUPPORTER'];
-BANCA.HANDOFF_TYPE = { SALES_HANDOFF:'Chuyển sang bán hàng', CASE_REASSIGNMENT:'Chuyển phụ trách', DELEGATION:'Công việc hỗ trợ' };
+BANCA.HANDOFF_TYPE = { SALES_HANDOFF:'Tạo yêu cầu bảo hiểm từ tư vấn này', CASE_REASSIGNMENT:'Chuyển phụ trách', DELEGATION:'Công việc hỗ trợ' };
 BANCA.HANDOFF_STATES = ['DRAFT','PENDING_ASSIGNMENT','ASSIGNED','PENDING_ACCEPTANCE','ACCEPTED','NEED_MORE_INFORMATION','DECLINED','EXPIRED','CANCELLED','UNASSIGNED_EXCEPTION'];
 BANCA.ROUTING_MODE = ['DIRECT_SELLER','TEAM_QUEUE','AUTO_ROUTE'];
 BANCA.DECLINE_REASONS = ['Không đúng portfolio','Không đủ readiness','Sai sản phẩm','Sai chi nhánh/team','Quá tải','Trùng cơ hội','Không liên hệ được khách','Thiếu thông tin'];
@@ -21,23 +21,23 @@ BANCA.handoffStateLabel = s => ({DRAFT:'Nháp',PENDING_ASSIGNMENT:'Chờ phân c
 function _p(role,userId,isPrimary,extra){ return Object.assign({participationRole:role,userId,isPrimary:!!isPrimary,status:'ACTIVE',effectiveFrom:'2026-07-22T09:00:00',effectiveTo:null},extra||{}); }
 BANCA.handoffs = [
   { id:'HO-2026-001', type:'SALES_HANDOFF', state:'PENDING_ACCEPTANCE', routingMode:'DIRECT_SELLER',
-    customerId:'CUS-001', customerName:'Lê Hoàng Nam', cif:'JB0012345', productRef:'health', productName:'Health Individual', packageName:'Standard',
+    customerId:'CUS-001', customerName:'Lê Hoàng Nam', cif:'JB0012345', productRef:'health', productName:'Bảo hiểm sức khỏe', packageName:'Standard',
     source:'BANK_CRM', sourceSystem:'JANUS_CRM', leadRef:'LD-2091', campaign:'Priority Health Q3', adviceId:'ADV-2026-982',
     recommendationReason:'Khách Priority chưa có bảo hiểm sức khỏe; ngân sách phù hợp gói Standard.', needSummary:'Bảo vệ chi phí điều trị nội trú', budget:'500K–1M/tháng', consent:'VALID',
     priority:'HIGH', targetSeller:'RM-01', targetTeam:'TEAM-A', createdAt:'2026-07-22 09:15', acceptBy:'2026-07-22 16:00',
     participants:[_p('REFERRER','TS-01',true,{source:'BANK_LEAD'}), _p('ADVISOR','TS-01',true), _p('ASSIGNMENT_ACTOR','TS-01',true)],
     completeness:70 },
   { id:'HO-2026-002', type:'SALES_HANDOFF', state:'PENDING_ASSIGNMENT', routingMode:'TEAM_QUEUE',
-    customerId:'CUS-004', customerName:'Phan Thị Hồng', cif:null, productRef:'motor', productName:'Motor Comprehensive', packageName:'Comprehensive',
+    customerId:'CUS-004', customerName:'Phan Thị Hồng', cif:null, productRef:'motor', productName:'Bảo hiểm vật chất xe', packageName:'Comprehensive',
     source:'REFERRAL', sourceSystem:'PORTAL', leadRef:'REF-2026-017', campaign:'Motor renewal', adviceId:null,
     recommendationReason:'Xe mua qua khoản vay ngân hàng, cần bảo hiểm vật chất.', needSummary:'Bảo vệ xe ô tô', budget:'8–13 triệu/năm', consent:'VALID',
     priority:'MEDIUM', targetSeller:null, targetTeam:'TEAM-A', createdAt:'2026-07-22 10:05', acceptBy:'2026-07-22 17:00',
     participants:[_p('REFERRER','RM-02',true,{source:'BANK_LEAD'}), _p('ADVISOR','RM-02',true)],
     completeness:45 },
   { id:'HO-2026-003', type:'CASE_REASSIGNMENT', state:'PENDING_ACCEPTANCE', routingMode:'DIRECT_SELLER',
-    customerId:'CUS-001', customerName:'Lê Hoàng Nam', cif:'JB0012345', productRef:'motor', productName:'Motor Comprehensive', packageName:'Comprehensive',
+    customerId:'CUS-001', customerName:'Lê Hoàng Nam', cif:'JB0012345', productRef:'motor', productName:'Bảo hiểm vật chất xe', packageName:'Comprehensive',
     source:'PORTAL', sourceSystem:'PORTAL', caseId:'APP-2026-102', adviceId:null,
-    recommendationReason:'Seller cũ nghỉ phép — chuyển tiếp để không lỡ SLA thẩm định.', needSummary:'Hồ sơ đang thẩm định', consent:'VALID',
+    recommendationReason:'Nhân viên tư vấn cũ nghỉ phép — chuyển tiếp để không lỡ SLA thẩm định.', needSummary:'Yêu cầu đang thẩm định', consent:'VALID',
     priority:'HIGH', targetSeller:'RM-01', targetTeam:'TEAM-A', createdAt:'2026-07-22 08:40', acceptBy:'2026-07-22 12:00',
     participants:[_p('REFERRER','RM-02',true), _p('ADVISOR','RM-02',true), _p('SELLING_PRODUCER','RM-02',true), _p('ASSIGNMENT_ACTOR','TL-01',true)],
     completeness:90 },
@@ -48,12 +48,12 @@ BANCA.handoffs = [
     participants:[_p('CASE_OWNER','RM-02',true), _p('ASSIGNMENT_ACTOR','TL-01',true)],
     delegatedActions:['collect_document'], completeness:100 },
   { id:'HO-2026-005', type:'SALES_HANDOFF', state:'UNASSIGNED_EXCEPTION', routingMode:'AUTO_ROUTE',
-    customerId:'CUS-004', customerName:'Phan Thị Hồng', productRef:'pa', productName:'Personal Accident', packageName:'Basic',
+    customerId:'CUS-004', customerName:'Phan Thị Hồng', productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageName:'Basic',
     source:'REFERRAL', sourceSystem:'PORTAL', adviceId:null,
-    recommendationReason:'Auto-route không tìm được seller đủ readiness PA trong branch.', needSummary:'Bảo vệ tai nạn', consent:'PENDING',
+    recommendationReason:'Auto-route không tìm được nhân viên tư vấn đủ readiness PA trong branch.', needSummary:'Bảo vệ tai nạn', consent:'PENDING',
     priority:'MEDIUM', targetSeller:null, targetTeam:'TEAM-A', createdAt:'2026-07-22 10:30', acceptBy:'2026-07-22 15:00',
     participants:[_p('REFERRER','RM-01',true), _p('ADVISOR','RM-01',true)],
-    unassignedReason:'Không seller nào đủ điều kiện bán PA + còn slot workload.', completeness:40 }
+    unassignedReason:'Không nhân viên tư vấn nào đủ điều kiện bán PA + còn slot workload.', completeness:40 }
 ];
 
 // ----- Persistence (localStorage) -----
@@ -66,12 +66,12 @@ BANCA._persistHandoffs=function(){ try{ localStorage.setItem(BANCA._handoffKey, 
 BANCA.handoffById = id => BANCA.handoffs.find(h=>h.id===id);
 BANCA.participant = (h,role) => (h.participants||[]).find(p=>p.participationRole===role && p.status==='ACTIVE');
 BANCA.participantName = (h,role) => { const p=BANCA.participant(h,role); return p?((BANCA.personas[p.userId]||{}).name||p.userId):null; };
-// Handoff seller nhận (Bàn giao mới): đích danh + chờ tiếp nhận/đã phân công.
+// Handoff nhân viên tư vấn nhận (Bàn giao mới): đích danh + chờ tiếp nhận/đã phân công.
 BANCA.handoffsForSeller = function(sellerId){
   sellerId=sellerId||BANCA.current();
   return BANCA.handoffs.filter(h=>h.targetSeller===sellerId && ['PENDING_ACCEPTANCE','ASSIGNED','NEED_MORE_INFORMATION'].includes(h.state));
 };
-// Handoff chờ phân công (Team Lead): trong scope, chưa có seller / cần xử lý.
+// Handoff chờ phân công (Team Lead): trong scope, chưa có nhân viên tư vấn / cần xử lý.
 BANCA.pendingAssignment = function(scope, mgrId){
   mgrId=mgrId||BANCA.current();
   const members=(BANCA.membersForScope?BANCA.membersForScope(scope,mgrId):[]).map(s=>s.id).concat([mgrId]);
@@ -126,13 +126,13 @@ BANCA.PARTICIPANTS_SNAPSHOT = {
   'APP-2026-107': {referrer:'RM-01', advisor:'RM-01', sellingProducer:'RM-01', caseOwner:'RM-01', source:'PORTAL', leadRef:null, branch:'HCM01', team:'TEAM-A'},
   'APP-2026-110': {referrer:'RM-02', advisor:'TS-01', sellingProducer:'RM-01', caseOwner:'RM-01', source:'JANUS_CRM', leadRef:'LD-2026-0090', branch:'HCM01', team:'TEAM-A', campaign:'Bancassurance H2'}
 };
-// Snapshot phân phối tại thời điểm phát hành (thêm servicing seller).
+// Snapshot phân phối tại thời điểm phát hành (thêm servicing nhân viên tư vấn).
 BANCA.POLICY_DISTRIBUTION = {
   'JB-POL-2026-0207': {referrer:'RM-02', advisor:'TS-01', sellingProducer:'RM-01', servicingSeller:'RM-01', branch:'HCM01', team:'TEAM-A', channel:'Bancassurance', campaign:'Bancassurance H2', externalRef:'JANUS/POL/0207', effectiveDate:'2026-07-01'},
   'JB-POL-2026-0184': {referrer:'RM-01', advisor:'RM-01', sellingProducer:'RM-01', servicingSeller:'RM-02', branch:'HCM01', team:'TEAM-A', channel:'Bancassurance', campaign:null, externalRef:'JANUS/POL/0184', effectiveDate:'2026-06-15'},
   'JB-POL-2025-0102': {referrer:'TS-01', advisor:'TS-01', sellingProducer:'RM-01', servicingSeller:'RM-01', branch:'HCM01', team:'TEAM-A', channel:'Telesales', campaign:'Motor 2025', externalRef:'JANUS/POL/0102', effectiveDate:'2025-11-02'}
 };
-// Resolve participant cho hồ sơ (snapshot hoặc fallback owner).
+// Resolve participant cho yêu cầu (snapshot hoặc fallback owner).
 BANCA.participantsOf = function(id, ownerFallback){
   const s=BANCA.PARTICIPANTS_SNAPSHOT[id];
   if(s) return s;
@@ -148,7 +148,7 @@ BANCA.policyDistributionOf = function(id, ownerFallback){
 BANCA.pName = uid => uid?((BANCA.personas[uid]||{}).name||uid):'—';
 BANCA.pLine = uid => { const p=BANCA.personas[uid]||{}; return uid?(p.role||'')+(p.rm?' · '+p.rm:'')+(p.branch?' · '+p.branch:''):''; };
 
-// Seller yêu cầu bổ sung thông tin trước khi tiếp nhận (không từ chối hẳn).
+// Nhân viên tư vấn yêu cầu bổ sung thông tin trước khi tiếp nhận (không từ chối hẳn).
 BANCA.needMoreInfo = function(id, note, sellerId){
   const h=BANCA.handoffById(id); if(!h) return; sellerId=sellerId||BANCA.current();
   h.state='NEED_MORE_INFORMATION'; h.infoRequest=note; h.infoRequestBy=sellerId;
@@ -166,7 +166,7 @@ BANCA.changeCustomer = function(id, newCustId, newCustName, reason, actorId){
   if(invalidated){ h.state='PENDING_ASSIGNMENT'; h.targetSeller=null; h.assignmentInvalidated=true; }
   h.quoteStatus='RE_RATING_REQUIRED'; // không giữ quote KH cũ cho KH mới
   BANCA._persistHandoffs();
-  BANCA.audit&&BANCA.audit({action:'CHANGE_CUSTOMER', handoff:id, actor:actorId, previous:prev, new:newCustId, reason, note:'Revalidate consent/portfolio/seller/quote'+(invalidated?' · assignment invalidated → PENDING_ASSIGNMENT':'')+' · quote RE_RATING_REQUIRED'});
+  BANCA.audit&&BANCA.audit({action:'CHANGE_CUSTOMER', handoff:id, actor:actorId, previous:prev, new:newCustId, reason, note:'Revalidate consent/portfolio/nhân viên tư vấn/quote'+(invalidated?' · assignment invalidated → PENDING_ASSIGNMENT':'')+' · quote RE_RATING_REQUIRED'});
   return {handoff:h, invalidated, reRating:true};
 };
 // Điều chỉnh ghi nhận (attribution) — TÁCH khỏi assign; không tự đổi commission đã khoá.

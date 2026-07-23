@@ -1,10 +1,10 @@
 // Referral/Lead tối giản — tiêu thụ từ Bank CRM, KHÔNG xây full CRM.
 window.BANCA = window.BANCA || {};
 BANCA.referrals = [
-  {id:'REF-2026-014', assignedTo:'TS-01', customerId:'CUS-008', customerName:'Hoàng Đức Long', source:'Bank CRM — Loan cross-sell', productInterest:'Motor Comprehensive', sla:'2026-07-22', receivedAt:'2026-07-18', status:'IN_PROGRESS', draftId:'DRAFT-2026-009'},
-  {id:'REF-2026-015', assignedTo:'TS-01', customerId:'CUS-007', customerName:'Trịnh Mỹ Linh', source:'Branch referral — HCM01', productInterest:'Motor Comprehensive', sla:'2026-07-21', receivedAt:'2026-07-17', status:'IN_PROGRESS', draftId:'DRAFT-2026-010'},
-  {id:'REF-2026-016', assignedTo:'TS-01', customerId:null, customerName:'Đinh Công Hùng', source:'Campaign Q3 — Motor renewal', productInterest:'Motor Comprehensive', sla:'2026-07-25', receivedAt:'2026-07-20', status:'NEW', draftId:null},
-  {id:'REF-2026-017', assignedTo:'RM-01', customerId:'CUS-004', customerName:'Đặng Kim Oanh', source:'Bank CRM — New car loan', productInterest:'Motor Comprehensive', sla:'2026-07-23', receivedAt:'2026-07-19', status:'NEW', draftId:null}
+  {id:'REF-2026-014', assignedTo:'TS-01', customerId:'CUS-008', customerName:'Hoàng Đức Long', source:'Bank CRM — Loan cross-sell', productInterest:'Bảo hiểm vật chất xe', sla:'2026-07-22', receivedAt:'2026-07-18', status:'IN_PROGRESS', draftId:'DRAFT-2026-009'},
+  {id:'REF-2026-015', assignedTo:'TS-01', customerId:'CUS-007', customerName:'Trịnh Mỹ Linh', source:'Branch referral — HCM01', productInterest:'Bảo hiểm vật chất xe', sla:'2026-07-21', receivedAt:'2026-07-17', status:'IN_PROGRESS', draftId:'DRAFT-2026-010'},
+  {id:'REF-2026-016', assignedTo:'TS-01', customerId:null, customerName:'Đinh Công Hùng', source:'Campaign Q3 — Motor renewal', productInterest:'Bảo hiểm vật chất xe', sla:'2026-07-25', receivedAt:'2026-07-20', status:'NEW', draftId:null},
+  {id:'REF-2026-017', assignedTo:'RM-01', customerId:'CUS-004', customerName:'Đặng Kim Oanh', source:'Bank CRM — New car loan', productInterest:'Bảo hiểm vật chất xe', sla:'2026-07-23', receivedAt:'2026-07-19', status:'NEW', draftId:null}
 ];
 BANCA.myReferrals = (p = BANCA.current()) => BANCA.referrals.filter(r=>r.assignedTo===p);
 
@@ -15,7 +15,7 @@ BANCA.notifications = {
     {type:'SUPPLEMENT', text:'APP-2026-104: UW yêu cầu bổ sung đăng kiểm + ảnh xe, hạn 22/07', at:'2026-07-18 16:45', target:'APP-2026-104'},
     {type:'POLICY', text:'JB-POL-2026-0207 đã phát hành — Honda Civic 51G-445.67', at:'2026-07-15 09:00', target:'JB-POL-2026-0207'},
     {type:'QUOTE', text:'DRAFT-2026-003: Báo giá hết hạn 25/07 — cân nhắc tính phí lại', at:'2026-07-20 08:00', target:'DRAFT-2026-003'},
-    {type:'RENEWAL', text:'JB-POL-2025-0102 (CR-V) sắp hết hạn 09/08 — đã có hồ sơ tái tục nháp', at:'2026-07-19 07:30', target:'JB-POL-2025-0102'}
+    {type:'RENEWAL', text:'JB-POL-2025-0102 (CR-V) sắp hết hạn 09/08 — đã có yêu cầu tái tục nháp', at:'2026-07-19 07:30', target:'JB-POL-2025-0102'}
   ],
   'RM-02':[
     {type:'LICENSE', text:'License Motor còn 12 ngày — gia hạn để giữ quyền bind', at:'2026-07-19 08:00', target:null},
@@ -31,7 +31,7 @@ BANCA.notifications = {
     {type:'TEAM', text:'RM-02: License Motor còn 12 ngày', at:'2026-07-19 08:05', target:null}
   ],
   'BM-01':[
-    {type:'SLA', text:'2 hồ sơ trong chi nhánh sắp quá SLA bổ sung/thanh toán', at:'2026-07-20 08:00', target:null},
+    {type:'SLA', text:'2 yêu cầu trong chi nhánh sắp quá SLA bổ sung/thanh toán', at:'2026-07-20 08:00', target:null},
     {type:'PERF', text:'HCM01 đạt 82% target premium tháng 7', at:'2026-07-19 18:00', target:null}
   ]
 };

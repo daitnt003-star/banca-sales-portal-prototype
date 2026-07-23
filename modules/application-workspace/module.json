@@ -1,8 +1,8 @@
 {
   "id": "application-workspace",
-  "name": "Application Workspace",
+  "name": "Không gian xử lý yêu cầu",
   "entry": "./modules/application-workspace/index.html",
-  "navigation": {"group": "hidden", "label": "Application Workspace", "order": 25},
+  "navigation": {"group": "hidden", "label": "Không gian xử lý yêu cầu", "order": 25},
   "permissions": ["VIEW_WORKSPACE"],
   "dependsOn": ["shared.app-shell", "shared.head-loader"],
   "owns": ["Application", "Quote", "SalesCase"]

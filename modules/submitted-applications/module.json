@@ -1,8 +1,8 @@
 {
   "id": "submitted-applications",
-  "name": "Hồ sơ đã nộp",
+  "name": "Yêu cầu bảo hiểm đã nộp",
   "entry": "./modules/submitted-applications/index.html",
-  "navigation": {"group": "BÁN BẢO HIỂM", "label": "Hồ sơ đã nộp", "order": 21},
+  "navigation": {"group": "BÁN BẢO HIỂM", "label": "Yêu cầu bảo hiểm đã nộp", "order": 21},
   "permissions": ["VIEW_WORKSPACE"],
   "dependsOn": ["shared.app-shell", "shared.head-loader"],
   "owns": ["SubmittedListView"]

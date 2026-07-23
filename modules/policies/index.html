@@ -3,7 +3,7 @@ const p = BANCA.persona(), me = BANCA.current(), r = rel();
 const qs = new URLSearchParams(location.search);
 const view = qs.get('view') || 'list';
 const fTab = qs.get('f') || 'ALL';
-const TODAY = '2026-07-20';
+const TODAY = new Date().toISOString().slice(0,10);
 
 if(p.status!=='ACTIVE'){
  shell('Hợp đồng','Không có quyền truy cập',`<div class="card"><div class="alert2 danger">Tài khoản ngừng hoạt động.</div></div>`,{startSale:false});
@@ -17,8 +17,394 @@ if(p.status!=='ACTIVE'){
  if(!pol){
   shell('Hợp đồng','Không tìm thấy',`<div class="card"><div class="empty-state">Hợp đồng không tồn tại. <a href="index.html">Về danh sách</a></div></div>`,{startSale:false});
  } else if(!canView){
-  shell('Hợp đồng','ACCESS_DENIED',`<div class="card"><div class="alert2 danger"><b>ACCESS_DENIED</b> — persona ${me} không có quyền xem hợp đồng ${pol.id} (owner ${pol.owner}).</div></div>`,{startSale:false});
+ shell('Hợp đồng','ACCESS_DENIED',`<div class="card"><div class="alert2 danger"><b>ACCESS_DENIED</b> — persona ${me} không có quyền xem hợp đồng ${pol.id} (owner ${pol.owner}).</div></div>`,{startSale:false});
  } else {
+  const isHealthPolicy = pol.productType==='health' || pol.productId==='health' || /Bảo hiểm sức khỏe/i.test(pol.productName||'');
+  const isPaPolicy = pol.productType==='pa' || pol.productId==='pa' || /Bảo hiểm tai nạn cá nhân/i.test(pol.productName||'');
+  const docAuditKey = 'policyDocAudit:'+pol.id;
+  const docSendKey = 'policyDocSend:'+pol.id;
+  const docEsc = v => String(v==null?'—':v).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const docToday = TODAY.replace(/-/g,'');
+  const docActor = (BANCA.personas[me]||{}).name || me;
+  function docLoadJson(key, fallback){
+   try { return JSON.parse(localStorage.getItem(key)||'') || fallback; } catch(e){ return fallback; }
+  }
+  function docSaveJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+  function policyDocEvents(){ return docLoadJson(docAuditKey, []); }
+  function policyLastSend(){ return docLoadJson(docSendKey, null); }
+  function policyDocsOf(srcApp, cust){
+   const base = (pol.documents||[]).length ? pol.documents : [
+    {id:'certificate-current', name:'Giấy chứng nhận bảo hiểm', fileName:(pol.certificate||pol.certificateNumber||'CERT')+'.pdf', kind:'PDF', version:'Hiện hành', issuedAt:pol.issueDate||pol.effectiveFrom, effectiveFrom:pol.effectiveFrom, source:'Core policy', status:'Hiện hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'wording-current', name:'Điều khoản bảo hiểm', fileName:pol.wordingRef||'QT-BH-2026', kind:'PDF', version:'Hiện hành', issuedAt:pol.issueDate||pol.effectiveFrom, effectiveFrom:pol.effectiveFrom, source:'Sản phẩm', status:'Hiện hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'source-application', name:'Yêu cầu bảo hiểm đã phát hành hợp đồng này', fileName:pol.appId||'—', kind:'Trang', version:'Bản phát hành', issuedAt:pol.issueDate||pol.effectiveFrom, effectiveFrom:pol.effectiveFrom, source:'Sales Portal', status:'Đã phát hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'vat-invoice', name:'Hóa đơn VAT', fileName:pol.vatInvoice||'Chưa phát hành', kind:'PDF', version:'Hiện hành', issuedAt:pol.issueDate||pol.effectiveFrom, source:'Kế toán', status:pol.vatInvoice?'Sẵn sàng':'Chưa phát hành', canView:true, canDownload:!!pol.vatInvoice, canSendToCustomer:!!pol.vatInvoice},
+    {id:'uw-letter', name:'Thư kết quả thẩm định', fileName:(srcApp&&srcApp.uw&&srcApp.uw.letter)||'UW-'+pol.id+'.pdf', kind:'PDF', version:'Nội bộ', issuedAt:pol.issueDate||pol.effectiveFrom, source:'Thẩm định', status:'Hạn chế', canView:true, canDownload:true, canSendToCustomer:false, restrictedReason:'Thư thẩm định không được phép gửi cho khách hàng.'}
+   ];
+   return base.filter(d=>d.canView!==false && !d.hiddenFromDocumentList).map(d=>Object.assign({}, d, {
+    recipientName:(cust&&cust.name)||'',
+    recipientPhone:(cust&&cust.phone)||'',
+    recipientEmail:(cust&&cust.email)||''
+   }));
+  }
+  function renderDocActionBar(canClaim, canRenew){
+   const moreItems=[
+    ['Yêu cầu sửa đổi (endorsement)','Đổi nội dung trên cùng số hợp đồng'],
+    ...(pol.status==='ACTIVE'?[['Yêu cầu hủy','Chấm dứt hợp đồng trước hạn']]:[]),
+    ['Xuất / Xem hóa đơn VAT',''],
+    ['Ghi chú nội bộ','']
+   ];
+   return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative;">
+    <button class="btn btn-primary btn-sm" type="button" onclick="policyOpenDocuments()">Tài liệu & gửi khách</button>
+    ${canClaim?`<button class="btn btn-secondary btn-sm" type="button" onclick="policyDemoToast('Đã mở luồng khai báo tổn thất demo.')">Khai báo tổn thất</button>`:''}
+    ${canRenew?`<button class="btn btn-secondary btn-sm" type="button" onclick="policyDemoToast('Đã mở luồng tái tục demo.')">Tạo tái tục</button>`:''}
+    <button class="btn btn-secondary btn-sm" type="button" onclick="const m=document.getElementById('policy-more-actions');m.style.display=m.style.display==='none'?'block':'none'">Khác ▾</button>
+    <div id="policy-more-actions" style="display:none;position:absolute;right:0;top:38px;min-width:260px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(10,25,60,.18);z-index:90;padding:8px;">
+     ${moreItems.map(([a,desc])=>`<div onclick="policyDemoToast('${docEsc(a)} đang ở chế độ demo.')" style="padding:9px 10px;border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--ink-700);" onmouseover="this.style.background='var(--wash)'" onmouseout="this.style.background='transparent'">${a}${desc?`<div style="font-size:10.5px;color:var(--ink-300);">${desc}</div>`:''}</div>`).join('')}
+    </div>
+   </div>`;
+  }
+  function renderDocumentCenter(docs){
+   const lastSend = policyLastSend();
+   const current = docs.filter(d=>d.isPrevious!==true);
+   const previous = docs.filter(d=>d.isPrevious===true);
+   const rowHtml = d => {
+    const disabled = d.canDownload===false ? 'disabled' : '';
+    const title = d.canDownload===false ? (d.restrictedReason||'Bạn không có quyền tải tài liệu này.') : '';
+    const warn = d.expired ? '<div style="font-size:11px;color:var(--amber-600);margin-top:3px;">Tài liệu đã hết hiệu lực.</div>' : '';
+    const sendFlag = d.canSendToCustomer===false ? '<span class="badge badge-conditional">Không gửi khách</span>' : '<span class="badge badge-ready">Có thể gửi</span>';
+    return `<div class="policy-doc-row" data-doc-id="${docEsc(d.id)}">
+     <label class="policy-doc-check" title="${docEsc(title)}"><input type="checkbox" data-policy-doc="${docEsc(d.id)}" ${disabled}></label>
+     <div class="policy-doc-main"><b>${docEsc(d.name)}</b><div class="code">${docEsc(d.fileName)}</div>${warn}</div>
+     <div>${docEsc(d.kind||'Tài liệu')}</div>
+     <div>${docEsc(d.version||'Hiện hành')}</div>
+     <div>${docEsc(d.issuedAt||'—')}</div>
+     <div>${docEsc(d.effectiveFrom||'—')}</div>
+     <div>${docEsc(d.source||'—')}</div>
+     <div><span class="badge ${d.expired?'badge-conditional':'badge-ready'}">${docEsc(d.status||'Sẵn sàng')}</span><div style="margin-top:4px;">${sendFlag}</div></div>
+     <div><button class="btn btn-secondary btn-sm" type="button" onclick="policyPreviewDoc('${docEsc(d.id)}')">Xem trước</button></div>
+    </div>`;
+   };
+   const selectedHtml = lastSend ? `<div id="policy-last-send" class="alert2 success" style="margin-top:12px;"><b>Gửi gần nhất:</b> ${docEsc(lastSend.at)} · ${docEsc(lastSend.channelLabel)} · ${docEsc(lastSend.recipientName)} · ${docEsc(lastSend.status)} · ${docEsc(lastSend.by)}</div>` : `<div id="policy-last-send" class="alert2" style="display:none;margin-top:12px;"></div>`;
+   return `<section id="related-documents" class="pc-card policy-doc-card" style="scroll-margin-top:90px;">
+    <h2>Tài liệu liên quan</h2>
+    <div class="policy-doc-toolbar">
+     <label class="policy-doc-select-all"><input type="checkbox" id="policy-doc-select-all"> Chọn tất cả</label>
+     <span id="policy-doc-selected-count">Đã chọn: 0 tài liệu</span>
+     <button class="btn btn-secondary btn-sm" type="button" id="policy-doc-download" disabled>Tải xuống</button>
+     <button class="btn btn-primary btn-sm" type="button" id="policy-doc-send" disabled>Gửi cho khách</button>
+     <button class="btn btn-secondary btn-sm" type="button" id="policy-doc-clear" disabled>Bỏ chọn</button>
+     <span id="policy-doc-status" style="font-size:12px;color:var(--ink-500);"></span>
+    </div>
+    <div class="policy-doc-head"><span></span><span>Tên tài liệu</span><span>Loại</span><span>Phiên bản</span><span>Ngày phát hành</span><span>Ngày hiệu lực</span><span>Nguồn</span><span>Trạng thái</span><span></span></div>
+    <div id="policy-doc-list">${current.map(rowHtml).join('')}</div>
+    ${previous.length?`<details class="policy-doc-previous"><summary>Phiên bản trước</summary>${previous.map(rowHtml).join('')}</details>`:''}
+    ${selectedHtml}
+    <div id="policy-doc-errors" style="display:none;margin-top:10px;" class="alert2 danger"></div>
+    <div id="policy-doc-mobile-bar" class="policy-doc-mobile-bar"><span id="policy-doc-mobile-count">Đã chọn 0</span><button class="btn btn-secondary btn-sm" type="button" id="policy-doc-mobile-download" disabled>Tải xuống</button><button class="btn btn-primary btn-sm" type="button" id="policy-doc-mobile-send" disabled>Gửi</button></div>
+   </section>`;
+  }
+  function renderDocStyles(){
+   return `<style>
+    .policy-doc-card.policy-doc-focus{box-shadow:0 0 0 3px rgba(13,110,253,.16),0 1px 3px rgba(10,25,60,.04);}
+    .policy-doc-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);}
+    .policy-doc-select-all,.policy-doc-check{display:flex;align-items:center;gap:6px;}
+    .policy-doc-head,.policy-doc-row{display:grid;grid-template-columns:34px minmax(190px,1.4fr) 86px 96px 118px 118px 110px 116px 96px;gap:10px;align-items:center;}
+    .policy-doc-head{font-size:10.5px;color:var(--ink-300);letter-spacing:.04em;text-transform:uppercase;padding:8px 0;border-bottom:1px solid var(--line);}
+    .policy-doc-row{font-size:12px;color:var(--ink-600);padding:11px 0;border-bottom:1px dashed var(--line);}
+    .policy-doc-main b{font-size:13px;color:var(--ink-900);}
+    .policy-doc-main .code{font-size:11px;color:var(--ink-300);margin-top:2px;word-break:break-word;}
+    .policy-doc-previous{margin-top:10px;font-size:12.5px;color:var(--brand-600);}
+    .policy-doc-mobile-bar{display:none;}
+    .policy-toast{position:fixed;right:18px;bottom:18px;z-index:120;background:var(--ink-900);color:#fff;border-radius:8px;padding:10px 14px;font-size:12.5px;box-shadow:0 8px 28px rgba(10,25,60,.24);}
+    .policy-modal-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+    .policy-modal-field label{font-size:12px;color:var(--ink-600);font-weight:700;}
+    .policy-modal-field input,.policy-modal-field select,.policy-modal-field textarea{border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:13px;}
+    @media(max-width:900px){
+     .policy-doc-head{display:none;}
+     .policy-doc-row{grid-template-columns:34px 1fr;gap:8px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;}
+     .policy-doc-row>div:not(.policy-doc-main):not(.policy-doc-check){grid-column:2;font-size:11.5px;}
+     .policy-doc-toolbar button{display:none;}
+     .policy-doc-mobile-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:110;gap:8px;align-items:center;justify-content:flex-end;background:#fff;border-top:1px solid var(--line);padding:10px 12px;box-shadow:0 -6px 20px rgba(10,25,60,.12);}
+     .policy-doc-mobile-bar span{margin-right:auto;font-size:12.5px;font-weight:700;}
+     .modal2{width:100%;max-width:none!important;min-height:100vh;border-radius:0;}
+    }
+   </style>`;
+  }
+  function renderDocScript(docs, cust){
+   return `<script>
+   (function(){
+    const policyDocs = ${JSON.stringify(docs)};
+    const policyId = ${JSON.stringify(pol.id)};
+    const auditKey = ${JSON.stringify(docAuditKey)};
+    const sendKey = ${JSON.stringify(docSendKey)};
+    const actor = ${JSON.stringify(docActor)};
+    const recipientDefault = ${JSON.stringify({name:(cust&&cust.name)||'', phone:(cust&&cust.phone)||'', email:(cust&&cust.email)||''})};
+    function esc(v){ return String(v==null?'—':v).replace(/[&<>"']/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; }); }
+    function loadJson(key, fallback){ try { return JSON.parse(localStorage.getItem(key)||'') || fallback; } catch(e){ return fallback; } }
+    function saveJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+    function selectedDocs(){ return Array.from(document.querySelectorAll('[data-policy-doc]:checked')).map(function(x){ return policyDocs.find(function(d){ return d.id===x.getAttribute('data-policy-doc'); }); }).filter(Boolean); }
+    function setStatus(text, tone){ const el=document.getElementById('policy-doc-status'); if(el){ el.textContent=text||''; el.style.color=tone||'var(--ink-500)'; } }
+    function writeAudit(action, docs, extra){
+     const list = loadJson(auditKey, []);
+     const now = new Date();
+     const at = now.toLocaleString('vi-VN', {hour12:false});
+     list.unshift(Object.assign({at:at, by:actor, action:action, policyId:policyId, documentIds:docs.map(function(d){return d.id;}), documentNames:docs.map(function(d){return d.name;}), session:sessionStorage.getItem('BANCA_SESSION_ID')||'local-demo'}, extra||{}));
+     saveJson(auditKey, list.slice(0,20));
+     appendTimeline(list[0]);
+     return list[0];
+    }
+    function appendTimeline(ev){
+     const root=document.getElementById('policy-doc-timeline');
+     if(!root) return;
+     const div=document.createElement('div');
+     div.style.cssText='display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;';
+     div.innerHTML='<div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">'+esc(ev.timelineText||ev.action)+'</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">'+esc(ev.at)+' · '+esc(ev.by)+'</div></div>';
+     root.prepend(div);
+    }
+    function updateSelection(){
+     const count = selectedDocs().length;
+     const has = count>0;
+     ['policy-doc-download','policy-doc-send','policy-doc-clear','policy-doc-mobile-download','policy-doc-mobile-send'].forEach(function(id){ const el=document.getElementById(id); if(el) el.disabled=!has; });
+     const label='Đã chọn: '+count+' tài liệu';
+     const countEl=document.getElementById('policy-doc-selected-count'); if(countEl) countEl.textContent=label;
+     const mobile=document.getElementById('policy-doc-mobile-count'); if(mobile) mobile.textContent='Đã chọn '+count;
+     const all=document.getElementById('policy-doc-select-all');
+     if(all){ const enabled=Array.from(document.querySelectorAll('[data-policy-doc]:not(:disabled)')); all.checked=enabled.length>0 && enabled.every(function(x){return x.checked;}); }
+    }
+    function blobDownload(name, text, type){
+     const blob=new Blob([text], {type:type||'application/octet-stream'});
+     const a=document.createElement('a');
+     a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+     setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    }
+    window.policyDemoToast=function(text){
+     const old=document.querySelector('.policy-toast'); if(old) old.remove();
+     const el=document.createElement('div'); el.className='policy-toast'; el.textContent=text; document.body.appendChild(el);
+     setTimeout(function(){ el.remove(); }, 2600);
+    };
+    window.policyOpenDocuments=function(){
+     const url=new URL(location.href); url.searchParams.set('tab','documents'); history.replaceState(null,'',url.pathname+url.search+url.hash);
+     const sec=document.getElementById('related-documents'); if(sec){ sec.scrollIntoView({behavior:'smooth', block:'start'}); sec.classList.add('policy-doc-focus'); setTimeout(function(){sec.classList.remove('policy-doc-focus');}, 1600); }
+     const first=document.querySelector('[data-policy-doc]:not(:disabled)'); if(first) first.focus();
+    };
+    window.policyPreviewDoc=function(id){
+     const d=policyDocs.find(function(x){return x.id===id;}); if(!d) return;
+     policyDemoToast('Đang mở xem trước: '+d.name+'.');
+    };
+    window.policyDownloadDocs=function(){
+     const docs=selectedDocs();
+     if(!docs.length){ setStatus('Chọn ít nhất 1 tài liệu.', 'var(--amber-600)'); return; }
+     setStatus('Đang chuẩn bị...', 'var(--brand-600)');
+     const ok=docs.filter(function(d){ return d.canDownload!==false && d.fileName && d.fileName!=='Chưa phát hành'; });
+     const bad=docs.filter(function(d){ return !ok.includes(d); });
+     if(ok.length===1) blobDownload(ok[0].fileName, 'Demo file for '+policyId+' / '+ok[0].id, 'application/pdf');
+     if(ok.length>1) blobDownload('POL-'+policyId+'-documents-${docToday}.zip', ok.map(function(d){return d.fileName;}).join('\\n'), 'application/zip');
+     if(ok.length){
+      writeAudit('Tải '+ok.length+' tài liệu', ok, {timelineText:actor+' tải '+ok.length+' tài liệu: '+ok.map(function(d){return d.name;}).join(', ')});
+      setStatus(bad.length?'Không thể tải một số.':'Thành công', bad.length?'var(--amber-600)':'var(--teal-600)');
+     } else setStatus('Không thể tải tài liệu đã chọn.', 'var(--red-600)');
+     const err=document.getElementById('policy-doc-errors');
+     if(err){ err.style.display=bad.length?'block':'none'; err.innerHTML=bad.length?'<b>Không thể tải:</b> '+bad.map(function(d){return esc(d.name);}).join(', '):''; }
+    };
+    function openSendModal(){
+     const docs=selectedDocs();
+     if(!docs.length){ setStatus('Chọn ít nhất 1 tài liệu.', 'var(--amber-600)'); return; }
+     const blocked=docs.filter(function(d){ return d.canSendToCustomer===false; });
+     const root=document.getElementById('start-sale-root')||document.body;
+     const overlay=document.createElement('div'); overlay.className='modal-overlay2 open'; overlay.onclick=function(ev){ if(ev.target===overlay) overlay.remove(); };
+     overlay.innerHTML='<div class="modal2" style="max-width:680px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Gửi tài liệu cho khách hàng</b><span class="modal2-close" onclick="this.closest(\\'.modal-overlay2\\').remove()">&times;</span></div><div class="modal2-body"><div class="alert2 danger" id="policy-send-errors" style="'+(blocked.length?'':'display:none;')+'">'+(blocked.length?blocked.map(function(d){return esc(d.restrictedReason||d.name+' không được phép gửi cho khách hàng.');}).join('<br>')+'<div style="margin-top:8px;"><button class="btn btn-secondary btn-sm" type="button" id="policy-remove-blocked">Bỏ tài liệu không được gửi</button></div>':'')+'</div><div class="label" style="margin-bottom:6px;">Tài liệu đã chọn</div><div id="policy-send-docs" style="font-size:12.5px;margin-bottom:12px;">'+docs.map(function(d){return '<div>• '+esc(d.name)+' <span class="code">'+esc(d.fileName)+'</span></div>';}).join('')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div class="policy-modal-field"><label>Người nhận</label><input id="policy-send-name" value="'+esc(recipientDefault.name)+'"></div><div class="policy-modal-field"><label>Kênh gửi</label><select id="policy-send-channel"><option value="email">Email</option><option value="sms">SMS chứa link tải</option><option value="copy">Sao chép liên kết</option><option value="partner">Partner</option></select></div><div class="policy-modal-field"><label>Email</label><input id="policy-send-email" value="'+esc(recipientDefault.email)+'"></div><div class="policy-modal-field"><label>SĐT</label><input id="policy-send-phone" value="'+esc(recipientDefault.phone)+'"></div><div class="policy-modal-field"><label>Thời hạn link</label><select id="policy-send-expiry"><option value="7">7 ngày</option><option value="3">3 ngày</option><option value="1">1 ngày</option></select></div><div class="policy-modal-field"><label>Ngôn ngữ tài liệu</label><select id="policy-send-lang"><option value="vi">Tiếng Việt</option></select></div><div class="policy-modal-field" style="grid-column:1/-1;"><label>Nội dung tin nhắn</label><textarea id="policy-send-message" rows="3">Janus Bank gửi anh/chị bộ tài liệu hợp đồng bảo hiểm.</textarea></div><label style="grid-column:1/-1;font-size:12.5px;"><input type="checkbox" id="policy-send-consent" checked> Khách hàng đồng ý nhận liên hệ và link tải còn hiệu lực</label></div></div><div class="modal2-footer"><button class="btn btn-secondary" type="button" onclick="this.closest(\\'.modal-overlay2\\').remove()">Hủy</button><button class="btn btn-primary" type="button" id="policy-send-submit">Gửi tài liệu</button></div></div>';
+     root.appendChild(overlay);
+     const removeBtn=document.getElementById('policy-remove-blocked');
+     if(removeBtn) removeBtn.onclick=function(){ blocked.forEach(function(d){ const cb=document.querySelector('[data-policy-doc="'+d.id+'"]'); if(cb) cb.checked=false; }); overlay.remove(); updateSelection(); openSendModal(); };
+     document.getElementById('policy-send-submit').onclick=function(){
+      const current=selectedDocs();
+      const errs=[];
+      const channel=document.getElementById('policy-send-channel').value;
+      const name=document.getElementById('policy-send-name').value.trim();
+      const email=document.getElementById('policy-send-email').value.trim();
+      const phone=document.getElementById('policy-send-phone').value.trim();
+      const expiry=document.getElementById('policy-send-expiry').value;
+      if(!current.length) errs.push('Chọn ít nhất 1 tài liệu.');
+      current.filter(function(d){return d.canSendToCustomer===false;}).forEach(function(){ errs.push('Thư thẩm định không được phép gửi cho khách hàng.'); });
+      if(!name) errs.push('Nhập người nhận.');
+      if(channel==='email' && !/^\\S+@\\S+\\.\\S+$/.test(email)) errs.push('Email không hợp lệ.');
+      if(channel==='sms' && !/^[0-9+ ]{9,15}$/.test(phone)) errs.push('SĐT không hợp lệ.');
+      if(!document.getElementById('policy-send-consent').checked) errs.push('Cần consent liên hệ còn hiệu lực.');
+      if(!expiry) errs.push('Link cần có thời hạn.');
+      const box=document.getElementById('policy-send-errors');
+      if(errs.length){ box.style.display='block'; box.innerHTML=errs.map(esc).join('<br>'); return; }
+      const channelLabel={email:'Email',sms:'SMS chứa link tải',copy:'Sao chép liên kết',partner:'Partner'}[channel]||channel;
+      const ev=writeAudit('Gửi '+current.length+' tài liệu cho khách', current, {timelineText:actor+' gửi '+current.length+' tài liệu cho khách qua '+channelLabel.toLowerCase(), recipientName:name, channelLabel:channelLabel});
+      const rec={at:ev.at, by:actor, recipientName:name, channelLabel:channelLabel, status:'Đã gửi', documentIds:current.map(function(d){return d.id;})};
+      saveJson(sendKey, rec);
+      const last=document.getElementById('policy-last-send');
+      if(last){ last.style.display='block'; last.className='alert2 success'; last.innerHTML='<b>Gửi gần nhất:</b> '+esc(rec.at)+' · '+esc(rec.channelLabel)+' · '+esc(rec.recipientName)+' · '+esc(rec.status)+' · '+esc(rec.by); }
+      overlay.remove();
+      policyDemoToast('Đã gửi '+current.length+' tài liệu cho '+name+' qua '+channelLabel+'.');
+     };
+    }
+    document.addEventListener('change', function(ev){
+     if(ev.target && ev.target.id==='policy-doc-select-all'){
+      document.querySelectorAll('[data-policy-doc]:not(:disabled)').forEach(function(cb){ cb.checked=ev.target.checked; });
+      updateSelection();
+     }
+     if(ev.target && ev.target.hasAttribute('data-policy-doc')) updateSelection();
+    });
+    document.addEventListener('click', function(ev){
+     if(ev.target && (ev.target.id==='policy-doc-download'||ev.target.id==='policy-doc-mobile-download')) policyDownloadDocs();
+     if(ev.target && (ev.target.id==='policy-doc-send'||ev.target.id==='policy-doc-mobile-send')) openSendModal();
+     if(ev.target && ev.target.id==='policy-doc-clear'){ document.querySelectorAll('[data-policy-doc]').forEach(function(cb){ cb.checked=false; }); updateSelection(); }
+    });
+    if(new URLSearchParams(location.search).get('tab')==='documents' || location.hash==='#related-documents'){ setTimeout(policyOpenDocuments, 50); }
+    updateSelection();
+   })();
+   <\/script>`;
+  }
+  if(isHealthPolicy){
+   const cust = BANCA.customerById(pol.customerId)||{};
+   const srcApp = pol.appId? BANCA.appById(pol.appId) : null;
+   const pkg = (pol.coverage&&pol.coverage.code) ? pol.coverage : ((BANCA.healthPackages||{})[pol.packageCode||pol.package]||{});
+   const members = (pol.insuredMembers&&pol.insuredMembers.length) ? pol.insuredMembers : ((srcApp&&srcApp.insuredMembers)||[{name:cust.name,dob:cust.dob,relationship:'Bản thân'}]);
+   const holder = pol.policyholder || {name:cust.name,cif:cust.cif,phone:cust.phone,email:cust.email,identityNumber:cust.idNumber};
+   const today = new Date(TODAY+'T00:00:00');
+   const effTo = new Date((pol.effectiveTo||TODAY)+'T00:00:00');
+   const remainingDays = Math.max(0, Math.ceil((effTo-today)/86400000));
+   const kv=(k,v)=>`<div class="pc-kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+   const card=(title,body)=>`<section class="pc-card"><h2>${title}</h2>${body}</section>`;
+   const money=v=>v?BANCA.vnd(v):'—';
+   const payment = pol.payment || {};
+   const paid = (pol.billing||[])[0] || {};
+   const policyDocs = policyDocsOf(srcApp, cust);
+   const actionBar = renderDocActionBar(pol.status==='ACTIVE', false);
+   const docAuditRows = policyDocEvents().map(ev=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(ev.timelineText||ev.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(ev.at)} · ${docEsc(ev.by)}</div></div></div>`).join('');
+   const historyTree = `<section id="history" class="pc-card" style="scroll-margin-top:90px;"><h2>Dòng thời gian hợp đồng</h2><div id="policy-doc-timeline">${docAuditRows}</div>${(pol.audit||[]).map(a2=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(a2.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(a2.at)} · ${docEsc(a2.by)}</div></div></div>`).join('') || (docAuditRows?'':'<div style="font-size:12px;color:var(--ink-300);">—</div>')}</section>`;
+   const benefitRows = [
+    ['Gói',pkg.name||pol.package||'—'],
+    ['Quyền lợi nội trú',money(pkg.inpatientLimit)],
+    ['Quyền lợi ngoại trú',pkg.outpatientLimit?money(pkg.outpatientLimit):'Không bao gồm'],
+    ['Nha khoa',pkg.dentalLimit?money(pkg.dentalLimit):'Không bao gồm'],
+    ['Thai sản',pkg.maternityLimit?money(pkg.maternityLimit):'Không bao gồm'],
+    ['Giới hạn/năm',money(pkg.annualLimit)],
+    ['Đồng chi trả',pkg.copayPercent!=null?pkg.copayPercent+'%':'—'],
+    ['Thời hạn',(pkg.termMonths||12)+' tháng'],
+    ['Phạm vi lãnh thổ',pol.territorialScope||pkg.territory||'Việt Nam'],
+    ['Loại trừ chính',(pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm sức khỏe']).join('; ')],
+    ['Điều kiện đặc biệt',(pol.specialConditions||[]).length?pol.specialConditions.join('; '):'Không']
+   ].map(([k,v])=>kv(k,v)).join('');
+   const memberBenefits = function(mPkgCode){
+    const mp = (BANCA.healthPackages||{})[mPkgCode] || pkg;
+    return [['Nội trú',money(mp.inpatientLimit)],['Ngoại trú',mp.outpatientLimit?money(mp.outpatientLimit):'Không bao gồm'],['Nha khoa',mp.dentalLimit?money(mp.dentalLimit):'Không bao gồm'],['Thai sản',mp.maternityLimit?money(mp.maternityLimit):'Không bao gồm'],['Giới hạn/năm',money(mp.annualLimit)],['Đồng chi trả',mp.copayPercent!=null?mp.copayPercent+'%':'—'],['Thời gian chờ','30 ngày (chung); bệnh đặc biệt 12 tháng'],['Loại trừ',(mp.exclusions||['Theo quy tắc']).slice(0,2).join('; ')]];
+   };
+   const memberRows = members.map(function(m, idx){
+    const gcn = m.certificateNumber || ((pol.certificate||pol.certificateNumber||'GCN')+'-'+String(idx+1).padStart(2,'0'));
+    const mPkg = (BANCA.healthPackages||{})[m.package] || pkg;
+    return `<details style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+      <summary style="cursor:pointer;font-weight:700;font-size:13px;">${idx+1}. ${m.name||'—'} <span class="chip" style="font-size:9px;">${gcn}</span>${m.isChild?' <span class="chip" style="font-size:9px;">trẻ em</span>':''}</summary>
+      <div style="font-size:12px;color:var(--ink-500);margin:6px 0;">DOB ${m.dob||'—'} · ${m.age!=null?m.age+' tuổi':'—'} · Quan hệ ${m.relationship||'—'}${m.identityNumber?' · '+m.identityNumber:''} · Gói ${mPkg.name||m.package||'—'}${m.memberStatus?' · '+m.memberStatus:''}</div>
+      <table style="width:100%;font-size:12px;">${memberBenefits(m.package).map(function(b){return '<tr><td style="color:var(--ink-500);padding:2px 0;">'+b[0]+'</td><td style="text-align:right;font-weight:600;">'+b[1]+'</td></tr>';}).join('')}</table>
+     </details>`;
+   }).join('');
+   shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,`
+   <style>
+    .policy-cockpit .pc-hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(10,25,60,.06);}
+    .policy-cockpit .pc-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;}
+    .policy-cockpit .pc-main{display:grid;gap:16px;}
+    .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;}
+    .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);}
+    .policy-cockpit .pc-card h2{font-size:15px;margin:0 0 12px;color:var(--ink-900);}
+    .policy-cockpit .pc-kv{display:grid;grid-template-columns:230px 1fr;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+    .policy-cockpit .pc-kv:last-child{border-bottom:none;}
+    .policy-cockpit .pc-kv .k{color:var(--ink-500);} .policy-cockpit .pc-kv .v{color:var(--ink-800);font-weight:600;}
+    @media(max-width:1100px){.policy-cockpit .pc-grid{grid-template-columns:1fr}.policy-cockpit .pc-rail{position:static}.policy-cockpit .pc-kv{grid-template-columns:160px 1fr}}
+   </style>
+   ${renderDocStyles()}
+   <div class="policy-cockpit">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+     <a href="index.html" style="font-size:12.5px;color:var(--brand-600);">&larr; Danh sách hợp đồng</a>
+     ${actionBar}
+    </div>
+    <section class="pc-hero"><div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;"><div><h1 style="font-size:22px;margin:0;color:var(--ink-900);">${pol.id}</h1><div style="font-size:13px;color:var(--ink-500);margin-top:5px;">Giấy chứng nhận ${pol.certificate||pol.certificateNumber||'—'} · ${pol.productName} · ${pkg.name||pol.package||'—'}</div></div>${BANCA.policyBadge(pol.status)}</div></section>
+    <div class="kpi-strip" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+     ${[['Số GCN',pol.certificate||'—'],['Hiệu lực',pol.effectiveFrom||'—'],['Hết hiệu lực',pol.effectiveTo||'—'],['Còn lại',remainingDays+' ngày'],['Phí năm',BANCA.vnd(pol.premium)]].map(([k,v])=>`<div class="kpi"><span>${k}</span><b>${v}</b></div>`).join('')}
+    </div>
+    <div class="pc-grid"><main class="pc-main">
+     ${card('Người được bảo hiểm',memberRows)}
+     ${card('Quyền lợi sức khỏe',benefitRows)}
+     ${card('Thanh toán',kv('Phí',BANCA.vnd(pol.premium))+kv('Ngày thanh toán',payment.paidAt||paid.date||'—')+kv('Phương thức thanh toán thực tế',(BANCA.PAYMENT_INSTRUMENTS&&BANCA.PAYMENT_INSTRUMENTS[payment.paymentInstrument]||{}).label||paid.method||'—')+kv('Mã giao dịch',payment.gatewayTransactionId||payment.gatewayReference||paid.ref||'—'))}
+     ${renderDocumentCenter(policyDocs)}
+     ${historyTree}
+    </main><aside class="pc-rail">
+     ${card('Các bên liên quan',kv('Bên mua bảo hiểm',`${holder.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${holder.cif||'prospect'} · ${holder.phone||''}</span>`)+kv('Số định danh',holder.identityNumber||'—')+kv('Nhân viên tư vấn / kênh bán',`${(BANCA.personas[pol.owner]||{}).name||pol.owner}<br><span style="font-weight:400;color:var(--ink-500);">Banca · Janus Bank</span>`))}
+     ${card('Tóm tắt giấy chứng nhận',`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--paper);"><div class="label">Giấy chứng nhận sức khỏe</div><div style="font-size:13px;margin-top:6px;"><b>${members.length}</b> người được bảo hiểm theo ${pkg.name||pol.package||'—'} từ ${pol.effectiveFrom||'—'} đến ${pol.effectiveTo||'—'}.</div><div style="font-size:12px;color:var(--ink-500);margin-top:6px;">Nội trú ${money(pkg.inpatientLimit)} · Ngoại trú ${pkg.outpatientLimit?money(pkg.outpatientLimit):'không bao gồm'} · Đồng chi trả ${pkg.copayPercent!=null?pkg.copayPercent+'%':'—'}</div></div>`)}
+    </aside></div>
+   </div>
+   ${renderDocScript(policyDocs, cust)}`,{startSale:false});
+  } else if(isPaPolicy){
+   const cust = BANCA.customerById(pol.customerId)||{};
+   const srcApp = pol.appId? BANCA.appById(pol.appId) : null;
+   const pkg = (pol.coverage&&pol.coverage.code) ? pol.coverage : ((BANCA.paPackages||{})[pol.packageCode||pol.package]||{});
+   const insured = pol.insuredPerson || {name:(srcApp&&srcApp.insuredName)||cust.name,dob:(srcApp&&srcApp.insuredDob)||cust.dob,identityNumber:cust.idNumber,occupationCode:(srcApp&&srcApp.occupationCode)||'—',occupationClass:(srcApp&&srcApp.occupationClass)||'CLASS_1',contact:cust.phone,relationship:(srcApp&&srcApp.buyerIsInsured===false?(srcApp.relationship||'Khác'):'Bản thân')};
+   const holder = pol.policyholder || {name:cust.name,cif:cust.cif,phone:cust.phone,email:cust.email,identityNumber:cust.idNumber};
+   const today = new Date(TODAY+'T00:00:00');
+   const effTo = new Date((pol.effectiveTo||TODAY)+'T00:00:00');
+   const remainingDays = Math.max(0, Math.ceil((effTo-today)/86400000));
+   const kv=(k,v)=>`<div class="pc-kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+   const card=(title,body)=>`<section class="pc-card"><h2>${title}</h2>${body}</section>`;
+   const money=v=>v?BANCA.vnd(v):'—';
+   const occ=(BANCA.paOccupationClasses&&BANCA.paOccupationClasses[insured.occupationClass]||{}).label||insured.occupationClass||'—';
+   const payment = pol.payment || {};
+   const paid = (pol.billing||[])[0] || {};
+   const policyDocs = policyDocsOf(srcApp, cust);
+   const actionBar = renderDocActionBar(pol.status==='ACTIVE', false);
+   const docAuditRows = policyDocEvents().map(ev=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(ev.timelineText||ev.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(ev.at)} · ${docEsc(ev.by)}</div></div></div>`).join('');
+   const historyTree = `<section id="history" class="pc-card" style="scroll-margin-top:90px;"><h2>Dòng thời gian hợp đồng</h2><div id="policy-doc-timeline">${docAuditRows}</div>${(pol.audit||[]).map(a2=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(a2.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(a2.at)} · ${docEsc(a2.by)}</div></div></div>`).join('') || (docAuditRows?'':'<div style="font-size:12px;color:var(--ink-300);">—</div>')}</section>`;
+   const benefitRows = [
+    ['Gói',pkg.name||pol.package||'—'],
+    ['Thời hạn', (pkg.termMonths||12)+' tháng'],
+    ['Tử vong do tai nạn',money(pkg.deathSumInsured)],
+    ['Thương tật toàn bộ vĩnh viễn',money(pkg.permanentDisability)],
+    ['Thương tật bộ phận vĩnh viễn',pkg.permanentPartialDisability||'Theo tỷ lệ thương tật'],
+    ['Chi phí y tế',money(pkg.medicalExpenseLimit)],
+    ['Trợ cấp nằm viện/ngày',pkg.dailyHospitalAllowance?BANCA.vnd(pkg.dailyHospitalAllowance):'Không bao gồm'],
+    ['Phạm vi lãnh thổ',pol.territorialScope||pkg.territory||'Việt Nam'],
+    ['Loại trừ chính',(pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm PA']).join('; ')],
+    ['Điều kiện đặc biệt',(pol.specialConditions||[]).length?pol.specialConditions.join('; '):'Không']
+   ].map(([k,v])=>kv(k,v)).join('');
+   shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,`
+   <style>
+    .policy-cockpit .pc-hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(10,25,60,.06);}
+    .policy-cockpit .pc-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start;}
+    .policy-cockpit .pc-main{display:grid;gap:16px;}
+    .policy-cockpit .pc-rail{position:sticky;top:68px;display:grid;gap:12px;}
+    .policy-cockpit .pc-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(10,25,60,.04);}
+    .policy-cockpit .pc-card h2{font-size:15px;margin:0 0 12px;color:var(--ink-900);}
+    .policy-cockpit .pc-kv{display:grid;grid-template-columns:230px 1fr;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+    .policy-cockpit .pc-kv:last-child{border-bottom:none;}
+    .policy-cockpit .pc-kv .k{color:var(--ink-500);} .policy-cockpit .pc-kv .v{color:var(--ink-800);font-weight:600;}
+    @media(max-width:1100px){.policy-cockpit .pc-grid{grid-template-columns:1fr}.policy-cockpit .pc-rail{position:static}.policy-cockpit .pc-kv{grid-template-columns:160px 1fr}}
+   </style>
+   ${renderDocStyles()}
+   <div class="policy-cockpit">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+     <a href="index.html" style="font-size:12.5px;color:var(--brand-600);">&larr; Danh sách hợp đồng</a>
+     ${actionBar}
+    </div>
+    <section class="pc-hero"><div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;"><div><h1 style="font-size:22px;margin:0;color:var(--ink-900);">${pol.id}</h1><div style="font-size:13px;color:var(--ink-500);margin-top:5px;">Giấy chứng nhận ${pol.certificate||pol.certificateNumber||'—'} · ${pol.productName} · ${pkg.name||pol.package||'—'}</div></div>${BANCA.policyBadge(pol.status)}</div></section>
+    <div class="kpi-strip" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+     ${[['Số GCN',pol.certificate||'—'],['Hiệu lực',pol.effectiveFrom||'—'],['Hết hiệu lực',pol.effectiveTo||'—'],['Còn lại',remainingDays+' ngày'],['Phí năm',BANCA.vnd(pol.premium)]].map(([k,v])=>`<div class="kpi"><span>${k}</span><b>${v}</b></div>`).join('')}
+    </div>
+    <div class="pc-grid"><main class="pc-main">
+     ${card('Quyền lợi bảo hiểm',benefitRows)}
+     ${card('Thanh toán',kv('Phí',BANCA.vnd(pol.premium))+kv('Ngày thanh toán',payment.paidAt||paid.date||'—')+kv('Phương thức thanh toán thực tế',(BANCA.PAYMENT_INSTRUMENTS&&BANCA.PAYMENT_INSTRUMENTS[payment.paymentInstrument]||{}).label||paid.method||'—')+kv('Mã giao dịch',payment.gatewayTransactionId||payment.gatewayReference||paid.ref||'—'))}
+     ${renderDocumentCenter(policyDocs)}
+     ${historyTree}
+    </main><aside class="pc-rail">
+     ${card('Các bên liên quan',kv('Bên mua bảo hiểm',`${holder.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${holder.cif||'prospect'} · ${holder.phone||''}</span>`)+kv('Người được bảo hiểm',insured.name||'—')+kv('Quan hệ',insured.relationship||'—')+kv('Người thụ hưởng',pol.beneficiary||'—')+kv('Ngày sinh',insured.dob||'—')+kv('Số định danh',insured.identityNumber||'—')+kv('Mã nghề nghiệp',insured.occupationCode||'—')+kv('Nhóm nghề nghiệp',occ)+kv('Liên hệ',insured.contact||holder.phone||'—'))}
+     ${card('Tóm tắt giấy chứng nhận',`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--paper);"><div class="label">Giấy chứng nhận PA</div><div style="font-size:13px;margin-top:6px;"><b>${insured.name||'—'}</b> được bảo hiểm theo ${pkg.name||pol.package||'—'} từ ${pol.effectiveFrom||'—'} đến ${pol.effectiveTo||'—'}.</div><div style="font-size:12px;color:var(--ink-500);margin-top:6px;">Tử vong ${money(pkg.deathSumInsured)} · Y tế ${money(pkg.medicalExpenseLimit)}</div></div>`)}
+    </aside></div>
+   </div>
+   ${renderDocScript(policyDocs, cust)}`,{startSale:false});
+  } else {
   // ===== Policy Detail v2 (doc 17:04 — PHẦN A A1-A9 + PHẦN B action groups) =====
   const cust = BANCA.customerById(pol.customerId)||{};
   const row=(k,v)=>`<tr><td style="width:250px;min-width:250px;color:var(--ink-500);font-size:12.5px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`;
@@ -43,7 +429,7 @@ if(p.status!=='ACTIVE'){
    ['Lựa chọn garage', pol.garage||'Thường'],
    ['Phạm vi lãnh thổ', pol.territory||'Việt Nam']
   ];
-  // A7 breakdown từ quote hồ sơ gốc
+  // A7 breakdown từ quote yêu cầu gốc
   const feeRows = q&&q.subtotal!=null? [
    ['TNDS bắt buộc',BANCA.vnd(q.tplPremium)],
    ['Phí gốc vật chất',BANCA.vnd(q.odBase)],
@@ -63,7 +449,7 @@ if(p.status!=='ACTIVE'){
       <div style="padding:14px 18px;"><div style="font-size:10.5px;color:var(--ink-300);letter-spacing:.06em;">CÒN HIỆU LỰC</div><b style="font-size:18px;color:${daysLeft<=45?'var(--amber-600)':'var(--teal-600)'};">${daysLeft} ngày</b><div style="font-size:11px;color:var(--ink-500);">Hết hạn ${pol.effectiveTo}</div></div>
     </div>
   </div>`;
-  const navAnchors=[['benefits','Tổng quan · Quyền lợi'],['fees','Phí & thanh toán'],['docs','Tài liệu'],['terms','Điều khoản'],['history','Lịch sử'],['distribution','Phân phối']];
+  const navAnchors=[['benefits','Tổng quan · Quyền lợi'],['fees','Phí & thanh toán'],['related-documents','Tài liệu'],['terms','Điều khoản'],['history','Lịch sử'],['distribution','Phân phối']];
   const sectionNav = `<div class="card" style="position:sticky;top:52px;z-index:29;padding:8px 12px;margin-bottom:14px;box-shadow:0 2px 10px rgba(10,25,60,.06);">
     <div style="display:grid;grid-template-columns:repeat(${navAnchors.length},1fr);gap:8px;align-items:stretch;">
     ${navAnchors.map(([id,l])=>`<a href="#${id}" class="chip" style="text-decoration:none;font-size:11.5px;padding:7px 8px;text-align:center;justify-content:center;display:flex;align-items:center;">${l}</a>`).join('')}
@@ -88,36 +474,16 @@ if(p.status!=='ACTIVE'){
   // PHẦN B: action bar chuẩn hoá — action chính theo trạng thái, phần còn lại vào "Khác".
   const canRenew = statusBucket==='nearExpiry'||statusBucket==='expired';
   const canClaim = pol.status==='ACTIVE';
-  const moreItems=[];
-  moreItems.push(['Yêu cầu sửa đổi (endorsement)','Đổi nội dung trên cùng số hợp đồng']);
-  if(pol.status==='ACTIVE') moreItems.push(['Yêu cầu hủy','Chấm dứt hợp đồng trước hạn']);
-  moreItems.push(['Xuất / Xem hóa đơn VAT','']);
-  moreItems.push(['Ghi chú nội bộ','']);
-  const actionBar=`
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative;">
-      <button class="btn btn-primary btn-sm" onclick="alert('Tải GCN (demo)')">Tải GCN</button>
-      <button class="btn btn-secondary btn-sm" onclick="alert('Gửi hợp đồng cho khách (demo)')">Gửi khách</button>
-      ${canClaim?`<button class="btn btn-secondary btn-sm" onclick="alert('Tạo yêu cầu bồi thường (demo)')">Tạo bồi thường</button>`:''}
-      ${canRenew?`<button class="btn btn-secondary btn-sm" onclick="alert('Tạo hồ sơ tái tục (demo)')">Tạo tái tục</button>`:''}
-      <button class="btn btn-secondary btn-sm" onclick="const m=document.getElementById('policy-more-actions');m.style.display=m.style.display==='none'?'block':'none'">Khác ▾</button>
-      <div id="policy-more-actions" style="display:none;position:absolute;right:0;top:38px;min-width:260px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(10,25,60,.18);z-index:90;padding:8px;">
-        ${moreItems.map(([a,desc])=>`<div onclick="alert('${a} (demo)')" style="padding:9px 10px;border-radius:7px;cursor:pointer;font-size:12.5px;color:var(--ink-700);" onmouseover="this.style.background='var(--wash)'" onmouseout="this.style.background='transparent'">${a}${desc?`<div style="font-size:10.5px;color:var(--ink-300);">${desc}</div>`:''}</div>`).join('')}
-      </div>
-    </div>`;
+  const actionBar=renderDocActionBar(canClaim, canRenew);
   const sideKv=(k,v)=>`<div style="padding:8px 0;border-bottom:1px dashed var(--line);"><div style="font-size:10.5px;color:var(--ink-300);letter-spacing:.04em;">${k}</div><div style="font-size:12.5px;color:var(--ink-800);font-weight:600;margin-top:2px;">${v}</div></div>`;
   const miniCard=(label,value,hint,tone)=>`<div class="card" style="padding:14px 16px;margin:0;border-left:3px solid ${tone||'var(--brand-600)'};"><div style="font-size:10px;color:var(--ink-300);letter-spacing:.08em;text-transform:uppercase;">${label}</div><div style="font-size:18px;font-weight:800;color:var(--ink-900);margin-top:4px;">${value}</div><div style="font-size:11px;color:var(--ink-500);margin-top:2px;">${hint||''}</div></div>`;
-  const docLinks = [
-    ['GCN PDF', pol.certificate+'.pdf', 'file', 'Bản GCN hiện hành từ Core'],
-    ['Policy wording', pol.wordingRef||'QT-BH-VCX-2025', 'file', 'Bộ quy tắc/điều khoản bảo hiểm'],
-    ['Hồ sơ gốc', pol.appId||'—', 'page', 'Application nguồn'],
-    ['Hóa đơn VAT', pol.vatInvoice||'Chưa phát hành', 'file', 'Hóa đơn điện tử'],
-    ['Thư thẩm định', srcApp&&srcApp.uw&&srcApp.uw.letter||'—', 'file', 'Decision/UW letter']
-  ];
-  const docRows = docLinks.map(([name,link,type,desc])=>{const href= type==='page'&&link!=='—' ? `${r}modules/application-workspace/index.html?id=${link}` : '#'; const dl=type==='file'?' download':''; const click=type==='file'?` onclick="alert('Auto tải về file demo: ${link}')"`:''; return `<div style="display:grid;grid-template-columns:250px 1fr;gap:16px;align-items:start;padding:10px 0;border-bottom:1px dashed var(--line);"><div><a href="${href}"${dl}${click} style="color:var(--brand-600);font-weight:700;text-decoration:none;">${name}</a><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${link}</div></div><div style="font-size:12.5px;color:var(--ink-500);">${desc}</div></div>`}).join('');
+  const policyDocs = policyDocsOf(srcApp, cust);
   const benefitCards = benefitRows.map(([b,m])=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;"><div style="font-size:12.5px;font-weight:700;color:var(--ink-800);">${b}</div><div style="font-size:12px;color:var(--ink-500);margin-top:4px;">${m}</div></div>`).join('');
+  const docAuditRows = policyDocEvents().map(ev=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(ev.timelineText||ev.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(ev.at)} · ${docEsc(ev.by)}</div></div></div>`).join('');
   const historyTree = `<div class="card" style="padding:16px;">
     <div class="label" style="margin-bottom:10px;">Dòng thời gian hợp đồng</div>
-    ${(pol.audit||[]).map(a2=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${a2.action}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${a2.at} · ${a2.by}</div></div></div>`).join('') || '<div style="font-size:12px;color:var(--ink-300);">—</div>'}
+    <div id="policy-doc-timeline">${docAuditRows}</div>
+    ${(pol.audit||[]).map(a2=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:1px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${a2.action}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${a2.at} · ${a2.by}</div></div></div>`).join('') || (docAuditRows?'':'<div style="font-size:12px;color:var(--ink-300);">—</div>')}
     <details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--brand-600);font-size:12.5px;font-weight:700;">Xem endorsement & claim</summary>
       <div style="margin-top:10px;"><div class="label" style="margin-bottom:6px;">Endorsement</div>${(pol.endorsements||[]).length? pol.endorsements.map(e=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line);"><b>${e.no}</b> · ${e.date} · ${e.type}: ${e.detail} · chênh phí ${e.feeDelta?BANCA.vnd(e.feeDelta):'0 ₫'}</div>`).join('') : '<div style="font-size:12px;color:var(--ink-300);">Chưa có sửa đổi bổ sung.</div>'}</div>
       <div style="margin-top:10px;"><div class="label" style="margin-bottom:6px;">Claim</div>${(pol.claims||[]).length? pol.claims.map(c2=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line);"><b>${c2.no}</b> · ${c2.date} · ${c2.type} · ${BANCA.vnd(c2.amount)} · <span class="badge badge-ready">${c2.status}</span><div style="font-size:11px;color:var(--ink-300);">${c2.note||''}</div></div>`).join('') : '<div style="font-size:12px;color:var(--ink-300);">Chưa có bồi thường.</div>'}</div>
@@ -136,6 +502,7 @@ if(p.status!=='ACTIVE'){
    .policy-cockpit .pc-kv .k{color:var(--ink-500);} .policy-cockpit .pc-kv .v{color:var(--ink-800);font-weight:600;} 
    @media(max-width:1100px){.policy-cockpit .pc-grid{grid-template-columns:1fr}.policy-cockpit .pc-rail{position:static}.policy-cockpit .pc-kv{grid-template-columns:180px 1fr}}
   </style>
+  ${renderDocStyles()}
   <div class="policy-cockpit">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;position:sticky;top:0;z-index:31;background:var(--paper,#f7f9fc);padding:8px 0;">
       <a href="index.html" style="font-size:12.5px;color:var(--brand-600);">&larr; Danh sách hợp đồng</a>
@@ -146,7 +513,7 @@ if(p.status!=='ACTIVE'){
       <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
         <div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><h1 style="font-size:22px;margin:0;color:var(--ink-900);">${pol.id}</h1>${BANCA.policyBadge(pol.status)}${inRenewalWindow?' <span class="badge badge-conditional">Sắp tái tục</span>':''}</div>
-          <div style="font-size:13px;color:var(--ink-500);margin-top:5px;">GCN ${pol.certificate} · ${pol.productName} · ${pol.package} · ${srcApp?'cấp mới':'—'}</div>
+          <div style="font-size:13px;color:var(--ink-500);margin-top:5px;">Giấy chứng nhận ${pol.certificate} · ${pol.productName} · ${pol.package} · ${srcApp?'cấp mới':'—'}</div>
           <div style="font-size:12.5px;color:var(--ink-500);margin-top:10px;">${cust.name||'—'} · ${v.brand||''} ${v.model||''} ${v.year||''} · ${v.plate||'—'}</div>
         </div>
         ${pol.ncdTier?`<div style="text-align:right;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;"><div style="font-size:10.5px;color:var(--ink-300);">BẬC NCD</div><b style="font-size:20px;color:${pol.ncdTier.percent?'var(--teal-600)':'var(--ink-500)'};">${pol.ncdTier.percent}%</b><div style="font-size:10.5px;color:var(--ink-300);">${pol.ncdTier.yearsNoClaim} năm không claim</div></div>`:''}
@@ -168,12 +535,12 @@ if(p.status!=='ACTIVE'){
       <main class="pc-main">
         <section id="benefits" class="pc-card" style="scroll-margin-top:90px;"><h2>Quyền lợi bảo hiểm</h2><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">${benefitCards}</div></section>
         <section id="fees" class="pc-card" style="scroll-margin-top:90px;"><h2>Phí & thanh toán</h2><div class="label" style="margin-bottom:6px;">Breakdown phí</div>${feeRows.map(([k,val])=>`<div class="pc-kv"><div class="k">${k}</div><div class="v" style="text-align:right;">${val}</div></div>`).join('')}<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Kỳ đóng: một lần · Hóa đơn VAT: ${pol.vatInvoice||'chưa phát hành'}</div><div class="label" style="margin:14px 0 6px;">Lịch sử thanh toán</div><table class="dtable"><thead><tr><th>Ngày</th><th>Số tiền</th><th>Phương thức</th><th>Ref</th><th>Trạng thái</th></tr></thead><tbody>${pol.billing.map(b=>`<tr><td>${b.date}</td><td>${BANCA.vnd(b.amount)}</td><td>${BANCA.label('paymentMethod',b.method)}</td><td class="code">${b.ref}</td><td><span class="badge badge-ready">Thành công</span></td></tr>`).join('')}</tbody></table></section>
-        <section id="docs" class="pc-card" style="scroll-margin-top:90px;"><h2>Tài liệu liên quan</h2>${docRows}</section>
-        <section id="terms" class="pc-card" style="scroll-margin-top:90px;"><h2>Điều khoản & loại trừ</h2><div style="font-size:12.5px;color:var(--ink-500);margin-bottom:8px;">Bộ quy tắc: <a href="javascript:alert('Mở policy wording PDF (demo)')" style="color:var(--brand-600);">${pol.wordingRef||'QT-BH-VCX-2025'}</a></div>${(pol.exclusions||['Theo quy tắc bảo hiểm chuẩn']).map(x=>`<div style="font-size:12.5px;color:var(--ink-700);padding:4px 0;">✕ ${x}</div>`).join('')}</section>
+        ${renderDocumentCenter(policyDocs)}
+        <section id="terms" class="pc-card" style="scroll-margin-top:90px;"><h2>Điều khoản & loại trừ</h2><div style="font-size:12.5px;color:var(--ink-500);margin-bottom:8px;">Bộ quy tắc: <button class="btn btn-secondary btn-sm" type="button" onclick="policyPreviewDoc('wording-current')">${pol.wordingRef||'QT-BH-VCX-2025'}</button></div>${(pol.exclusions||['Theo quy tắc bảo hiểm chuẩn']).map(x=>`<div style="font-size:12.5px;color:var(--ink-700);padding:4px 0;">✕ ${x}</div>`).join('')}</section>
         <section id="history" style="scroll-margin-top:90px;">${historyTree}</section>
       </main>
       <aside class="pc-rail">
-        <section id="parties" class="pc-card" style="scroll-margin-top:90px;"><h2>Định danh & các bên</h2>${sideKv('Số hợp đồng / GCN',pol.id+' · '+pol.certificate)}${sideKv('Nguồn cấp',srcApp?`Cấp mới — <a href="${r}modules/application-workspace/index.html?id=${pol.appId}" style="color:var(--brand-600);">${pol.appId}</a>`:'—')}${sideKv('Bên mua bảo hiểm',`${cust.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${cust.cif||'prospect'} · ${BANCA.maskPhone?BANCA.maskPhone(cust.phone):cust.phone||''}</span>`)}${sideKv('Người được BH','Chính chủ (= bên mua)')}${sideKv('Seller / kênh bán',`${(BANCA.personas[pol.owner]||{}).name||pol.owner}<br><span style="font-weight:400;color:var(--ink-500);">Banca · Janus Bank</span>`)}</section>
+        <section id="parties" class="pc-card" style="scroll-margin-top:90px;"><h2>Định danh & các bên</h2>${sideKv('Số hợp đồng / GCN',pol.id+' · '+pol.certificate)}${sideKv('Nguồn cấp',srcApp?`Cấp mới — <a href="${r}modules/application-workspace/index.html?id=${pol.appId}" style="color:var(--brand-600);">${pol.appId}</a>`:'—')}${sideKv('Bên mua bảo hiểm',`${cust.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${cust.cif||'prospect'} · ${BANCA.maskPhone?BANCA.maskPhone(cust.phone):cust.phone||''}</span>`)}${sideKv('Người được BH','Chính chủ (= bên mua)')}${sideKv('Nhân viên tư vấn / kênh bán',`${(BANCA.personas[pol.owner]||{}).name||pol.owner}<br><span style="font-weight:400;color:var(--ink-500);">Banca · Janus Bank</span>`)}</section>
         ${(()=>{ const d=BANCA.policyDistributionOf?BANCA.policyDistributionOf(pol.id,pol.owner):null; if(!d)return ''; const nm=uid=>uid?`${BANCA.pName(uid)}<br><span style="font-weight:400;color:var(--ink-500);">${BANCA.pLine(uid)}</span>`:'—';
           return `<section id="distribution" class="pc-card" style="scroll-margin-top:90px;"><h2>Phân phối & người tham gia</h2>
           ${sideKv('Người giới thiệu', nm(d.referrer))}
@@ -183,7 +550,7 @@ if(p.status!=='ACTIVE'){
           ${sideKv('External reference', d.externalRef||'—')}
           ${sideKv('Ngày ghi nhận hiệu lực', d.effectiveDate||pol.effectiveFrom||'—')}
           ${d._fallback?'<div style="font-size:11px;color:var(--ink-300);">Chưa có snapshot phân phối — hiển thị theo người phụ trách.</div>':''}
-          <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Người bán (ở mục Định danh & các bên) & người phục vụ là hai vai trò khác nhau; chuyển phục vụ không đổi người bán.</div></section>`; })()}
+          <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Nhân viên phụ trách (ở mục Định danh & các bên) & người phục vụ là hai vai trò khác nhau; chuyển phục vụ không đổi người bán.</div></section>`; })()}
         <section id="vehicle" class="pc-card" style="scroll-margin-top:90px;"><h2>Xe & thời hạn</h2>${sideKv('Xe',`${v.brand||''} ${v.model||''} ${v.year||''}`)}${sideKv('Biển số / VIN',`${v.plate||'—'} · ${v.vin||'—'}`)}${sideKv('Số máy / số chỗ',`${v.engineNo||'—'} · ${v.seats||'—'} chỗ`)}${sideKv('Hiệu lực',pol.effectiveFrom+' → '+pol.effectiveTo)}${sideKv('Tình trạng thế chấp',mgP&&mgP.mortgaged?'Có — xe là tài sản bảo đảm':'Không')}</section>
         <section class="pc-card"><h2>Bên thụ hưởng / NTH</h2><div style="font-size:13px;color:${mgP&&mgP.mortgaged?'var(--amber-600)':'var(--ink-700)'};font-weight:700;">${mgP&&mgP.mortgaged?`${mgP.bank||'—'}${mgP.branch?' · '+mgP.branch:''}`:'Chủ xe (xe không thế chấp)'}</div>${mgP&&mgP.mortgaged?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">HĐ tín dụng ${mgP.creditContract||'—'}</div>`:'<div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">Không kích hoạt điều khoản thụ hưởng.</div>'}</section>
         ${commission?`<section class="pc-card"><h2>Hoa hồng</h2>${sideKv('Hoa hồng dự kiến',`<b style="color:var(--teal-600);font-size:16px;">${BANCA.vnd(commission.amount)}</b>`)}${sideKv('Cơ sở tính HH',BANCA.vnd(commission.base))}${sideKv('Tỷ lệ',(commission.rate*100).toFixed(0)+'% · '+pol.package)}${sideKv('Trạng thái',`<span class="badge badge-ready">${commission.stateLabel}</span>`)}<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Read-only · sync ${commission.syncAt}</div></section>`:''}
@@ -191,7 +558,8 @@ if(p.status!=='ACTIVE'){
       </aside>
     </div>
   </div>
-  `,{startSale:false});
+  ${renderDocScript(policyDocs, cust)}`,{startSale:false});
+  }
  }
 } else {
  // ===================== LIST =====================
@@ -244,27 +612,27 @@ if(p.status!=='ACTIVE'){
    ${fd.button}
  </div>`;
  const filterBar=searchRow+quickFilters+fd.tags+fd.drawer;
- // ---- Bảng gộp cột: Khách/HĐ | Người bán | Sản phẩm | Hiệu lực | Phí | Trạng thái | Hành động ----
+ // ---- Bảng gộp cột: Khách/HĐ | Nhân viên phụ trách | Sản phẩm | Hiệu lực | Phí | Trạng thái | Hành động ----
  const bankBadge = `<span class="chip" style="background:var(--brand-100);color:var(--brand-700);font-size:10px;">Janus Bank</span>`;
  const rows=pols.map(x=>{
   const c=BANCA.customerById(x.customerId)||{};
   const dLeft=daysTo(x);
   const effTone = x.status!=='ACTIVE'?'var(--ink-300)':dLeft<=45?'var(--amber-600)':'var(--ink-500)';
   const effNote = x.status!=='ACTIVE'?stLabel(x.status):dLeft<=0?'Đã hết hạn':dLeft<=45?('Còn '+dLeft+' ngày'):('Còn '+dLeft+' ngày');
-  return `<tr style="cursor:pointer;" onclick="location.href='?view=detail&id=${x.id}'">
-  <td>${BANCA.customerCell(c)}<div style="font-size:11px;color:var(--ink-300);margin-top:2px;"><span style="font-weight:600;color:var(--brand-600);">${x.id}</span> · GCN ${x.certificate} ${bankBadge}</div>${isMgr&&x.owner!==me?`<div style="font-size:11px;color:var(--ink-300);">${(BANCA.personas[x.owner]||{}).name||x.owner}</div>`:''}</td>
+  return `<tr style="cursor:pointer;" data-policy-id="${x.id}">
+  <td>${BANCA.customerCell(c)}<div style="font-size:11px;color:var(--ink-300);margin-top:2px;"><a href="?view=detail&id=${x.id}" data-policy-link="${x.id}" style="font-weight:600;color:var(--brand-600);text-decoration:none;">${x.id}</a> · GCN ${x.certificate} ${bankBadge}</div>${isMgr&&x.owner!==me?`<div style="font-size:11px;color:var(--ink-300);">${(BANCA.personas[x.owner]||{}).name||x.owner}</div>`:''}</td>
   <td style="font-size:12px;">${(()=>{const d=BANCA.policyDistributionOf?BANCA.policyDistributionOf(x.id,x.owner):{}; return BANCA.sellerCell(d._fallback?null:d.referrer, d._fallback?null:d.advisor, d.sellingProducer||x.owner);})()}</td>
-  <td style="font-size:12px;">${x.productName} · ${x.package}${(x.vehicle&&x.vehicle.plate)?`<div style="font-size:11px;color:var(--ink-300);">${x.vehicle.brand||''} ${x.vehicle.model||''} · ${x.vehicle.plate}</div>`:''}</td>
+  <td style="font-size:12px;">${x.productName} · ${((BANCA.paPackages||{})[x.package]||(BANCA.healthPackages||{})[x.package]||{}).name||x.package}${(x.vehicle&&x.vehicle.plate)?`<div style="font-size:11px;color:var(--ink-300);">${x.vehicle.brand||''} ${x.vehicle.model||''} · ${x.vehicle.plate}</div>`:''}</td>
   <td style="font-size:11.5px;">${x.effectiveFrom} → ${x.effectiveTo}<div style="font-size:11px;color:${effTone};font-weight:600;">${effNote}</div></td>
   <td style="font-size:12px;">${BANCA.vnd(x.premium)}</td>
   <td>${BANCA.policyBadge(x.status)}${x.renewalStatus==='RENEWAL_DUE'?' <span class="badge badge-conditional">Sắp tái tục</span>':''}${x.isNew?' <span class="badge badge-ready">Mới</span>':''}</td>
-  <td style="white-space:nowrap;" onclick="event.stopPropagation();">${policyActions(x)}</td>
+  <td style="white-space:nowrap;" data-no-row-nav="1">${policyActions(x)}</td>
  </tr>`;}).join('');
  // Action chuẩn hóa theo trạng thái: mỗi dòng 1 action CHÍNH + Chi tiết phụ.
  function policyActions(x){
    const detail=`<a class="btn btn-secondary btn-sm" href="?view=detail&id=${x.id}">Chi tiết</a>`;
    if(x.renewalStatus==='RENEWAL_DUE'){
-     const renew = x.renewalDraftId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="alert('Tạo hồ sơ tái tục (demo)')">Tái tục</button>`;
+     const renew = x.renewalDraftId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="alert('Tạo yêu cầu tái tục (demo)')">Tái tục</button>`;
      return renew+' '+detail;
    }
    if(x.isNew) return `<button class="btn btn-primary btn-sm" onclick="alert('Gửi GCN cho khách (demo)')">Gửi GCN</button> `+detail;
@@ -278,8 +646,17 @@ if(p.status!=='ACTIVE'){
  shell('Hợp đồng','Hợp đồng',
  scopeBar+`
  ${BANCA.uxListHeader('Danh sách hợp đồng','Theo dõi hợp đồng đã phát hành, tái tục và hiệu lực',`Hiển thị <b>${pols.length}</b> / ${all.length} hợp đồng · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
- ${pols.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Khách hàng / Hợp đồng</th><th>Người bán</th><th>Sản phẩm</th><th>Hiệu lực</th><th>Phí</th><th>Trạng thái</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>`
+ ${pols.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Khách hàng / Hợp đồng</th><th>Nhân viên phụ trách</th><th>Sản phẩm</th><th>Hiệu lực</th><th>Phí</th><th>Trạng thái</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>`
   :`<div class="card"><div class="empty-state">Không có hợp đồng khớp bộ lọc. <a href="?">Xóa bộ lọc</a></div></div>`}
  `);
+ setTimeout(function(){
+  document.addEventListener('click', function(ev){
+   if(ev.target.closest('[data-no-row-nav]')) return;
+   const direct = ev.target.closest('[data-policy-link]');
+   const row = ev.target.closest('tr[data-policy-id]');
+   const id = direct ? direct.getAttribute('data-policy-link') : (row && row.getAttribute('data-policy-id'));
+   if(id){ ev.preventDefault(); location.href='?view=detail&id='+encodeURIComponent(id); }
+  });
+ },0);
 }
 </script></body></html>

@@ -9,7 +9,7 @@ window.BANCA = window.BANCA || {};
 BANCA.OCR_STATE = {
   upload: {UPLOADED:'Đã tải lên', FAILED:'Tải lỗi'},
   ocr:    {NOT_REQUIRED:'Không cần', PENDING:'Chờ xử lý', PROCESSING:'Đang nhận dạng', EXTRACTED:'Đã bóc tách', LOW_CONFIDENCE:'Độ tin cậy thấp', FAILED:'OCR lỗi'},
-  review: {NOT_REVIEWED:'Chưa duyệt', SELLER_REVIEWED:'Seller đã duyệt', CUSTOMER_CONFIRMED:'Khách đã xác nhận'},
+  review: {NOT_REVIEWED:'Chưa duyệt', SELLER_REVIEWED:'Nhân viên tư vấn đã duyệt', CUSTOMER_CONFIRMED:'Khách đã xác nhận'},
   verify: {UNVERIFIED:'Chưa xác minh', VERIFIED:'Đã xác minh', REJECTED:'Bị từ chối'}
 };
 BANCA.ocrStateBadge = function(kind, val){
@@ -117,7 +117,7 @@ BANCA.docItemHtml = function(appId, def){
   const chips=[];
   chips.push(hasFile?'<span class="badge badge-ready">Đã tải</span>':(def.required?'<span class="badge badge-blocked">Còn thiếu</span>':'<span class="badge badge-version">Tùy chọn</span>'));
   if(ocrOn && hasFile) chips.push(BANCA.ocrStateBadge('ocr', ocrStatus));
-  // Bỏ chip trạng thái duyệt của seller (không còn hành động duyệt ở bước tải tài liệu).
+  // Bỏ chip trạng thái duyệt của nhân viên tư vấn (không còn hành động duyệt ở bước tải tài liệu).
   if(hasFile && def.locked && revStatus && revStatus!=='NOT_REVIEWED') chips.push(BANCA.ocrStateBadge('review', revStatus));
   if(hasFile && verStatus!=='UNVERIFIED') chips.push(BANCA.ocrStateBadge('verify', verStatus));
   // Thumbnail: có ảnh → ảnh; đã cung cấp nhưng không có ảnh (vd bóc tách OCR) → icon tài liệu; chưa có → chấm trạng thái.
@@ -136,7 +136,7 @@ BANCA.docItemHtml = function(appId, def){
       +`<button class="btn ${def.required?'btn-primary':'btn-secondary'} btn-sm" onclick="document.getElementById('${fid}').click()">Tải lên</button>`
       +(ocrOn?`<input type="file" id="${fid}c" accept="image/*" capture="environment" style="display:none" onchange="docUpload('${appId}','${def.code}','${def.docType||''}',this)"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('${fid}c').click()">📷</button>`:'');
   } else {
-    // Seller chỉ tải/thay thế; việc duyệt thuộc thẩm định (UW) — bỏ nút "Duyệt" thừa ở đây.
+    // Nhân viên tư vấn chỉ tải/thay thế; việc duyệt thuộc thẩm định (UW) — bỏ nút "Duyệt" thừa ở đây.
     actions = `<button class="btn btn-secondary btn-sm" onclick="docPreview('${appId}','${def.code}')">Xem</button>`
       +`<input type="file" id="${fid}" accept="image/*" style="display:none" onchange="docUpload('${appId}','${def.code}','${def.docType||''}',this)"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('${fid}').click()">Thay thế</button>`;
   }
@@ -179,5 +179,5 @@ window.docPreview = function(appId, code){ const rec=BANCA.docGet(appId,code); i
  const ex=rec.extracted;
  const ocrBlock = ex? `<div style="margin-top:10px;"><div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">Kết quả OCR · tin cậy ${BANCA.pctConf(ex.overall)}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;">${ex.fields.slice(0,6).map(f=>`<div><span style="color:var(--ink-500);">${f.label}:</span> <b>${f.value}</b></div>`).join('')}</div></div>`:'';
  const verHist = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);"><div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">Lịch sử phiên bản</div><div style="font-size:12px;">V1 <span class="badge badge-blocked" style="font-size:9px;">Bị từ chối</span> → V2 <span class="badge badge-ready" style="font-size:9px;">Đã chấp nhận</span></div></div>`;
- const meta=`<div style="margin-top:10px;font-size:11.5px;color:var(--ink-300);">Tải bởi: Seller · ${rec.fileName||'—'} · Nguồn: ${ex?'OCR':'Upload'} · Trạng thái: ${(BANCA.OCR_STATE.verify[rec.verificationStatus]||'Chưa xác minh')}</div>`;
+ const meta=`<div style="margin-top:10px;font-size:11.5px;color:var(--ink-300);">Tải bởi: Nhân viên tư vấn · ${rec.fileName||'—'} · Nguồn: ${ex?'OCR':'Upload'} · Trạng thái: ${(BANCA.OCR_STATE.verify[rec.verificationStatus]||'Chưa xác minh')}</div>`;
  d.innerHTML=`<div class="modal2" style="max-width:600px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>${(BANCA.__docDefs[code]||{}).name||'Tài liệu'}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body"><img src="${rec.dataUrl}" style="width:100%;border-radius:8px;">${ocrBlock}${verHist}${meta}</div></div>`; root.appendChild(d); };

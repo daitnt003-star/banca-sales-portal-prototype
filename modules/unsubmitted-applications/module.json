@@ -1,8 +1,8 @@
 {
   "id": "unsubmitted-applications",
-  "name": "Hồ sơ chưa nộp",
+  "name": "Yêu cầu bảo hiểm chưa nộp",
   "entry": "./modules/unsubmitted-applications/index.html",
-  "navigation": {"group": "BÁN BẢO HIỂM", "label": "Hồ sơ chưa nộp", "order": 20},
+  "navigation": {"group": "BÁN BẢO HIỂM", "label": "Yêu cầu bảo hiểm chưa nộp", "order": 20},
   "permissions": ["VIEW_WORKSPACE"],
   "dependsOn": ["shared.app-shell", "shared.head-loader"],
   "owns": ["UnsubmittedListView"]

@@ -3,10 +3,15 @@
 (function(){
  const r = location.pathname.includes('/modules/') ? '../../' : location.pathname.includes('/dev/') ? '../' : '';
  const files = [
+  'shared/js/terminology.js',
   'shared/mock/seed/sellers.js',
   'shared/mock/seed/products.js',
   'shared/mock/seed/status-model.js',
+  'shared/mock/seed/journey-registry.js',
   'shared/mock/seed/vehicle-master.js',
+  'shared/mock/seed/product-schemas.js',
+  'shared/mock/seed/insured-units.js',
+  'shared/mock/seed/case-state-resolver.js',
   'shared/mock/seed/customers.js',
   'shared/mock/seed/applications.js',
   'shared/mock/seed/policies.js',
@@ -36,7 +41,7 @@
   'shared/js/mock-store.js',
   'shared/js/app-shell.js'
  ];
- const V = 'v=20260723a'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260723u'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
 })();

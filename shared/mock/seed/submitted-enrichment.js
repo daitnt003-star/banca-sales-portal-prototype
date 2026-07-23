@@ -40,7 +40,7 @@ window.BANCA = window.BANCA || {};
     ];
     if(a.uw){
       a.uw.officer = a.uw.officer || (a.id==='APP-2026-105'?'Nguyễn Thị Thẩm':'Trần Quốc UW');
-      a.uw.note = a.uw.note || (a.uw.decision==='APPROVED_WITH_LOADING'?'Tăng phí do lịch sử claim; cần khách xác nhận phí mới.': a.uw.decision==='APPROVED_WITH_EXCLUSION'?'Áp điều khoản loại trừ theo khu vực/nguy cơ.': a.uw.decision==='REJECTED'?'Ngoài khẩu vị nhận bảo hiểm.':'Hồ sơ đạt điều kiện phát hành tiêu chuẩn.');
+      a.uw.note = a.uw.note || (a.uw.decision==='APPROVED_WITH_LOADING'?'Tăng phí do lịch sử claim; cần khách xác nhận phí mới.': a.uw.decision==='APPROVED_WITH_EXCLUSION'?'Áp điều khoản loại trừ theo khu vực/nguy cơ.': a.uw.decision==='REJECTED'?'Ngoài khẩu vị nhận bảo hiểm.':'Yêu cầu đạt điều kiện phát hành tiêu chuẩn.');
     }
   });
   const app103=BANCA.appById&&BANCA.appById('APP-2026-103');

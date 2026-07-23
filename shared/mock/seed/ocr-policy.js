@@ -104,7 +104,9 @@ BANCA.docPatch = (id,code,patch) => { const s=BANCA.docAll(id); s[code]=Object.a
 BANCA.docItemHtml = function(appId, def){
   BANCA.__docDefs[def.code] = def; // registry để re-render sau upload
   const rec = BANCA.docGet(appId, def.code);
-  const hasFile = !!(rec.dataUrl||rec.fileName);
+  // "Đã có" = có file thật (dataUrl/fileName) HOẶC hệ thống đã ghi nhận tài liệu này được cung cấp (def.uploaded,
+  // vd CCCD đã bóc tách OCR ở bước Khách hàng). Tránh cảnh "đã có hình mà vẫn hiện Tải lên".
+  const hasFile = !!(rec.dataUrl||rec.fileName||def.uploaded);
   const ocrOn = def.ocr==='enabled'||def.ocr==='optional';
   const upStatus = hasFile?'UPLOADED':(def.required?'MISSING':'NONE');
   const ocrStatus = !ocrOn?'NOT_REQUIRED':(hasFile?(rec.ocrStatus||'EXTRACTED'):'PENDING');
@@ -115,9 +117,15 @@ BANCA.docItemHtml = function(appId, def){
   const chips=[];
   chips.push(hasFile?'<span class="badge badge-ready">Đã tải</span>':(def.required?'<span class="badge badge-blocked">Còn thiếu</span>':'<span class="badge badge-version">Tùy chọn</span>'));
   if(ocrOn && hasFile) chips.push(BANCA.ocrStateBadge('ocr', ocrStatus));
-  if(hasFile) chips.push(BANCA.ocrStateBadge('review', revStatus));
+  // Bỏ chip trạng thái duyệt của seller (không còn hành động duyệt ở bước tải tài liệu).
+  if(hasFile && def.locked && revStatus && revStatus!=='NOT_REVIEWED') chips.push(BANCA.ocrStateBadge('review', revStatus));
   if(hasFile && verStatus!=='UNVERIFIED') chips.push(BANCA.ocrStateBadge('verify', verStatus));
-  const thumb = rec.dataUrl?`<img class="doc-item-thumb" src="${rec.dataUrl}" alt="">`:`<span style="display:inline-flex;width:40px;height:40px;border-radius:8px;align-items:center;justify-content:center;font-weight:800;background:${dot[2]};color:${dot[1]};">${dot[0]}</span>`;
+  // Thumbnail: có ảnh → ảnh; đã cung cấp nhưng không có ảnh (vd bóc tách OCR) → icon tài liệu; chưa có → chấm trạng thái.
+  const thumb = rec.dataUrl
+    ? `<img class="doc-item-thumb" src="${rec.dataUrl}" alt="">`
+    : (hasFile
+      ? `<span style="display:inline-flex;width:40px;height:40px;border-radius:8px;align-items:center;justify-content:center;background:#eaf1fe;color:#2563eb;font-size:18px;">📄</span>`
+      : `<span style="display:inline-flex;width:40px;height:40px;border-radius:8px;align-items:center;justify-content:center;font-weight:800;background:${dot[2]};color:${dot[1]};">${dot[0]}</span>`);
   const fid='docf-'+def.code;
   let actions;
   if(def.locked){
@@ -128,9 +136,9 @@ BANCA.docItemHtml = function(appId, def){
       +`<button class="btn ${def.required?'btn-primary':'btn-secondary'} btn-sm" onclick="document.getElementById('${fid}').click()">Tải lên</button>`
       +(ocrOn?`<input type="file" id="${fid}c" accept="image/*" capture="environment" style="display:none" onchange="docUpload('${appId}','${def.code}','${def.docType||''}',this)"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('${fid}c').click()">📷</button>`:'');
   } else {
+    // Seller chỉ tải/thay thế; việc duyệt thuộc thẩm định (UW) — bỏ nút "Duyệt" thừa ở đây.
     actions = `<button class="btn btn-secondary btn-sm" onclick="docPreview('${appId}','${def.code}')">Xem</button>`
-      +`<input type="file" id="${fid}" accept="image/*" style="display:none" onchange="docUpload('${appId}','${def.code}','${def.docType||''}',this)"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('${fid}').click()">Thay thế</button>`
-      +((ocrOn&&revStatus==='NOT_REVIEWED')?`<button class="btn btn-primary btn-sm" onclick="docReview('${appId}','${def.code}')">Duyệt</button>`:'');
+      +`<input type="file" id="${fid}" accept="image/*" style="display:none" onchange="docUpload('${appId}','${def.code}','${def.docType||''}',this)"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('${fid}').click()">Thay thế</button>`;
   }
   return `<div class="doc-item" id="docitem-${def.code}">
     <div>${thumb}</div>

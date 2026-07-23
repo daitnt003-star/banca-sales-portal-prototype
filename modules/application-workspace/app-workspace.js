@@ -561,7 +561,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   };
   // Unified Document Item — OCR là capability; đọc chung store với bước Đối tượng bảo hiểm
   const ocrMap = {REG:['enabled','VEHICLE_REGISTRATION'], INSPECT:['optional',null], VALUE_PROOF:['optional',null], ID:['enabled','NATIONAL_ID']};
-  const toDef = d => { const rr=req[d.code]; const need=rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active); const om=ocrMap[d.code]||['none',null]; return {code:d.code, name:d.name, sub:(d.sub||'')+(rr.note?' · '+rr.note:''), ocr:om[0], required:need, docType:om[1]}; };
+  const toDef = d => { const rr=req[d.code]; const need=rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active); const om=ocrMap[d.code]||['none',null]; return {code:d.code, name:d.name, sub:(d.sub||'')+(rr.note?' · '+rr.note:''), ocr:om[0], required:need, docType:om[1], uploaded:uploaded.includes(d.code)}; };
   const storeAll = BANCA.docAll(app.id);
   const isUploaded = code => !!(storeAll[code] && (storeAll[code].dataUrl||storeAll[code].fileName));
   const isOcr = code => !!(storeAll[code] && storeAll[code].ocrStatus);   // đã bóc tách OCR (CCCD, đăng ký xe)

@@ -288,25 +288,168 @@ BANCA.NEED_QUESTIONS = {
 };
 BANCA.needQuestionsFor = need => BANCA.NEED_QUESTIONS[need] || BANCA.NEED_QUESTIONS.HEALTH;
 
-// Financial Gap ĐỘNG theo need (info card, không table)
-BANCA.financialGapByNeed = function(state){
-  const income = {UNDER_500K:15000000,'500K_1M':30000000,'1M_2M':45000000,OVER_2M:70000000}[state.budgetBand]||30000000;
+// ============================================================
+// §A — KHOẢNG TRỐNG BẢO VỆ: config versioned + hàm tính.
+// KHÔNG hard-code số trong hàm tính — mọi giả định đọc từ config này.
+// Thiếu input → dùng "Kịch bản minh họa" và hiển thị toàn bộ giả định;
+// KHÔNG gọi kết quả minh họa là kết quả cá nhân hóa.
+// ============================================================
+BANCA.PROTECTION_GAP_CONFIG = {
+  version: 'GAP-2026.07',
+  illustrativeLabel: 'Kịch bản minh họa',
+  personalizedLabel: 'Ước tính theo thông tin đã nhập',
+  disclaimer: 'Ước tính minh họa để giải thích vì sao nên có bảo hiểm — không phải con số cam kết.',
+  // Thu nhập/tháng suy ra từ dải ngân sách (dùng cho nhu cầu thu nhập).
+  incomeByBand: {UNDER_500K:15000000,'500K_1M':30000000,'1M_2M':45000000,OVER_2M:70000000,_default:30000000},
+  health: {
+    icon:'🏥', title:'Khoảng trống chi phí điều trị',
+    // Kịch bản điều trị minh họa (estimatedTreatment gốc, trước hệ số bệnh viện).
+    scenario: {label:'Đợt điều trị nội trú lớn', base:80000000},
+    // Ưu tiên bệnh viện làm THAY ĐỔI chi phí điều trị ước tính.
+    hospitalFactor: {'Công':1.0, 'Tư':1.8, 'Quốc tế':3.2, _default:1.0},
+    hospitalDefault: 'Công',
+    // BHYT: benefitRate × routeFactor (routeFactor thấp dần Công→Tư→Quốc tế).
+    bhyt: {benefitRate:0.8, routeFactor:{'Công':0.5, 'Tư':0.25, 'Quốc tế':0, _default:0.5}},
+    bhytDefault: true,
+    // Bảo hiểm hiện có còn dùng được (existingRemaining) theo câu trả lời.
+    existingRemaining: {'Chưa':0, 'Có (cơ bản)':30000000, 'Có (đầy đủ)':80000000, _default:0},
+    reserveDefault: 0
+  },
+  income: {
+    icon:'💼', title:'Khoảng trống bảo vệ thu nhập',
+    protectMonths:12, replaceRate:0.3,
+    reserveByAnswer:{'<1 tháng':10000000, '1–3 tháng':40000000, '>3 tháng':90000000, _default:20000000}
+  },
+  family: {icon:'👨‍👩‍👧', title:'Khoảng trống bảo vệ gia đình', familyCost:150000000, existing:30000000},
+  loan:   {icon:'🏦', title:'Khoảng trống bảo vệ khoản vay', familyCost:150000000, loanBalance:200000000, existing:30000000},
+  motor:  {icon:'🚗', title:'Rủi ro tài sản xe',
+    carValueByAnswer:{'<600tr':500000000, '600tr–1 tỷ':800000000, '>1 tỷ':1200000000, _default:800000000},
+    existingCover:0}
+};
+
+// protectionGap(state) — tính khoảng trống bảo vệ TỪ input + config.
+// Trả: {icon,title,personalized,scenarioLabel,assumptions[],breakdown[],gap,gapPct,disclaimer, rows,pct(compat)}
+BANCA.protectionGap = function(state){
+  state = state || {};
+  const cfg = BANCA.PROTECTION_GAP_CONFIG;
+  const dyn = state.dynAnswers || {};
   const need = state.primaryNeed;
+  const R = n => Math.round(n||0);
+  const pick = (map, k) => (map && (k in map)) ? map[k] : (map ? map._default : 0);
+  const finish = (base) => {
+    const gap = Math.max(0, base.gap);
+    const denom = base.denom>0 ? base.denom : (base.breakdown[0] ? base.breakdown[0].amount : 0);
+    const gapPct = denom>0 ? Math.min(100, R(gap/denom*100)) : 0;
+    return {
+      icon:base.icon, title:base.title,
+      personalized:base.personalized,
+      scenarioLabel: base.personalized ? cfg.personalizedLabel : cfg.illustrativeLabel,
+      assumptions:base.assumptions, breakdown:base.breakdown,
+      gap, gapPct, disclaimer:cfg.disclaimer,
+      // ---- backward-compat cho financialGapByNeed cũ ----
+      rows: base.breakdown.map(b=>[b.label, b.amount, b.tone]),
+      pct: gapPct
+    };
+  };
+
+  if(need==='HEALTH' || BANCA.NEED_COVERAGE && (BANCA.needCoverage(need).groups||[]).includes('HEALTH') && need!=='FAMILY_HEALTH'){
+    const h = cfg.health;
+    let personalized = true;
+    const assumptions = [];
+    const hospInput = dyn.hospital;               if(hospInput===undefined) personalized=false;
+    const hosp = hospInput || h.hospitalDefault;
+    const hFactor = pick(h.hospitalFactor, hosp);
+    const estimatedTreatment = R(h.scenario.base * hFactor);
+    assumptions.push({label:'Kịch bản điều trị', value:h.scenario.label+' · '+BANCA.vnd(h.scenario.base), provided:true});
+    assumptions.push({label:'Ưu tiên bệnh viện', value:hosp+' (×'+hFactor+')', provided:hospInput!==undefined});
+    const bhytInput = dyn.bhyt;                    if(bhytInput===undefined) personalized=false;
+    const hasBhyt = bhytInput!==undefined ? bhytInput==='Có' : h.bhytDefault;
+    const routeFactor = pick(h.bhyt.routeFactor, hosp);
+    const bhytContribution = hasBhyt ? R(estimatedTreatment * h.bhyt.benefitRate * routeFactor) : 0;
+    assumptions.push({label:'BHYT', value: hasBhyt ? ('Có · chi trả ~'+R(h.bhyt.benefitRate*routeFactor*100)+'% ('+hosp+')') : 'Không', provided:bhytInput!==undefined});
+    const exInput = dyn.insured_before;            if(exInput===undefined) personalized=false;
+    const existingRemaining = pick(h.existingRemaining, exInput);
+    const existingContribution = Math.min(existingRemaining, Math.max(0, estimatedTreatment - bhytContribution));
+    assumptions.push({label:'Bảo hiểm hiện có', value:(exInput||'Chưa xác định')+' · còn dùng '+BANCA.vnd(existingRemaining), provided:exInput!==undefined});
+    const reserve = h.reserveDefault;
+    if(reserve) assumptions.push({label:'Quỹ dự phòng dùng cho y tế', value:BANCA.vnd(reserve), provided:false});
+    const gap = estimatedTreatment - bhytContribution - existingContribution - reserve;
+    const breakdown = [
+      {label:'Chi phí điều trị ước tính', amount:estimatedTreatment, tone:'ink', op:''},
+      {label:'BHYT chi trả', amount:bhytContribution, tone:'teal', op:'−'},
+      {label:'Bảo hiểm hiện có', amount:existingContribution, tone:'teal', op:'−'}
+    ];
+    if(reserve) breakdown.push({label:'Quỹ dự phòng', amount:reserve, tone:'teal', op:'−'});
+    breakdown.push({label:'Khoảng trống', amount:Math.max(0,gap), tone:'red', op:'='});
+    return finish({icon:h.icon, title:h.title, personalized, assumptions, breakdown, gap, denom:estimatedTreatment});
+  }
+
   if(need==='INCOME'){
-    const reserve=20000000; const annual=income*12; const gap=Math.max(0, annual*0.3 - reserve);
-    return {icon:'💼', title:'Khoảng trống bảo vệ thu nhập', rows:[['Thu nhập/năm',income*12,'ink'],['Quỹ dự phòng',reserve,'teal'],['Khoảng trống',gap,'red']], gap, pct:Math.min(100,Math.round(gap/(annual*0.3)*100))};
+    const c = cfg.income;
+    const income = pick(cfg.incomeByBand, state.budgetBand);
+    const annualNeed = income * c.protectMonths * c.replaceRate;
+    const reserveInput = dyn.reserve;
+    const personalized = state.budgetBand!=null && reserveInput!==undefined;
+    const reserve = pick(c.reserveByAnswer, reserveInput);
+    const gap = annualNeed - reserve;
+    const assumptions = [
+      {label:'Thu nhập/tháng (theo ngân sách)', value:BANCA.vnd(income), provided:state.budgetBand!=null},
+      {label:'Thời gian cần bù đắp', value:c.protectMonths+' tháng × '+R(c.replaceRate*100)+'% thu nhập', provided:true},
+      {label:'Quỹ dự phòng hiện có', value:(reserveInput||'Chưa xác định')+' · '+BANCA.vnd(reserve), provided:reserveInput!==undefined}
+    ];
+    const breakdown = [
+      {label:'Thu nhập cần bảo vệ', amount:R(annualNeed), tone:'ink', op:''},
+      {label:'Quỹ dự phòng', amount:reserve, tone:'teal', op:'−'},
+      {label:'Khoảng trống', amount:Math.max(0,R(gap)), tone:'red', op:'='}
+    ];
+    return finish({icon:c.icon, title:c.title, personalized, assumptions, breakdown, gap, denom:annualNeed});
   }
-  if(need==='FAMILY_HEALTH'||need==='HOME'||need==='LOAN'){
-    const familyCost=150000000; const loan=(need==='LOAN')?200000000:0; const existing=30000000; const gap=familyCost+loan-existing;
-    return {icon:'👨‍👩‍👧', title:'Khoảng trống bảo vệ gia đình', rows:[['Chi phí gia đình/năm',familyCost,'ink'],(loan?['Dư nợ khoản vay',loan,'amber']:['Bảo vệ hiện có',existing,'teal']),['Khoảng trống',gap,'red']].filter(Boolean), gap, pct:80};
+
+  if(need==='FAMILY_HEALTH' || need==='LOAN' || need==='HOME'){
+    const isLoan = need==='LOAN';
+    const c = isLoan ? cfg.loan : cfg.family;
+    const loan = isLoan ? c.loanBalance : 0;
+    const total = c.familyCost + loan;
+    const gap = total - c.existing;
+    const assumptions = [
+      {label:'Chi phí bảo vệ gia đình', value:BANCA.vnd(c.familyCost), provided:false},
+      isLoan ? {label:'Dư nợ khoản vay', value:BANCA.vnd(loan), provided:false} : null,
+      {label:'Bảo vệ hiện có', value:BANCA.vnd(c.existing), provided:false}
+    ].filter(Boolean);
+    const breakdown = [
+      {label:'Chi phí gia đình/năm', amount:c.familyCost, tone:'ink', op:''},
+      isLoan ? {label:'Dư nợ khoản vay', amount:loan, tone:'amber', op:'+'} : null,
+      {label:'Bảo vệ hiện có', amount:c.existing, tone:'teal', op:'−'},
+      {label:'Khoảng trống', amount:Math.max(0,gap), tone:'red', op:'='}
+    ].filter(Boolean);
+    return finish({icon:c.icon, title:c.title, personalized:false, assumptions, breakdown, gap, denom:total});
   }
+
   if(need==='MOTOR'){
-    const carVal=800000000; const cover=0; const gap=carVal;
-    return {icon:'🚗', title:'Rủi ro tài sản xe', rows:[['Giá trị xe',carVal,'ink'],['Đang được bảo vệ',cover,'teal'],['Cần bảo vệ',gap,'red']], gap, pct:100};
+    const c = cfg.motor;
+    const carInput = dyn.car_value;
+    const carVal = pick(c.carValueByAnswer, carInput);
+    const gap = carVal - c.existingCover;
+    const assumptions = [
+      {label:'Giá trị xe ước tính', value:(carInput||'Chưa xác định')+' · '+BANCA.vnd(carVal), provided:carInput!==undefined},
+      {label:'Đang được bảo vệ', value:BANCA.vnd(c.existingCover), provided:false}
+    ];
+    const breakdown = [
+      {label:'Giá trị xe', amount:carVal, tone:'ink', op:''},
+      {label:'Đang được bảo vệ', amount:c.existingCover, tone:'teal', op:'−'},
+      {label:'Cần bảo vệ', amount:Math.max(0,gap), tone:'red', op:'='}
+    ];
+    return finish({icon:c.icon, title:c.title, personalized:carInput!==undefined, assumptions, breakdown, gap, denom:carVal});
   }
-  // HEALTH default
-  const treatment=80000000; const bhyt=20000000; const gap=treatment-bhyt;
-  return {icon:'🏥', title:'Khoảng trống chi phí điều trị', rows:[['Chi phí điều trị ước tính',treatment,'ink'],['BHYT chi trả',bhyt,'teal'],['Khoảng trống',gap,'red']], gap, pct:Math.round(gap/treatment*100)};
+
+  // Nhu cầu chưa có mô hình gap riêng → fallback health illustrative.
+  return BANCA.protectionGap(Object.assign({}, state, {primaryNeed:'HEALTH'}));
+};
+
+// Backward-compat: giữ chữ ký cũ {icon,title,rows,gap,pct} cho nơi còn gọi.
+BANCA.financialGapByNeed = function(state){
+  const g = BANCA.protectionGap(state);
+  return {icon:g.icon, title:g.title, rows:g.rows, gap:g.gap, pct:g.gapPct};
 };
 
 // Upsell riders (gợi ý — không tự thêm)
@@ -330,5 +473,154 @@ BANCA.decisionSupport = function(offers, selectedPkg){
   if(basic && sel && basic.packageRef!==sel.packageRef){
     out.push(['Vì sao không chọn '+basic.packageName+'?','Tiết kiệm hơn nhưng thiếu một số quyền lợi khách đang ưu tiên.']);
   }
+  return out;
+};
+
+// ============================================================
+// §B — GỢI Ý NHIỀU NHU CẦU / NHIỀU SẢN PHẨM.
+// Trọng số & điểm số đọc từ RECOMMENDATION_CONFIG (không hard-code).
+// Loại sản phẩm KHÔNG đủ eligibility TRƯỚC khi chấm điểm.
+//  - 1 nhu cầu : tương thích hành vi cũ (một phương án).
+//  - 2 nhu cầu : một sản phẩm hoặc bundle tối đa 2.
+//  - >=3 nhu cầu: BUDGET_FIT (trong ngân sách) + FULLER_COVERAGE (đầy đủ hơn).
+// ============================================================
+BANCA.RECOMMENDATION_CONFIG = {
+  version: BANCA.RECOMMENDATION_VERSION,
+  weights: {primary:5, HIGH:3, MEDIUM:2, LOW:1, relatedConcernBonus:1},
+  score:   {needCoverage:0.6, budgetFit:0.2, eligibility:0.1, simplicity:0.1},
+  budgetMax: {UNDER_500K:500000,'500K_1M':1000000,'1M_2M':2000000,OVER_2M:9000000,_default:9000000},
+  maxBundle: 3,
+  // mối lo ngại → nhu cầu liên quan (dùng cho related concern bonus)
+  concernToNeed: {TREATMENT_COST:'HEALTH', INCOME_LOSS:'INCOME', LOAN:'LOAN', DEPENDENTS:'FAMILY_HEALTH', CHILDREN:'FAMILY_HEALTH'},
+  planTypes: {
+    BUDGET_FIT:      {label:'Trong ngân sách',   desc:'Ưu tiên chi phí thấp, tập trung nhu cầu quan trọng nhất.'},
+    FULLER_COVERAGE: {label:'Bảo vệ đầy đủ hơn', desc:'Thêm sản phẩm bổ trợ để phủ nhiều nhu cầu hơn.'},
+    SINGLE:          {label:'Phương án đề xuất',  desc:'Một sản phẩm phù hợp nhu cầu chính.'}
+  }
+};
+// Nhóm sản phẩm của một offer (để biết offer phủ nhu cầu nào).
+BANCA.PRODUCT_GROUP = {health:'HEALTH', motor:'MOTOR', pa:'ACCIDENT'};
+
+// Chuẩn hóa phí/tháng minh họa về số VND (xử lý 'K' và 'triệu'/'tỷ').
+BANCA.advMonthlyVnd = function(str){
+  const s = String(str==null?'':str);
+  const m = s.match(/([0-9]+(?:[.,][0-9]+)?)/);
+  if(!m) return 0;
+  const num = parseFloat(m[1].replace(',','.'));
+  if(/tỷ/i.test(s)) return Math.round(num*1e9);
+  if(/tri[ệe]u|\btr\b/i.test(s)) return Math.round(num*1e6);
+  if(/k/i.test(s)) return Math.round(num*1000);
+  return Math.round(num);
+};
+
+// Trọng số từng nhu cầu: primary=5, còn lại theo mức ưu tiên, +bonus nếu khớp mối lo ngại.
+BANCA.advNeedWeights = function(state){
+  const cfg = BANCA.RECOMMENDATION_CONFIG;
+  const profile = state.needProfile || [];
+  const concerns = state.concerns || [];
+  const related = new Set(concerns.map(c=>cfg.concernToNeed[c]).filter(Boolean));
+  return profile.map(function(n){
+    const nid = n.needId;
+    let w = (state.primaryNeed===nid) ? cfg.weights.primary
+          : (cfg.weights[(state.priorities&&state.priorities[nid])||n.weight||'MEDIUM'] || cfg.weights.MEDIUM);
+    if(related.has(nid)) w += cfg.weights.relatedConcernBonus;
+    return {needId:nid, weight:w, served:BANCA.needCoverage(nid).served};
+  }).sort((a,b)=>b.weight-a.weight);
+};
+
+// Offer đủ điều kiện bán cho một nhu cầu (LỌC eligibility TRƯỚC scoring).
+BANCA.advEligibleOffers = function(need, me){
+  return (BANCA.adviceOffersFor(need)||[]).filter(function(o){
+    if(!BANCA.readinessFor) return true;
+    const rd = BANCA.readinessFor(o.productRef, me);
+    return rd.ready || rd.canQuote;
+  });
+};
+
+// Một nhu cầu được phủ bởi tập offer nếu có offer thuộc nhóm phục vụ nhu cầu đó.
+BANCA._needCoveredBy = function(need, offers){
+  const groups = BANCA.needCoverage(need).groups || [];
+  return (offers||[]).some(o=>groups.includes(BANCA.PRODUCT_GROUP[o.productRef]));
+};
+
+// Dựng một plan từ danh sách offer + tập nhu cầu yêu cầu (kèm trọng số).
+BANCA._buildPlan = function(id, offers, weighted, state){
+  const cfg = BANCA.RECOMMENDATION_CONFIG;
+  offers = (offers||[]).filter(Boolean);
+  const pt = cfg.planTypes[id] || cfg.planTypes.SINGLE;
+  const requested = weighted.map(w=>w.needId);
+  const covered = requested.filter(n=>BANCA._needCoveredBy(n, offers));
+  const gaps    = requested.filter(n=>covered.indexOf(n)<0);
+  const totalMonthly = offers.reduce((s,o)=>s+BANCA.advMonthlyVnd(o.premiumMonthly),0);
+  const budget = (cfg.budgetMax[state.budgetBand]!=null) ? cfg.budgetMax[state.budgetBand] : cfg.budgetMax._default;
+  const within = totalMonthly<=budget;
+  // ---- score ----
+  const totW = weighted.reduce((s,w)=>s+w.weight,0) || 1;
+  const covW = weighted.filter(w=>covered.indexOf(w.needId)>=0).reduce((s,w)=>s+w.weight,0);
+  const nc = covW/totW;
+  const bf = within ? 1 : Math.max(0, 1-(totalMonthly-budget)/(budget||1));
+  const el = 1; // offer đã lọc eligibility trước
+  const sp = 1/Math.max(1, offers.length);
+  const s = cfg.score;
+  const score = Math.round(100*(nc*s.needCoverage + bf*s.budgetFit + el*s.eligibility + sp*s.simplicity));
+  const verify = Array.from(new Set(offers.reduce((a,o)=>a.concat(o.verify||[]),[])));
+  const why = (id==='BUDGET_FIT'
+      ? 'Tập trung nhu cầu quan trọng nhất với chi phí thấp'+(within?', trong ngân sách':', gần ngân sách')+'.'
+      : id==='FULLER_COVERAGE'
+      ? 'Phủ '+covered.length+'/'+requested.length+' nhu cầu bằng '+offers.length+' sản phẩm — bảo vệ rộng hơn.'
+      : 'Phù hợp nhu cầu chính với '+offers.length+' sản phẩm.');
+  return {
+    id, type:id, label:pt.label, desc:pt.desc,
+    primaryOffer: offers[0]||null, addOns: offers.slice(1), offers,
+    totalMonthly, totalMonthlyLabel: BANCA.vnd(totalMonthly)+'/tháng',
+    coveredNeeds: covered, remainingGaps: gaps,
+    within, score, why, verify
+  };
+};
+
+// recommendPlans(state) → {plans[], requested[], budget, needCount, eligibleServedCount}
+BANCA.recommendPlans = function(state){
+  state = state || {};
+  const cfg = BANCA.RECOMMENDATION_CONFIG;
+  const me = (BANCA.current && BANCA.current()) || state.createdBy;
+  const weighted = BANCA.advNeedWeights(state);
+  const requested = weighted.map(w=>w.needId);
+  const needCount = requested.length;
+  const budget = (cfg.budgetMax[state.budgetBand]!=null) ? cfg.budgetMax[state.budgetBand] : cfg.budgetMax._default;
+  const servedWeighted = weighted.filter(w=>w.served && BANCA.advEligibleOffers(w.needId, me).length>0);
+  const out = {plans:[], requested, budget, needCount, eligibleServedCount:servedWeighted.length};
+  if(!servedWeighted.length) return out;
+
+  const cheapest = need => BANCA.advEligibleOffers(need, me).slice().sort((a,b)=>BANCA.advMonthlyVnd(a.premiumMonthly)-BANCA.advMonthlyVnd(b.premiumMonthly));
+  const richest  = need => BANCA.advEligibleOffers(need, me).slice().sort((a,b)=>(b.fit||0)-(a.fit||0));
+  const topNeed  = servedWeighted[0].needId;
+
+  // BUDGET_FIT: một sản phẩm — rẻ nhất cho nhu cầu quan trọng nhất, ưu tiên trong ngân sách.
+  const topCheap = cheapest(topNeed);
+  const budgetOffer = topCheap.find(o=>BANCA.advMonthlyVnd(o.premiumMonthly)<=budget) || topCheap[0];
+  const budgetPlan = BANCA._buildPlan('BUDGET_FIT', [budgetOffer], weighted, state);
+
+  // FULLER_COVERAGE: bundle — gói fit cao cho nhu cầu chính + thêm sản phẩm cho nhu cầu chưa phủ.
+  const cap = (needCount>=3) ? cfg.maxBundle : 2;
+  const bundle = [];
+  const usedGroups = new Set();
+  const pushOffer = o => { if(o){ const g=BANCA.PRODUCT_GROUP[o.productRef]; if(!usedGroups.has(g)){ bundle.push(o); usedGroups.add(g); } } };
+  pushOffer(richest(topNeed)[0]);
+  for(const w of servedWeighted){
+    if(bundle.length>=cap) break;
+    if(w.needId===topNeed) continue;
+    if(BANCA._needCoveredBy(w.needId, bundle)) continue;
+    pushOffer(richest(w.needId)[0]);
+  }
+  const fullerPlan = BANCA._buildPlan('FULLER_COVERAGE', bundle, weighted, state);
+
+  if(needCount<=1){
+    // Tương thích 1 nhu cầu: một phương án duy nhất.
+    out.plans = [BANCA._buildPlan('SINGLE', [richest(topNeed)[0]], weighted, state)];
+    return out;
+  }
+  const sameSet = a => a.offers.map(o=>o.productRef+':'+o.packageRef).sort().join('|');
+  out.plans = [budgetPlan];
+  if(sameSet(fullerPlan)!==sameSet(budgetPlan)) out.plans.push(fullerPlan);
   return out;
 };

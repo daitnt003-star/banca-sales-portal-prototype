@@ -308,3 +308,16 @@ table.dtable tr:hover td{background:var(--paper);}
 /* §10 — legend checklist tài liệu (dùng chung edit mode + tracking mode) */
 .doc-legend{padding:10px 14px;margin-bottom:var(--space-md);display:flex;justify-content:space-between;
   gap:var(--space-md);flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-500);}
+
+/* §9.3 — thẻ đánh số của màn Xác nhận & Thanh toán (dùng chung Motor/Health) */
+.cp-card{padding:var(--space-lg) 18px;margin-bottom:14px;}
+.cp-card-head{display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-md);}
+.cp-num{width:22px;height:22px;border-radius:var(--radius-pill);background:var(--brand-600);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
+.cp-title{font-size:14px;color:var(--ink-900);}
+.cp-sub{font-size:12px;color:var(--ink-500);}
+
+/* §9.4 — công cụ demo tách bạch khỏi UI nghiệp vụ (không để lẫn với thao tác thật) */
+.demo-tools{margin-top:var(--space-md);border-top:1px dashed var(--line);padding-top:var(--space-md);}
+.demo-tools .label{margin-bottom:var(--space-xs);}
+.demo-note{font-size:11px;color:var(--ink-300);margin-top:var(--space-xs);}

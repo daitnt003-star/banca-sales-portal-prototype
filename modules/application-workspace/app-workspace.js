@@ -2084,15 +2084,8 @@ function cpStatusVN(s2){
 }
 // Cách thanh toán → nhãn tiếng Việt (đọc từ payment-method-config, 1 nguồn).
 function cpMethodVN(pay){ return BANCA.paymentMethodLabel(pay); }
-function cpCard(num,title,inner,sub){
- return `<section class="card" style="padding:16px 18px;margin-bottom:14px;">
-   <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-     <span style="width:22px;height:22px;border-radius:50%;background:var(--brand-600);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${num}</span>
-     <b style="font-size:14px;color:var(--ink-900);">${title}</b>${sub?`<span style="font-size:12px;color:var(--ink-500);">· ${sub}</span>`:''}
-   </div>
-   ${inner}
- </section>`;
-}
+// Thẻ đánh số dùng chung — không tự dựng lại trong trang (§3.2).
+function cpCard(num,title,inner,sub){ return BANCA.ui.cpCard(num,title,inner,sub); }
 // ---- Trạng thái xử lý (process progress) — strip dùng chung (header + section) ----
 function caseStepperStrip(){
  const s=caseFlow.s;
@@ -2120,7 +2113,7 @@ function caseStepperStrip(){
  return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px;flex-wrap:nowrap;overflow-x:auto;">${nodes}</div>`;
 }
 // ---- Section 2: Xác nhận khách hàng ----
-function cpConfirmSection(){
+function cpConfirmInner(){
  const isMemberHealth = app.productId==='health' && Array.isArray(app.insuredMembers) && app.insuredMembers.some(function(m){return m.confirmation||m.underwriting;});
  let inner;
  if(isMemberHealth){
@@ -2133,8 +2126,16 @@ function cpConfirmSection(){
      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${badge}</div>
      <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">Gói: ${healthPkgName(u.package)} · vai trò: ${u.relationship||'—'}</div>
      <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${who}</div>
-     ${cf.status==='SENT'?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Gửi lúc ${cf.sentAt||'—'} · OTP ${cf.otp||'PENDING'} · <a href="javascript:alert('Xem evidence phiên xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
-     ${app.owner===me?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">${cf.status==='PENDING'?`<button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi xác nhận</button>`:''}${cf.status==='SENT'?`<button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi lại</button><button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">✓ Khách đã xác nhận (demo)</button>`:''}</div>`:''}
+     ${cf.status!=='PENDING'?BANCA.ui.otpVerificationPanel({
+        mode:'CUSTOMER_SELF_SERVICE',
+        status: cf.status==='CONFIRMED'?'VERIFIED':'SENT',
+        customerName: u.name||'—',
+        maskedPhone: u.isChild ? (u.guardianPhone||'—') : (u.phone||(cust&&u.relationship==='Bản thân'?BANCA.maskPhone(cust.phone):'—')),
+        sentAt: cf.sentAt, confirmedAt: cf.confirmedAt,
+        onResend: (app.owner===me&&cf.status==='SENT') ? "healthMemberConfirm('"+app.id+"','"+u.insuredUnitId+"','send')" : null
+      }):''}
+     ${app.owner===me&&cf.status==='PENDING'?`<div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi xác nhận</button></div>`:''}
+     ${app.owner===me&&cf.status==='SENT'?`<div class="demo-tools"><div class="label">Demo Tools</div><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">Mô phỏng: người này đã xác nhận</button></div>`:''}
     </div>`;
   }).join('');
   const allConfirmed = units.every(function(u){return (u.confirmation||{}).status==='CONFIRMED';});
@@ -2155,25 +2156,37 @@ function cpConfirmSection(){
   if(cState==='NOT_APPLICABLE') cfBody=`<div class="alert2 info" style="margin:0;">Yêu cầu đã được xác nhận khi nộp — không cần bước xác nhận riêng trước khi thanh toán.</div>`;
   else if(cState==='NOT_READY') cfBody=`<div class="alert2 info" style="margin:0;">Yêu cầu đang chờ kết quả thẩm định — chưa thể gửi xác nhận.</div>`;
   else if(cState==='PENDING') cfBody=`<div class="card" style="padding:16px;"><div style="font-size:13px;color:var(--ink-700);">Kết quả thẩm định có điều chỉnh (phụ phí/điều kiện) — khách cần xác nhận trước khi thanh toán.</div>${app.owner===me?'<button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="sendConfirm()">Gửi khách xác nhận</button>':''}</div>`;
-  else cfBody=`<div class="card" style="padding:16px;"><table class="dtable"><tbody>
-    ${row('Người xác nhận', (cust?cust.name:'—'))}
+  else {
+   // §9.4 — dùng CHUNG OtpVerificationPanel. Khách nhận link tự xác nhận
+   // → mode CUSTOMER_SELF_SERVICE, nhân viên tư vấn chỉ theo dõi trạng thái.
+   const otpSt = cState==='CONFIRMED' ? 'VERIFIED' : (app.confirm.otp==='VERIFIED' ? 'VERIFIED' : 'SENT');
+   cfBody = `<div class="card" style="padding:16px;">`
+    + BANCA.ui.otpVerificationPanel({
+        mode:'CUSTOMER_SELF_SERVICE',
+        status: otpSt,
+        customerName: (cust?cust.name:'—'),
+        maskedPhone: cust?BANCA.maskPhone(cust.phone):'—',
+        link: app.confirm.link,
+        sentAt: app.confirm.sentAt,
+        expiry: app.confirm.expiry,
+        confirmedAt: app.confirm.confirmedAt||app.updatedAt,
+        onResend: (app.owner===me&&cState==='SENT') ? "alert('Đã gửi lại link (demo)')" : null
+      })
+    + `<table class="dtable" style="margin-top:10px;"><tbody>
     ${row('Vai trò','Bên mua bảo hiểm')}
-    ${row('Số điện thoại', cust?BANCA.maskPhone(cust.phone):'—')}
     ${row('Nội dung', app.uw&&app.uw.decision!=='APPROVED'?'Xác nhận lại điều kiện/phí điều chỉnh':'Xác nhận thông tin yêu cầu')}
     ${row('Kênh gửi', BANCA.label('delivery',app.confirm.delivery)||'SMS + Email')}
-    ${row('Gửi lúc',app.confirm.sentAt)} ${row('Hết hạn',app.confirm.expiry||'—')}
-    ${row('Trạng thái', cState==='CONFIRMED'?'<span class="badge badge-ready">Đã xác nhận</span>':'<span class="badge badge-pending">Chờ khách xác nhận</span>')}
-    ${row('Xác nhận lúc', cState==='CONFIRMED'?(app.confirm.confirmedAt||app.updatedAt):'—')}
    </tbody></table>
    ${app.confirm.link?`<div style="font-size:11px;margin-top:8px;"><a href="javascript:alert('Xem evidence xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
-   ${app.owner===me&&cState==='SENT'?'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" onclick="alert(\'Đã gửi lại link (demo)\')">Gửi lại</button> <button class="btn btn-primary btn-sm" onclick="simConfirm()">✓ Khách đã xác nhận (demo)</button></div>':''}
+   ${app.owner===me&&cState==='SENT'?`<div class="demo-tools"><div class="label">Demo Tools — không thuộc UI production</div><button class="btn btn-secondary btn-sm" onclick="simConfirm()">Mô phỏng: khách đã xác nhận</button><div class="demo-note">Nhân viên tư vấn KHÔNG được xác nhận thay khách — kết quả chỉ đến từ phiên xác nhận của khách.</div></div>`:''}
   </div>`;
+  }
   inner = statusBanner(cLabel[1], cLabel[0], '', '') + cfBody;
  }
- return cpCard(1,'Xác nhận khách hàng', inner);
+ return inner;
 }
 // ---- Section 3: Phí cần thanh toán (breakdown khớp tổng phí) ----
-function cpFeeSection(){
+function cpFeeInner(){
  const total = cpAmount();
  const pay = app.payment;
  const paid = (pay && pay.status==='SUCCESS') ? (pay.amount||total) : 0;
@@ -2210,12 +2223,12 @@ function cpFeeSection(){
  }
  // FeeDueSummary dùng chung — tự reconcile để breakdown LUÔN khớp tổng phí (AC09).
  const inner = BANCA.ui.feeDueSummary({total:total, paid:paid, lines:lines, extraHtml:memberHtml});
- return cpCard(2,'Phí cần thanh toán', inner);
+ return inner;
 }
 // ---- Section 4: Ba cách thanh toán (hiển thị trực tiếp, KHÔNG modal chọn — §9.3) ----
 // Dùng BANCA.ui.paymentMethodGroup + config payment-method-config.js.
 // Motor/Health cùng component; điều kiện bật đến từ BANCA.paymentEnableRule (§9.2).
-function cpMethodsSection(){
+function cpMethodsInner(){
  const s=caseView.states; const pay=app.payment;
  const payDone = pay && pay.status==='SUCCESS';
  const payActive = pay && ['PENDING','PROCESSING'].includes(pay.status);
@@ -2224,12 +2237,12 @@ function cpMethodsSection(){
  else if(payActive) inner=`<div class="alert2 info" style="margin:0;">Đã khởi tạo yêu cầu thanh toán — theo dõi ở mục "Trạng thái thanh toán".</div>`;
  else if(s.policyStatus==='ISSUED') inner=`<div class="alert2 info" style="margin:0;">Yêu cầu đã hoàn tất thanh toán và phát hành.</div>`;
  else inner = BANCA.ui.paymentMethodGroup(app, {me:me});
- return cpCard(3,'Cách thanh toán', inner);
+ return inner;
 }
 // ---- Section 5: Trạng thái thanh toán hiện tại ----
-function cpCurrentSection(){
+function cpCurrentInner(){
  const pay=app.payment;
- if(!pay) return cpCard(4,'Trạng thái thanh toán', `<div class="alert2 info" style="margin:0;">Chưa khởi tạo thanh toán.</div>`);
+ if(!pay) return `<div class="alert2 info" style="margin:0;">Chưa khởi tạo thanh toán.</div>`;
  const s2=pay.status;
  const tone={SUCCESS:'ok',PENDING:'wait',PROCESSING:'wait',FAILED:'danger',TIMEOUT:'danger',EXPIRED:'danger',CANCELLED:'danger'}[s2]||'wait';
  const toneColor={ok:'var(--teal-600)',wait:'var(--amber-600)',danger:'var(--red-600)'}[tone];
@@ -2261,17 +2274,25 @@ function cpCurrentSection(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><b style="font-size:14px;color:${toneColor};">${cpStatusVN(s2)}</b>${BANCA.paymentBadge?BANCA.paymentBadge(s2):''}</div>
     ${factHtml}${preview}${tech}${tools}
    </div>`;
- return cpCard(4,'Trạng thái thanh toán', inner);
+ return inner;
 }
 // ---- Section 6: Lịch sử thanh toán (row → chi tiết, KHÔNG lặp key-value dưới bảng) ----
-function cpHistorySection(){
+function cpHistoryInner(){
  const txns = app.payment ? [app.payment] : [];
  const inner = BANCA.ui.paymentHistory(txns, {payerFallback: cust&&cust.name, rowClickJs: function(){ return 'openTxnDetail()'; }})
    + (txns.length?`<div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Bấm vào dòng giao dịch để xem chi tiết.</div>`:'');
- return cpCard(5,'Lịch sử thanh toán', inner);
+ return inner;
 }
+// §9.3 — Motor và Health dùng CHUNG ConfirmationPaymentPanel; thứ tự & đánh số
+// do component quy định, trang chỉ cung cấp nội dung từng phần.
 function renderConfirmPay(){
- return cpConfirmSection()+cpFeeSection()+cpMethodsSection()+cpCurrentSection()+cpHistorySection();
+ return BANCA.ui.confirmationPaymentPanel(app, {
+   confirmHtml:       cpConfirmInner(),
+   feeHtml:           cpFeeInner(),
+   methodsHtml:       cpMethodsInner(),
+   paymentStatusHtml: cpCurrentInner(),
+   historyHtml:       cpHistoryInner()
+ });
 }
 
 // ---- Customer reconfirmation rule (rule-based, không cho nhân viên tư vấn chọn) ----
@@ -2516,7 +2537,19 @@ if(activeTab==='overview'){
      ${[['Trạng thái',uwState],['Đơn vị xử lý',_unitName],['Hàng chờ (queue)',_queueName],['Ưu tiên',app.uw?'Bình thường':(app.sla&&new Date(app.sla.replace(' ','T'))<new Date('2026-07-21T15:30:00')?'Cao':'Bình thường')],['Tiếp nhận lúc',received],['Bắt đầu',started],['Dự kiến xong',expected],['SLA còn lại',app.sla?slaHtml(app.sla):'—']].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:8px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12px;font-weight:700;margin-top:2px;">${v}</div></div>`).join('')}
    </div></div>`;
  // Condition detail (chỉ khi duyệt có điều kiện) — không lộ note nội bộ/fraud/risk score
- const condCard = (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))?`<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--amber-600);">
+ // §9.1 — khối "điều kiện/loại trừ khách phải chấp nhận" dùng CHUNG Motor/Health
+ // (BANCA.ui.conditionAcceptance), để 2 sản phẩm không mô tả điều kiện theo 2 kiểu.
+ const _conds = app.uw ? [
+   app.uw.loading   ? {type:'Phụ phí thẩm định', text:app.uw.loading} : null,
+   app.uw.condition ? {type:'Điều kiện',         text:app.uw.condition} : null,
+   app.uw.exclusion ? {type:'Loại trừ',          text:app.uw.exclusion} : null
+ ].filter(Boolean) : [];
+ const condAccept = BANCA.ui.conditionAcceptance({
+   conditions:_conds,
+   accepted: !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt)),
+   onSend: (app.owner===me && !(app.confirm&&app.confirm.sentAt)) ? 'sendConfirm()' : null
+ });
+ const condCard = condAccept + ((app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))?`<div class="card" style="padding:16px;margin:12px 0;border-left:4px solid var(--amber-600);">
    <div class="label" style="margin-bottom:10px;color:var(--amber-600);">Điều kiện thẩm định</div>
    <table class="dtable"><tbody>
     ${app.uw.loading?row('Phụ phí thẩm định',app.uw.loading):''}
@@ -2529,7 +2562,7 @@ if(activeTab==='overview'){
     ${app.deadline?row('Deadline phản hồi',app.deadline):''}
    </tbody></table>
    <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Chỉ hiển thị thông tin được phép chia sẻ với nhân viên tư vấn/khách — không gồm ghi chú UW nội bộ, fraud flag hay risk score.</div>
- </div>`:'';
+ </div>`:'');
  const decCard = app.uw?`<div class="card" style="padding:16px;"><table class="dtable"><tbody>
    ${row('Kết quả',BANCA.uwBadge(app.uw.decision))}
    ${row('Thẩm định viên',app.uw.officer||'—')}

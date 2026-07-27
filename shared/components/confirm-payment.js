@@ -194,6 +194,55 @@ BANCA.ui = BANCA.ui || {};
       '</div>';
   };
 
+  // ============================================================
+  // ConfirmationPaymentPanel (§9.3) — MỘT thành phần cho cả Motor và Health.
+  // Sở hữu THỨ TỰ và ĐÁNH SỐ của 7 phần bắt buộc, để 2 sản phẩm không thể
+  // trôi lệch bố cục theo thời gian. Trang chỉ cung cấp nội dung từng phần.
+  //   1 Thông tin khách xác nhận (gồm điều khoản/loại trừ + trạng thái OTP)
+  //   2 Phí cần thanh toán
+  //   3 Ba phương thức thanh toán
+  //   4 Trạng thái thanh toán hiện tại
+  //   5 Lịch sử thanh toán
+  //   6 Trạng thái phát hành
+  // ============================================================
+  BANCA.ui.cpCard = function (num, title, inner, sub) {
+    return '<section class="card cp-card">' +
+      '<div class="cp-card-head"><span class="cp-num">' + num + '</span>' +
+      '<b class="cp-title">' + e(title) + '</b>' +
+      (sub ? '<span class="cp-sub">· ' + e(sub) + '</span>' : '') + '</div>' +
+      inner + '</section>';
+  };
+
+  BANCA.ui.confirmationPaymentPanel = function (app, cfg) {
+    cfg = cfg || {};
+    var C = BANCA.ui.cpCard;
+    var out = '';
+    out += C(1, 'Xác nhận khách hàng', cfg.confirmHtml || '');
+    out += C(2, 'Phí cần thanh toán', cfg.feeHtml || '');
+    out += C(3, 'Cách thanh toán', cfg.methodsHtml || '');
+    out += C(4, 'Trạng thái thanh toán', cfg.paymentStatusHtml || '');
+    out += C(5, 'Lịch sử thanh toán', cfg.historyHtml || '');
+    // §9.3 mục 7 — trạng thái phát hành PHẢI nằm trong panel này, không để tab khác.
+    out += C(6, 'Trạng thái phát hành', cfg.issueHtml || BANCA.ui.issueStatusBlock(app));
+    return '<div class="confirmation-payment-panel">' + out + '</div>';
+  };
+
+  // Trạng thái phát hành rút gọn — dùng khi trang không truyền khối riêng.
+  BANCA.ui.issueStatusBlock = function (app) {
+    var s = BANCA.caseStates(app);
+    var map = {
+      NOT_STARTED: ['Chưa phát hành', 'info', 'Hợp đồng sẽ được phát hành sau khi thanh toán thành công.'],
+      ISSUING: ['Đang phát hành', 'warn', 'Hệ thống nghiệp vụ đang phát hành hợp đồng và giấy chứng nhận.'],
+      ISSUED: ['Đã phát hành', 'ok', 'Hợp đồng và giấy chứng nhận đã được phát hành.'],
+      ISSUE_FAILED: ['Phát hành lỗi', 'danger', 'Đã thu tiền nhưng phát hành lỗi — thử lại hoặc chuyển hỗ trợ, KHÔNG thu lại của khách.']
+    };
+    var m = map[s.policyStatus] || map.NOT_STARTED;
+    var cls = { ok: 'badge-ready', warn: 'badge-pending', danger: 'badge-blocked', info: 'badge-conditional' }[m[1]];
+    return '<div class="alert2 ' + (m[1] === 'ok' ? 'info' : m[1]) + '" style="margin:0;">' +
+      '<span class="badge ' + cls + '">' + e(m[0]) + '</span> ' + e(m[2]) +
+      (app.policyId ? ' <b>' + e(app.policyId) + '</b>' : '') + '</div>';
+  };
+
   // --- DocumentChecklist (§10 §14) — 1 checklist DÙNG CHUNG mọi bước/sản phẩm.
   // Bọc quanh BANCA.docItemHtml (DocumentItem chung). OCR KHÔNG có section riêng:
   // tài liệu đã bóc tách nằm cùng danh sách, chỉ khoá thay thế + có chip trạng thái OCR.

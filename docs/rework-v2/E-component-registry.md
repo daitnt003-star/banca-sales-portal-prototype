@@ -65,3 +65,39 @@
 3. Verify: browser ở **1360px** + kiểm contrast/đọc được, không chỉ console error.
 4. Đổi nav/route → kiểm **active sidebar** + trang chi tiết.
 5. Cùng status = cùng badge component + màu ở mọi nơi.
+
+## 7. Xác nhận · Thẩm định · Thanh toán (§9) — `shared/components/confirm-payment.js`
+
+| Component | Call | Nơi dùng | TT |
+|---|---|---|---|
+| **paymentMethodGroup** (3 method inline, KHÔNG modal chọn) | `BANCA.ui.paymentMethodGroup(app,{me})` | app-workspace §confirmpay | ✅ |
+| **paymentMethodCard** | `BANCA.ui.paymentMethodCard(m,{enabled,onclick})` | trong group | ✅ |
+| **feeDueSummary** (tự reconcile breakdown = tổng) | `BANCA.ui.feeDueSummary({total,paid,lines,extraHtml})` | app-workspace | ✅ |
+| **paymentHistory** | `BANCA.ui.paymentHistory(txns,{payerFallback,rowClickJs})` | app-workspace | ✅ |
+| **blockedReasons** (lý do CTA bị khoá) | `BANCA.ui.blockedReasons(reasons)` | payment group | ✅ |
+| **otpVerificationPanel** (2 mode SELLER_ASSISTED / CUSTOMER_SELF_SERVICE) | `BANCA.ui.otpVerificationPanel(cfg)` | — | 🟡 đã đóng gói, **chưa thay markup inline** |
+| **underwritingStatusPanel / requirementList / conditionAcceptance** | `BANCA.ui.*` | — | 🟡 như trên |
+| **documentChecklist** (§10) | `BANCA.ui.documentChecklist({appId,items})` | bọc `BANCA.docItemHtml` | ✅ |
+
+> **Gate thanh toán là 1 hàm duy nhất**: `BANCA.paymentEnableRule(app)` → `{enabled, reasons[]}`.
+> `deriveCaseViewState` gọi lại chính hàm này (`canInitiatePayment` + `paymentBlockReasons`).
+> KHÔNG viết lại điều kiện thanh toán ở bất kỳ page nào.
+
+## 8. Policy Cockpit (§11) — `shared/components/policy-cockpit.js`
+
+| Component | Call | TT |
+|---|---|---|
+| **policyCockpit** (shell 6 tab) | `BANCA.ui.policyCockpit(pol,{productId,overview,heroHtml,paymentExtraHtml,timelineEvents,documentsHtml})` | ✅ |
+| policySummary · billingSchedule · policyTimeline · serviceRequestList · claimSummary · policyDocumentList | `BANCA.ui.*` | ✅ |
+
+> Motor / Health / PA dùng **CÙNG** cockpit. Khác biệt sản phẩm chỉ qua `cfg`
+> (`overview.main/rail`, `heroHtml`, `paymentExtraHtml`) — cấm clone cockpit theo tên sản phẩm.
+
+## 9. Nav & hoa hồng (§8.1 §13.3)
+
+| Thứ | Nguồn duy nhất |
+|---|---|
+| Menu chính | `BANCA.NAV_CONFIG` + `navResolved()` / `navIsActive()` — `app-shell` chỉ render |
+| Phương thức thanh toán | `BANCA.PAYMENT_METHODS` + `paymentMethodsFor(app)` |
+| Hoa hồng | `BANCA.commissionSplit(userId)` → `{direct, override}` — **cố ý không có field tổng** |
+| Yêu cầu dịch vụ / bồi thường | `BANCA.SERVICE_REQUEST_TYPES` · `serviceRequestsOf()` · `claimsOf()` |

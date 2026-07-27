@@ -20,6 +20,15 @@
 | Payment/OTP rải trong tracking tab | **ConfirmationPaymentPanel** dùng chung Motor+Health (§9.3) | 1 nghiệp vụ = 1 component |
 | APP_STATUS 13 status (submitted-only) | Quote state model 16 status/5 nhóm bao trùm cả draft→issued (§8.2) | Một state model trung tâm xuyên suốt |
 | `entry mode` là trục chính | Bổ sung trục **ChannelProfile** (INTEGRATED/STANDALONE/AGENT_BROKER) điều khiển entry behavior (§4.1) | Nhiều mô hình vận hành trên cùng nền |
+| Nav khai báo trong `app-shell.js navItems()` | **`BANCA.NAV_CONFIG`** là nguồn duy nhất; shell chỉ render (2026-07-27) | §16 — không hard-code nav trong shell |
+| Nav có group BÁN HÀNG/SAU BÁN/HỖ TRỢ/QUẢN LÝ + mục trùng | Nav **phẳng 5 mục** đúng §8.1; bước hành trình dùng `aliases` để highlight | Bỏ 2 mục trùng (insuranceRequest/management) |
+| 2 CTA cùng cấp "Tạo yêu cầu" + "Tư vấn nhanh" | **1 CTA primary** "Tư vấn và bán bảo hiểm" (§6.1/§15.1) | Mỗi màn 1 primary; tư vấn nhanh lên đầu modal |
+| `deriveCaseViewState` tự suy luận điều kiện thanh toán | **`paymentEnableRule`** là gate duy nhất, trả `reasons[]` (§9.2) | Disabled CTA luôn có lý do (AC11) |
+| Payment method hard-code trong `cpMethodsSection` | **`payment-method-config.js`** (3 method §9.3) + `BANCA.ui.paymentMethodGroup` | Motor/Health dùng chung (AC02) |
+| 3 cockpit hợp đồng clone theo sản phẩm + 3 khối `<style>` trùng | **`BANCA.ui.policyCockpit`** 6 tab §11, khác biệt qua cfg | §3.2/§3.3 |
+| Điều hướng hợp đồng bằng anchor chip (`#benefits`…) | **6 tab chuẩn** §11 (thêm Yêu cầu dịch vụ, Tổn thất/Bồi thường) | Thiếu 2 nghiệp vụ sau bán |
+| Hoa hồng gộp 1 số `commissionSummary().amount` | **`commissionSplit()`** tách `direct` / `override` (§13.3) | "Không cộng thành một số duy nhất" |
+| Section "Tài liệu được OCR" riêng (2 nơi) | Tài liệu OCR nằm **cùng checklist**, khác bằng chip + khoá (§10) | "Không tạo section OCR riêng" |
 
 ## 3. Open Questions cần chốt trước Phase 2
 | OQ | Câu hỏi | Đề xuất mặc định |
@@ -56,11 +65,20 @@
 | Phase | Nội dung | TT |
 |---|---|---|
 | 0 | Deliverables A–D (docs này) | ✅ Xong |
-| 1 | Foundation: channel-profiles, customer-data-access, status-mappings, quote-version, navigation-config + shared components lõi | ⏳ chờ duyệt |
-| 2 | Banca entry + anonymous context + consent | ⏳ |
-| 3 | Quick Advice + recommendation cấp package | ⏳ |
-| 4 | Quote/Application Workspace + versioning | ⏳ |
-| 5 | Underwriting + OTP + Payment (ConfirmationPaymentPanel) | ⏳ |
-| 6 | Policy Cockpit + post-sale | ⏳ |
-| 7 | Dashboard/lists + Manager Workspace | ⏳ |
-| 8 | Customer self-service + regression toàn hệ thống | ⏳ |
+| 1 | Foundation: channel-profiles, customer-data-access, status-mappings, quote-version, navigation-config + shared components lõi | ✅ Xong — nav & payment gate đã **được page tiêu thụ** (trước đó config tồn tại nhưng không ai gọi) |
+| 2 | Banca entry + anonymous context + consent | ✅ Xong (CustomerContextCard/consentGate; BANCA_INTEGRATED bỏ qua chọn khách hàng) |
+| 3 | Quick Advice + recommendation cấp package | 🟡 Phần lớn — CTA primary + offerContextStep xong; `PackageComparison`/`FitScore` chưa đóng gói riêng |
+| 4 | Quote/Application Workspace + versioning | 🟡 Model versioning + gate xong (đã sửa lỗi re-rate vẫn cho thanh toán); **UI QuoteVersionSelector/ReRateNotice chưa dựng** |
+| 5 | Underwriting + OTP + Payment | 🟡 Component đã đóng gói & payment/fee/history đã dùng; **OtpVerificationPanel + UnderwritingStatusPanel chưa thay thế markup inline cũ** |
+| 6 | Policy Cockpit + post-sale | ✅ Xong — 6 tab dùng chung Motor/Health/PA + Yêu cầu dịch vụ + Tổn thất/Bồi thường |
+| 7 | Dashboard/lists + Manager Workspace | 🟡 Hoa hồng tách 2 loại + bảng nhân viên 16 cột xong; `OrganizationScopeFilter` chưa hợp nhất |
+| 8 | Customer self-service + regression toàn hệ thống | ⏳ Chưa |
+
+## 7. Nợ kỹ thuật đã biết (không ẩn)
+| Việc | Vì sao chưa làm |
+|---|---|
+| `OtpVerificationPanel` / `UnderwritingStatusPanel` đã viết nhưng chưa thay markup inline trong `app-workspace.js` | Vùng xác nhận Health per-member phức tạp; thay nóng dễ vỡ luồng đã nghiệm thu. Component sẵn sàng, adopt-on-touch. |
+| `QuoteVersionSelector` / `ReRateNotice` (UI) | Model + gate đã chặn đúng; phần UI chọn version cần quyết định UX (drawer hay dropdown trong case header). |
+| `OrganizationScopeFilter` hợp nhất (§13.2) | team-workspace đang có selfTab/mgmtTab + scope dropdown riêng cho manager ≥3 cấp. |
+| `BANCA.can('VIEW_TEAM_WORKSPACE')` đọc `persona.isManager` trong khi `manager-profiles` mới là nguồn capability | 2 nguồn sự thật về quyền quản lý — cần thống nhất, ảnh hưởng điều hướng nhiều persona. |
+| RM-01 là player-coach (`availableScopes` có TEAM) nhưng không có `isManager` → không thấy "Đội nhóm" | Hệ quả của mục trên. |

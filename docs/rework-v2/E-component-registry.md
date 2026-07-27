@@ -43,15 +43,21 @@
 
 `channel-profiles.js` · `customer-data-access.js` · `status-mappings.js` · `quote-version.js` · `offer-filters.js` (lifecycle/nextActor/quick filters/scope) · `navigation-config.js` · `journey-registry.js`.
 
-## 5. Còn nợ — ADOPT-ON-TOUCH (gói khi chạm module, tránh mass-regression)
+## 5. Đã đóng gói thêm (đồng nhất triệt để — 2026-07-27)
 
-| Pattern | Hiện trạng | Kế hoạch |
-|---|---|---|
-| **Data table** | `.dtable` (policies/team/seller/advisory) vs `.offer-table` (Bản chào) | Gói `BANCA.ui.dataTable(cols,rows,cfg)`; adopt khi làm Policy Cockpit (Phase 6) & Manager (Phase 7). Hiện dùng chung class CSS `.dtable`/`.offer-table` — thống nhất token sau. |
-| **Stat/KPI card** | inline ở team/seller/advisory (5 nơi) | Gói `BANCA.ui.statCard({label,value,delta,tone,hint})`; adopt ở Phase 7 (Manager KPI). |
-| **Tab bar** | inline `.tab` ở 6 nơi (policies filter tabs, team space tabs, employee-profile, workspace tracking) | Gói `BANCA.ui.tabBar(items,active)`; adopt-on-touch. |
-| **PageHeader / list header** | `uxListHeader()` (shared) vs `qls-top` (shell) | Hợp nhất: list dùng QuoteListShell; các trang khác dùng `uxListHeader`. OK, 2 pattern có chủ đích (list-shell vs trang thường). |
-| **Manager scope UI** | team-workspace dùng space-nav (Cá nhân/Quản lý + scope pill) — **KHÁC** DataScopeSelector | Đúng chủ đích (§13 Manager Workspace = điều hướng không gian, không phải filter data-scope). Sẽ chuẩn hoá bằng `OrganizationScopeFilter` ở Phase 7, KHÔNG ép về dataScopeSelector. |
+| Component | Call | Nơi đã adopt | TT |
+|---|---|---|---|
+| **statCard / statGrid** | `BANCA.ui.statCard({label,value,delta,deltaTone,tone,hint,onclick})` · `BANCA.ui.statGrid(cards,cols)` | team-workspace (KPI chính + summary tiles) | ✅ |
+| **tabBar** (variant underline/pill) | `BANCA.ui.tabBar(items,activeId,{variant})` | team (space pill + action-center + member/perf underline), quick-advisory, seller (space toggle) | ✅ |
+| **dataTable** (builder bảng list) | `BANCA.ui.dataTable(columns,rows,{rowClick,empty})` | có sẵn cho bảng list mới; bảng phức tạp dùng chung class `.dtable` (đã hợp nhất = `.offer-table`) | ✅ |
+| **Table CSS** | `.dtable` == `.offer-table` (một ngôn ngữ) | toàn hệ | ✅ |
+
+## 6. Còn nợ có chủ đích (Phase 7 rework, KHÔNG deep-refactor sớm để tránh double-work)
+| Pattern | Lý do giữ |
+|---|---|
+| team-workspace **selfTab/mgmtTab + scope dropdown** (region manager ≥3 cấp) | Space-nav phức tạp; Phase 7 chuẩn hoá bằng `OrganizationScopeFilter` (§13). |
+| team-workspace **pipeline cells** (badge tồn/SLA overlay) | Viz chuyên biệt, không phải KPI phẳng. |
+| `uxListHeader` vs QuoteListShell `qls-top` | 2 pattern có chủ đích (trang thường vs list-shell). |
 
 ## 6. Quy tắc khi phát triển tiếp (để hệ thống luôn đồng nhất)
 1. Trước khi viết UI: tra registry này. Có component → gọi ra. Chưa có nhưng lặp ≥2 nơi → gói vào `shared/components` rồi mới dùng.

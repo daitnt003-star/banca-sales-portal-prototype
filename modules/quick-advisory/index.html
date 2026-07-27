@@ -40,11 +40,7 @@ let rows = all.filter(activeTabDef[2]);
 if(fSearch) rows = rows.filter(a=>(a.id+' '+(a.customerName||'')+' '+BANCA.needLabel(a.primaryNeed)).toLowerCase().includes(fSearch));
 
 const count = def => all.filter(def[2]).length;
-const tabBar = `<div class="tabbar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">${tabs.map(t=>{
-  const active = t[0]===fTab;
-  const c = count(t);
-  return `<a href="?tab=${t[0]}" class="tab" style="text-decoration:none;padding:8px 14px;border-radius:8px;font-size:13px;${active?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${t[1]} <span style="opacity:.8;">${c}</span></a>`;
-}).join('')}</div>`;
+const tabBar = BANCA.ui.tabBar(tabs.map(t=>({id:t[0],label:t[1],href:'?tab='+t[0],count:count(t)})), fTab);
 
 // Hành động theo trạng thái (theo ý định, không dùng "Xem" chung chung)
 function adviceActions(a){

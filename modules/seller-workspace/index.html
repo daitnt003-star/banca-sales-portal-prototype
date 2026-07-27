@@ -21,7 +21,7 @@ if(p.status!=='ACTIVE'){
 // Player-coach (vừa bán vừa quản lý): Trang chủ có scope tab [Cá nhân][Quản lý] ngay trên đầu.
 const _mgr = BANCA.isManagerProfile(me);
 const homeScopeTabs = _mgr
- ? `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;"><span class="tab" style="padding:8px 18px;border-radius:9px;font-size:13.5px;background:var(--brand-600);color:#fff;font-weight:600;">Cá nhân</span><a href="${r}modules/team-workspace/index.html" class="tab" style="text-decoration:none;padding:8px 18px;border-radius:9px;font-size:13.5px;background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);">Quản lý</a></div>`
+ ? BANCA.ui.tabBar([{id:'self',label:'Cá nhân'},{id:'manage',label:'Quản lý',href:r+'modules/team-workspace/index.html'}], 'self', {variant:'pill'})
  : '';
 
 // Dữ liệu

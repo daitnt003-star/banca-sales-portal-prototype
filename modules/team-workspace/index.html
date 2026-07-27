@@ -135,7 +135,7 @@ function scopeTabs(){
     ? `<a class="btn btn-secondary btn-sm" href="?view=team&scope=${manageScope}" style="margin-left:auto;">Xem toàn bộ ${BANCA.scopeTabLabel(manageScope).toLowerCase()} →</a>`
     : '';
   if(!USE_PILL){
-    return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">${SCOPES.map(sc=>`<a href="${homeHref(sc)}" class="tab" style="${tabCss(activeScope===sc)}">${BANCA.scopeTabLabel(sc)}</a>`).join('')}${viewAllBtn}</div>`;
+    return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">${BANCA.ui.tabBar(SCOPES.map(sc=>({id:sc,label:BANCA.scopeTabLabel(sc),href:homeHref(sc)})), activeScope, {variant:'pill'})}${viewAllBtn}</div>`;
   }
   // ≥3 cấp: [Cá nhân] [Quản lý] + pill dropdown chọn phạm vi quản lý
   const selfTab = SCOPES.includes('SELF')?`<a href="${homeHref('SELF')}" class="tab" style="${tabCss(false)}">Cá nhân</a>`:'';
@@ -198,8 +198,9 @@ function execSummaryBar(scope,kpi,items){
   const assignN=items.filter(i=>i.filter==='assign').length;
   const authN=items.filter(i=>i.filter==='auth').length;
   const tp=kpi.targetPct;
-  const tile=(v,l,tone)=>`<div style="flex:1;min-width:120px;padding:10px 14px;border-right:1px solid var(--line);"><div style="font-size:22px;font-weight:800;color:${tone||'var(--ink-700)'};line-height:1;">${v}</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">${l}</div></div>`;
-  return `<div class="card" style="padding:0;margin-bottom:16px;display:flex;flex-wrap:wrap;overflow:hidden;">
+  const _tt={'var(--red-600)':'danger','var(--amber-600)':'warning','var(--teal-600)':'positive','var(--brand-600)':'brand'};
+  const tile=(v,l,tone)=>BANCA.ui.statCard({value:v,label:l,tone:_tt[tone]||'default'});
+  return `<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;">
     ${tile(items.length, 'việc cần xử lý', items.length?'var(--brand-600)':'var(--teal-600)')}
     ${tile(assignN, 'chờ phân công', assignN?'var(--amber-600)':'var(--ink-400)')}
     ${tile(authN, 'nhân viên tư vấn mất quyền bán', authN?'var(--red-600)':'var(--ink-400)')}
@@ -212,7 +213,7 @@ function actionCenter(scope, items){
   const fA=qs.get('ac')||'all';
   const defs=[['all','Tất cả',i=>true],['overdue','Quá hạn',i=>i.rt.overdue],['assign','Phân công',i=>i.filter==='assign'],['auth','Quyền bán',i=>i.filter==='auth'],['app','Hồ sơ',i=>i.filter==='app']];
   const cnt=fn=>items.filter(fn).length;
-  const tabs=defs.map(([k,l,fn])=>`<a href="#" onclick="setAC('${k}');return false;" class="ac-tab" style="text-decoration:none;padding:6px 12px;border-radius:8px;font-size:12.5px;${fA===k?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l} (${cnt(fn)})</a>`).join('');
+  const tabs=BANCA.ui.tabBar(defs.map(([k,l,fn])=>({id:k,label:l,count:cnt(fn),onclick:"setAC('"+k+"')"})), fA);
   const active=(defs.find(d=>d[0]===fA)||defs[0])[2];
   const list=items.filter(active).slice(0,8);
   const sevBadge=sev=>{const s=SEV[sev];return `<span class="badge" style="background:${s[2]};color:${s[1]};">${s[0]}</span>`;};
@@ -226,7 +227,7 @@ function actionCenter(scope, items){
    </tr>`).join('');
   const total=items.filter(active).length;
   return `<div class="section-title"><h2>Trung tâm hành động</h2><span class="subtitle">Mọi việc khẩn trong ${scopeWord} — bàn giao chờ phân công, quyền bán, SLA & yêu cầu trả lại, gộp một nơi</span></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabs}</div>
+    ${tabs}
     ${list.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Mức</th><th>Vấn đề</th><th>Yêu cầu · Khách</th><th>Phụ trách</th><th>Hạn / SLA</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>${total>8?`<a href="${r}modules/submitted-applications/index.html?scope=${scope}" style="font-size:12.5px;color:var(--brand-600);display:inline-block;margin-top:8px;">Xem tất cả ${total} việc →</a>`:''}`:`<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--teal-600);">✓ Không có việc cần xử lý trong bộ lọc này.</div>`}`;
 }
 window.setAC=(v)=>{ qs.set('ac',v); history.replaceState(null,'','?'+qs.toString()); location.reload(); };
@@ -242,11 +243,11 @@ function cockpitSummary(scope){
   const tp=kpi.targetPct;
   const tpTone = tp==null?'var(--ink-700)':tp>=80?'var(--teal-600)':tp>=50?'var(--amber-600)':'var(--red-600)';
   const tpStatus = tp==null?'':tp>=80?'● Đạt tiến độ':tp>=50?'▲ Cần đẩy':'■ Thiếu nhiều';
-  const primary=`<div class="kpi-row" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
-    <div class="card" style="margin:0;padding:14px 16px;cursor:pointer;" onclick="drill('premium','${scope}')"><div style="font-size:12px;color:var(--ink-500);">Premium ${scopeWord}</div><div style="font-size:22px;font-weight:800;margin-top:2px;">${BANCA.vnd(kpi.premium)}</div><div style="margin-top:4px;">${delta(kpi.premiumDelta,'%')}</div></div>
-    <div class="card" style="margin:0;padding:14px 16px;cursor:pointer;" onclick="drill('target','${scope}')"><div style="font-size:12px;color:var(--ink-500);">Hoàn thành chỉ tiêu</div><div style="font-size:22px;font-weight:800;margin-top:2px;color:${tpTone};">${tp!=null?tp+'%':(kpi.target||'—')}</div><div style="margin-top:4px;font-size:11px;color:${tpTone};">${tpStatus}${gapVND!=null&&gapVND>0?' · còn thiếu '+BANCA.vnd(gapVND):''}</div></div>
-    <div class="card" style="margin:0;padding:14px 16px;cursor:pointer;" onclick="drill('policies','${scope}')"><div style="font-size:12px;color:var(--ink-500);">Hợp đồng phát hành</div><div style="font-size:22px;font-weight:800;margin-top:2px;">${kpi.policies}</div><div style="margin-top:4px;">${delta(kpi.policiesDelta,' HĐ')}</div></div>
-  </div>`;
+  const primary=BANCA.ui.statGrid([
+    {label:'Premium '+scopeWord, value:BANCA.vnd(kpi.premium), delta:delta(kpi.premiumDelta,'%'), onclick:"drill('premium','"+scope+"')"},
+    {label:'Hoàn thành chỉ tiêu', value:(tp!=null?tp+'%':(kpi.target||'—')), tone:(tp==null?'default':tp>=80?'positive':tp>=50?'warning':'danger'), hint:tpStatus+(gapVND!=null&&gapVND>0?' · còn thiếu '+BANCA.vnd(gapVND):''), onclick:"drill('target','"+scope+"')"},
+    {label:'Hợp đồng phát hành', value:kpi.policies, delta:delta(kpi.policiesDelta,' HĐ'), onclick:"drill('policies','"+scope+"')"}
+  ], 3);
   const diag=[['Tỷ lệ chuyển đổi',kpi.conversion,'conv',delta(kpi.convDelta,' điểm')],['Tuân thủ SLA',kpi.sla,'sla',''],['Việc cần xử lý',items.length,'support','']];
   if(showComm) diag.splice(2,0,['Hoa hồng dự kiến',BANCA.vnd(kpi.commission),'comm','']);
   const diagBlock=`<div class="kpi-strip" style="margin-bottom:8px;">${diag.slice(0,4).map(([l,v,k,d])=>`<div class="kpi" style="cursor:pointer;" onclick="drill('${k}','${scope}')"><span>${l}</span><b style="font-size:14px;${k==='support'&&v?'color:var(--red-600);':''}">${v}</b>${d?`<div>${d}</div>`:''}</div>`).join('')}</div>`;
@@ -356,7 +357,7 @@ function renderTeam(){
   const taskCount=buildTaskRows(scope,members).length;
   const blockedCount=realMembers.filter(s=>readiness(s.id).B>0).length;
   const tabs=[['members','Thành viên',realMembers.length],['tasks','Công việc',taskCount],['auth','Quyền bán',blockedCount],['perf','Hiệu suất',realMembers.length]];
-  const nav=`<div class="tabbar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">${tabs.map(([tk,tl,cnt])=>`<a href="?view=team&scope=${scope}&t=${tk}" class="tab" style="text-decoration:none;padding:8px 14px;border-radius:8px;font-size:13px;${t===tk?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${tl}${tk==='auth'&&cnt?` <span style="background:#fdecec;color:var(--red-600);border-radius:8px;padding:0 6px;font-size:10px;font-weight:700;">${cnt}</span>`:` (${cnt})`}</a>`).join('')}</div>`;
+  const nav=BANCA.ui.tabBar(tabs.map(([tk,tl,cnt])=>({id:tk,label:tl,href:'?view=team&scope='+scope+'&t='+tk,count:cnt})), t);
   let body='';
   if(t==='cases') body=teamCases(scope); // giữ cho deep-link cũ (không phải tab)
   else if(t==='tasks') body=teamTasks(scope,members);
@@ -715,10 +716,7 @@ function renderSeller(){
   const polN=(BANCA.myPolicies?BANCA.myPolicies():[]).filter(x=>x.owner===id).length;
   const certN=(BANCA.certifications&&BANCA.certifications[id]?BANCA.certifications[id].length:null);
   const tabDefs=[['Tổng quan',null,null,true],['Yêu cầu bảo hiểm chưa nộp',unsubUrl,draftN],['Yêu cầu bảo hiểm đã nộp',subUrl,subN],['Hợp đồng',polUrl,polN],['Công việc','?view=team&scope='+scope+'&t=tasks',tasks.length],['Chứng chỉ',r+'modules/employee-profile/index.html',certN]];
-  const sellerTabs=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-    ${tabDefs.map(([l,href,cnt,on])=>{const lbl=l+(cnt!=null?` (${cnt})`:''); return on?`<span class="tab" style="padding:7px 14px;border-radius:8px;font-size:12.5px;background:var(--brand-600);color:#fff;font-weight:600;">${lbl}</span>`
-        :`<a href="${href}" class="tab" style="text-decoration:none;padding:7px 14px;border-radius:8px;font-size:12.5px;background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);">${lbl}</a>`;}).join('')}
-  </div>`;
+  const sellerTabs=BANCA.ui.tabBar(tabDefs.map(([l,href,cnt,on])=>({id:on?'__ov':(href||l),label:l,href:href||'javascript:void(0)',count:cnt})), '__ov');
   // ---------- LAYOUT 2 cột (65/35, responsive) ----------
   const body=`${header}${riskBlock}${sellerTabs}
     <div style="display:grid;grid-template-columns:65fr 35fr;gap:18px;align-items:start;" class="seller-2col">

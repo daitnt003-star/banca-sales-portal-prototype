@@ -376,3 +376,48 @@ BANCA.ui.skeletonRows = function (n) {
   n = n || 4; var row = '<div class="skel-row"></div>';
   return '<div class="card">' + new Array(n).fill(row).join('') + '</div>';
 };
+
+// --- statCard / statGrid (§ đóng gói: mọi KPI/metric tile dùng chung) ---
+BANCA.ui.statCard = function (c) {
+  c = c || {};
+  var toneColor = { positive: 'var(--teal-600)', warning: 'var(--amber-600)', danger: 'var(--red-600)', brand: 'var(--brand-600)', default: 'var(--ink-900)' }[c.tone || 'default'];
+  var deltaColor = { positive: 'var(--teal-600)', warning: 'var(--amber-600)', danger: 'var(--red-600)', default: 'var(--ink-500)' }[c.deltaTone || 'default'];
+  var click = c.onclick ? ' onclick="' + c.onclick + '" style="cursor:pointer;"' : '';
+  return '<div class="stat-card"' + click + '>' +
+    '<div class="stat-label">' + _esc(c.label || '') + '</div>' +
+    '<div class="stat-value" style="color:' + toneColor + '">' + (c.value == null ? '—' : c.value) + '</div>' +
+    (c.delta ? '<div class="stat-delta" style="color:' + deltaColor + '">' + c.delta + '</div>' : '') +
+    (c.hint ? '<div class="stat-hint">' + _esc(c.hint) + '</div>' : '') + '</div>';
+};
+BANCA.ui.statGrid = function (cards, cols) {
+  return '<div class="stat-grid" style="grid-template-columns:repeat(' + (cols || cards.length) + ',minmax(0,1fr));">' +
+    cards.map(function (c) { return BANCA.ui.statCard(c); }).join('') + '</div>';
+};
+
+// --- tabBar (§ đóng gói: mọi tab dùng chung) ---
+// items=[{id,label,href?,onclick?,count?}], variant: 'underline'(default)|'pill'
+BANCA.ui.tabBar = function (items, activeId, opts) {
+  opts = opts || {};
+  var variant = opts.variant || 'underline';
+  return '<div class="tabbar tabbar-' + variant + '">' + (items || []).map(function (t) {
+    var on = t.id === activeId;
+    var attr = t.href ? 'href="' + _esc(t.href) + '"' : 'href="javascript:void(0)"' + (t.onclick ? ' onclick="' + t.onclick + '"' : '');
+    return '<a class="tabbar-tab' + (on ? ' on' : '') + '" ' + attr + '>' + _esc(t.label) +
+      (t.count != null ? ' <span class="tabbar-n">' + t.count + '</span>' : '') + '</a>';
+  }).join('') + '</div>';
+};
+
+// --- dataTable (§ đóng gói: bảng list đơn giản; bảng phức tạp giữ markup, dùng chung class .dtable) ---
+// columns=[{label, align?, cell:(row)=>html}], rows=[...], cfg{rowClick:(row)=>url, empty}
+BANCA.ui.dataTable = function (columns, rows, cfg) {
+  cfg = cfg || {};
+  if (!rows || !rows.length) return BANCA.ui.emptyState(cfg.empty || 'Không có dữ liệu.');
+  var thead = '<tr>' + columns.map(function (c) { return '<th' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + _esc(c.label || '') + '</th>'; }).join('') + '</tr>';
+  var body = rows.map(function (row) {
+    var click = cfg.rowClick ? ' style="cursor:pointer;" onclick="location.href=\'' + cfg.rowClick(row) + '\'"' : '';
+    return '<tr' + click + '>' + columns.map(function (c) {
+      return '<td' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + (c.cell ? c.cell(row) : '') + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  return '<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead>' + thead + '</thead><tbody>' + body + '</tbody></table></div>';
+};

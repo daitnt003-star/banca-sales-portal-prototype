@@ -50,10 +50,11 @@ BANCA.BANKING_CONTEXTS = [
     explain:'Xe là tài sản bảo đảm cho khoản vay — ngân hàng thường yêu cầu bảo hiểm vật chất xe trong suốt thời gian vay. Gợi ý ưu tiên gói bảo vệ xe, kèm tai nạn cho lái/phụ xe.' },
   { id:'LOAN_HOME', icon:'🏠', label:'Vay mua nhà', kind:'LOAN',
     desc:'Khoản vay có tài sản bảo đảm là bất động sản',
-    // Catalog demo CHƯA có sản phẩm bảo hiểm tài sản/nhà → primaryNeed đặt là LOAN
-    // để gợi ý sản phẩm bán được thật (bảo vệ khả năng trả nợ), KHÔNG gợi ý nhầm bảo hiểm xe.
-    primaryNeed:'LOAN', suggestedNeeds:['LOAN','INCOME','HOME'], crossSell:['HEALTH'],
-    explain:'Nhà là tài sản bảo đảm dài hạn. Giai đoạn này ưu tiên bảo vệ khả năng trả nợ khi mất thu nhập/tai nạn — bảo hiểm tài sản (cháy nổ, thiên tai) chưa có trong danh mục sản phẩm demo.' },
+    // primaryNeed để ĐÚNG bản chất là HOME. Nhu cầu này hiện chưa có sản phẩm
+    // (khai báo ở NEED_COVERAGE) → engine tự lọc và hạ xuống nhu cầu bán được,
+    // KHÔNG hard-code workaround ở đây.
+    primaryNeed:'HOME', suggestedNeeds:['HOME','LOAN','INCOME'], crossSell:['HEALTH'],
+    explain:'Nhà là tài sản bảo đảm dài hạn. Ưu tiên bảo hiểm tài sản (cháy nổ, thiên tai) và bảo vệ khả năng trả nợ khi mất thu nhập.' },
   { id:'LOAN_BUSINESS', icon:'🏭', label:'Vay phục vụ sản xuất kinh doanh', kind:'LOAN',
     desc:'Khoản vay vốn lưu động / đầu tư SXKD',
     primaryNeed:'BUSINESS', suggestedNeeds:['BUSINESS','LOAN','ACCIDENT'], crossSell:['HEALTH'],
@@ -81,8 +82,8 @@ BANCA.bankingContextById = id => (BANCA.BANKING_CONTEXTS||[]).find(c=>c.id===id)
 BANCA.contextNeedsFor = function(ctxId, me){
   const c = BANCA.bankingContextById(ctxId); if(!c) return [];
   return (c.suggestedNeeds||[]).filter(function(n){
-    const grp = BANCA.needToOfferGroup(n);
-    const pid = ((BANCA.ADVICE_OFFERS[grp]||[])[0]||{}).productRef;
+    if(!BANCA.needCoverage(n).served) return false;       // chưa có sản phẩm → không gợi ý
+    const pid = (BANCA.adviceOffersFor(n)[0]||{}).productRef;
     if(!pid || !BANCA.readinessFor) return true;
     const rd = BANCA.readinessFor(pid, me);
     return rd.state !== 'HIDDEN' && rd.state !== 'N/A';   // không gợi ý sản phẩm seller không được bán
@@ -118,16 +119,45 @@ BANCA.ADVICE_OFFERS = {
     {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'STANDARD', packageName:'Standard', fit:85, premiumBand:'2–3 triệu/năm', premiumMonthly:'~230K/tháng', meets:['ACCIDENT','INCOME'], gaps:[], why:'Bổ sung trợ cấp thu nhập khi nằm viện.', verify:['Nghề nghiệp'], issueTime:'Tức thời (STP)'}
   ]
 };
-// Map nhu cầu → nhóm sản phẩm (sửa bug gói sai nhóm so với nhu cầu chính)
-BANCA.needToOfferGroup = function(need){
-  return ({
-    HEALTH:'HEALTH', FAMILY_HEALTH:'HEALTH', INCOME:'HEALTH', BUSINESS:'HEALTH',
-    MOTOR:'MOTOR', HOME:'MOTOR',
-    ACCIDENT:'ACCIDENT', LOAN:'ACCIDENT', TRAVEL:'ACCIDENT'
-  })[need] || 'HEALTH';
+// ============================================================
+// ĐỘ PHỦ SẢN PHẨM theo nhu cầu — khai báo TƯỜNG MINH nhu cầu nào danh mục
+// thực sự phục vụ được.
+// Trước đây map 1:1 kèm fallback `|| 'HEALTH'` → nhu cầu KHÔNG có sản phẩm vẫn bị
+// gán bừa sang nhóm khác (HOME→MOTOR: "vay mua nhà" lại gợi ý bảo hiểm ô tô;
+// TRAVEL→ACCIDENT; nhu cầu lạ → HEALTH). Gợi ý sai còn tệ hơn không gợi ý.
+// Nay: không phục vụ được thì TRẢ RỖNG kèm lý do, UI nói thẳng (§15.3).
+//   groups   : nhóm sản phẩm phục vụ được nhu cầu này (rỗng = chưa có)
+//   note     : giải thích khi phục vụ GIÁN TIẾP (không phải sản phẩm đúng tên nhu cầu)
+//   unserved : lý do chưa phục vụ được — hiển thị cho seller
+// ============================================================
+BANCA.NEED_COVERAGE = {
+  HEALTH:        {groups:['HEALTH'],   note:null},
+  FAMILY_HEALTH: {groups:['HEALTH'],   note:'Dùng gói sức khỏe, khai báo nhiều người được bảo hiểm trong cùng hợp đồng.'},
+  BUSINESS:      {groups:['HEALTH'],   note:'Phục vụ bằng bảo hiểm sức khỏe nhóm cho nhân viên.'},
+  ACCIDENT:      {groups:['ACCIDENT'], note:null},
+  LOAN:          {groups:['ACCIDENT'], note:'Bảo vệ khả năng trả nợ bằng bảo hiểm tai nạn con người (chưa có sản phẩm tín dụng chuyên biệt).'},
+  INCOME:        {groups:['ACCIDENT'], note:'Trợ cấp thu nhập nằm trong quyền lợi của gói tai nạn.'},
+  MOTOR:         {groups:['MOTOR'],    note:null},
+  HOME:          {groups:[], unserved:'Danh mục hiện chưa có bảo hiểm tài sản/nhà (cháy nổ, thiên tai).'},
+  TRAVEL:        {groups:[], unserved:'Danh mục hiện chưa có bảo hiểm du lịch.'}
 };
+// {served, groups, note, reason} — nguồn sự thật cho mọi nơi cần biết "bán được gì cho nhu cầu này".
+BANCA.needCoverage = function(need){
+  const c = BANCA.NEED_COVERAGE[need];
+  if(!c) return {served:false, groups:[], note:null, reason:'Nhu cầu chưa được cấu hình trong danh mục sản phẩm.'};
+  return {served:(c.groups||[]).length>0, groups:c.groups||[], note:c.note||null, reason:c.unserved||null};
+};
+// Giữ tên cũ cho code cũ — nhưng KHÔNG fallback bừa nữa: không phục vụ được thì null.
+BANCA.needToOfferGroup = function(need){ return BANCA.needCoverage(need).groups[0] || null; };
+
+// Trả RỖNG khi nhu cầu chưa có sản phẩm — không thay bằng nhóm khác.
 BANCA.adviceOffersFor = function(primaryNeed){
-  return BANCA.ADVICE_OFFERS[BANCA.needToOfferGroup(primaryNeed)] || BANCA.ADVICE_OFFERS.HEALTH;
+  const g = BANCA.needToOfferGroup(primaryNeed);
+  return g ? (BANCA.ADVICE_OFFERS[g] || []) : [];
+};
+// Nhu cầu ĐANG bán được (dùng để gợi ý thay thế khi nhu cầu chính chưa có sản phẩm).
+BANCA.servedNeeds = function(){
+  return (BANCA.NEED_CATALOG||[]).filter(n=>BANCA.needCoverage(n.id).served).map(n=>n.id);
 };
 
 // ---- Bảng so sánh (giá trị cụ thể, không chỉ tick/cross) ----

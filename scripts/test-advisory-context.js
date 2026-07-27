@@ -30,15 +30,39 @@ ok('đủ 7 ngữ cảnh', B.BANKING_CONTEXTS.length === 7, got.join(' | '));
 want.forEach(w => ok('có "' + w + '"', got.indexOf(w) >= 0));
 
 grp('2. Context điều khiển sản phẩm/gói đề xuất');
+// primaryNeed của context là NHU CẦU ĐÚNG BẢN CHẤT; nhu cầu chưa có sản phẩm sẽ bị
+// contextNeedsFor lọc và hạ xuống nhu cầu bán được — mô phỏng đúng applyBankingContext.
+function effectiveNeed(ctxId, who){
+  const c = B.bankingContextById(ctxId);
+  const needs = B.contextNeedsFor(ctxId, who || 'RM-01');
+  if(!needs.length) return c.primaryNeed;
+  return needs.indexOf(c.primaryNeed) >= 0 ? c.primaryNeed : needs[0];
+}
 [['LOAN_AUTO', 'motor'], ['LOAN_HOME', 'pa'], ['PROTECT_HEALTH', 'health'],
  ['PROTECT_FAMILY', 'health'], ['PROTECT_EMPLOYEE', 'health'], ['LOAN_BUSINESS', 'health']]
   .forEach(function (p) {
-    const c = B.bankingContextById(p[0]);
-    const offers = B.adviceOffersFor(c.primaryNeed);
-    ok(p[0] + ' → sản phẩm ' + p[1], offers[0].productRef === p[1],
-      offers[0].productRef);
+    const offers = B.adviceOffersFor(effectiveNeed(p[0]));
+    ok(p[0] + ' → sản phẩm ' + p[1], (offers[0]||{}).productRef === p[1],
+      (offers[0]||{}).productRef);
   });
 ok('OTHER không ép nhu cầu (primaryNeed=null)', B.bankingContextById('OTHER').primaryNeed === null);
+ok('LOAN_HOME giữ primaryNeed đúng bản chất = HOME',
+  B.bankingContextById('LOAN_HOME').primaryNeed === 'HOME');
+
+grp('2b. KHÔNG gợi ý bừa khi nhu cầu chưa có sản phẩm');
+ok('HOME chưa có sản phẩm → adviceOffersFor rỗng', B.adviceOffersFor('HOME').length === 0);
+ok('TRAVEL chưa có sản phẩm → rỗng', B.adviceOffersFor('TRAVEL').length === 0);
+ok('HOME KHÔNG bị map sang bảo hiểm xe (bug cũ)', B.needToOfferGroup('HOME') !== 'MOTOR');
+ok('nhu cầu lạ không fallback sang HEALTH', B.adviceOffersFor('KHONG_TON_TAI').length === 0);
+ok('needCoverage(HOME) nêu lý do', !!B.needCoverage('HOME').reason, B.needCoverage('HOME').reason);
+ok('needCoverage(HEALTH).served = true', B.needCoverage('HEALTH').served);
+ok('phục vụ gián tiếp có note (LOAN→PA)', !!B.needCoverage('LOAN').note);
+ok('servedNeeds() chỉ gồm nhu cầu bán được',
+  B.servedNeeds().every(n => B.adviceOffersFor(n).length > 0) && B.servedNeeds().indexOf('HOME') < 0,
+  JSON.stringify(B.servedNeeds()));
+ok('contextNeedsFor(LOAN_HOME) loại HOME',
+  B.contextNeedsFor('LOAN_HOME','RM-01').indexOf('HOME') < 0,
+  JSON.stringify(B.contextNeedsFor('LOAN_HOME','RM-01')));
 
 grp('3. Context có nội dung giải thích + cross-sell');
 B.BANKING_CONTEXTS.forEach(function (c) {

@@ -441,9 +441,12 @@ function bodyNeeds(){
     <p style="margin:0 0 14px;color:var(--ink-500);font-size:13px;">${ctxCur&&ctxCur.id!=='OTHER'?'Đã gợi ý sẵn theo ngữ cảnh — có thể điều chỉnh.':'Chọn theo mục tiêu bảo vệ — có thể chọn nhiều.'} Chưa cần định danh khách hàng (chọn nguồn khách khi chuyển sang bán hàng).</p>
     <div class="need-grid">${BANCA.NEED_CATALOG.map(n=>{
       const sel = state.needProfile.some(x=>x.needId===n.id);
-      return `<div class="need-card ${sel?'sel':''}" onclick="advToggleNeed('${n.id}')">
+      // §15.2 — nói trước nhu cầu nào chưa có sản phẩm, đừng để seller chọn rồi mới gặp ngõ cụt.
+      const cov = BANCA.needCoverage(n.id);
+      return `<div class="need-card ${sel?'sel':''}" onclick="advToggleNeed('${n.id}')"${cov.served?'':' title="'+(cov.reason||'')+'"'}>
         <div class="ic">${n.icon}</div>
-        <div><div style="font-weight:600;font-size:13px;">${n.label}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${n.desc}</div></div>
+        <div><div style="font-weight:600;font-size:13px;">${n.label}${cov.served?'':' <span class="badge badge-version" style="font-size:9px;">chưa có sản phẩm</span>'}</div>
+        <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${cov.served?n.desc:(cov.reason||n.desc)}</div></div>
       </div>`;
     }).join('')}</div>
     ${state.needProfile.length?`<hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
@@ -480,7 +483,22 @@ function bodyPriority(){
 function bodyRecommend(){
   if(!state.primaryNeed) return `<div class="card"><div class="empty-state">Chưa xác định nhu cầu. <a href="javascript:advGo('needs')">Quay lại khám phá nhu cầu</a>.</div></div>`;
   const offers = BANCA.adviceOffersFor(state.primaryNeed);
-  if(!offers.length) return `<div class="card"><div class="empty-state">Chưa có phương án phù hợp cho nhu cầu này trong bản demo.</div></div>`;
+  // §15.3 — nhu cầu chưa có sản phẩm: nói RÕ lý do + đưa lối đi tiếp,
+  // KHÔNG im lặng gợi ý sản phẩm của nhóm khác.
+  if(!offers.length){
+    const cov = BANCA.needCoverage(state.primaryNeed);
+    const alts = BANCA.servedNeeds().filter(n=>n!==state.primaryNeed).slice(0,4);
+    return `<div class="card" style="padding:18px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Chưa có sản phẩm cho nhu cầu "${BANCA.needLabel(state.primaryNeed)}"</div>
+      <div class="alert2 warn" style="margin:8px 0;">${cov.reason||'Nhu cầu này chưa có sản phẩm trong danh mục.'}</div>
+      <div style="font-size:13px;color:var(--ink-500);margin-bottom:8px;">Nhu cầu đang có sản phẩm bán được:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${alts.map(n=>`<button class="btn btn-secondary btn-sm" onclick="advSetPrimary('${n}')">${BANCA.needLabel(n)}</button>`).join('')}</div>
+      <div style="margin-top:12px;"><a href="javascript:advGo('needs')" style="font-size:12px;color:var(--brand-600);">← Chọn lại nhu cầu</a></div>
+    </div>`;
+  }
+  // Phục vụ GIÁN TIẾP → nói rõ đang dùng sản phẩm nào để đáp ứng, tránh hiểu nhầm.
+  const _cov = BANCA.needCoverage(state.primaryNeed);
+  const covNote = _cov.note ? `<div class="alert2 info" style="margin:0 0 12px;">${_cov.note}</div>` : '';
   if(state.status==='IN_PROGRESS') { state.status='RECOMMENDED'; persist(state); }
   const bestFit=Math.max.apply(null, offers.map(o=>o.fit||0));
   const fg=BANCA.financialGapByNeed(state);
@@ -506,7 +524,7 @@ function bodyRecommend(){
       <div style="font-size:11px;color:var(--ink-500);margin-top:4px;">Cần kiểm khi tạo yêu cầu: ${est.verify.join(' · ')}.</div>
     </div>`;
   })() : '';
-  return gapCard+famEst+`<div class="card" style="padding:18px;margin-bottom:12px;"><h3 style="margin:0 0 4px;font-size:16px;">⭐ Gợi ý phương án cho: ${BANCA.needLabel(state.primaryNeed)}</h3><p style="margin:0;color:var(--ink-500);font-size:13px;">Mỗi phương án đều giải thích rõ vì sao đề xuất. Phí là minh họa.</p></div>
+  return covNote+gapCard+famEst+`<div class="card" style="padding:18px;margin-bottom:12px;"><h3 style="margin:0 0 4px;font-size:16px;">⭐ Gợi ý phương án cho: ${BANCA.needLabel(state.primaryNeed)}</h3><p style="margin:0;color:var(--ink-500);font-size:13px;">Mỗi phương án đều giải thích rõ vì sao đề xuất. Phí là minh họa.</p></div>
   <div class="opt-grid">${offers.map(o=>{
     const exp=BANCA.explainOffer(o, state.budgetBand);
     const isHero=o.fit===bestFit;

@@ -130,7 +130,11 @@ function shell(active,title,body,opts){
         <button onclick="var p=document.getElementById('demo-persona-pop');p.style.display=p.style.display==='none'?'block':'none';" title="Công cụ demo — đổi persona" style="background:rgba(255,255,255,.08);color:#a9bdde;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 9px;font-size:13px;cursor:pointer;">🧪</button>
         <div id="demo-persona-pop" style="display:none;position:absolute;right:0;top:110%;background:#1c2b4a;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.35);min-width:170px;">
           <div style="font-size:10.5px;color:#a9bdde;margin-bottom:6px;letter-spacing:.05em;">CÔNG CỤ THỬ NGHIỆM</div>
+          <div style="font-size:10px;color:#8ea3c8;margin-bottom:3px;">Persona</div>
           <select onchange="BANCA.setPersona(this.value)" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.25);font-size:12px;padding:4px 6px;width:100%;">${personas}</select>
+          <div style="font-size:10px;color:#8ea3c8;margin:8px 0 3px;">Channel (§4.1)</div>
+          <select onchange="BANCA.setChannel(this.value)" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.25);font-size:12px;padding:4px 6px;width:100%;">${(BANCA.CHANNEL_ENUM||[]).map(id=>`<option value="${id}" ${BANCA.channel()===id?'selected':''}>${BANCA.CHANNEL_PROFILES[id].short}</option>`).join('')}</select>
+          <div style="font-size:9.5px;color:#8ea3c8;margin-top:5px;line-height:1.4;">${BANCA.channelShowsCustomerList()?'Có list KH':'Ẩn list KH'} · ${BANCA.channelProfile().defaultEntryMode}</div>
         </div>
       </div>
     </div>

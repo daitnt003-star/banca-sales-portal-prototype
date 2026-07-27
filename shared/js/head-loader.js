@@ -47,7 +47,7 @@
   'shared/js/app-shell.js',
   'shared/components/foundation-components.js'
  ];
- const V = 'v=20260727a'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260727b'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/components.css?'+V+'">');

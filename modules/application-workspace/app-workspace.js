@@ -58,8 +58,8 @@ if(isNew){
  const prodRec=(BANCA.products||[]).find(x=>x.id===ctx.productId)||{name:ctx.productName||'Bảo hiểm vật chất xe'};
  const rp = ctx.renewPrefill || null;
  // §12 — Tái tục: mở ngay ở bước Đối tượng bảo hiểm (xác nhận thay đổi), không nhập lại từ đầu.
- // (correction 2026-07-27 §2 AC05) Phiên bán mới bắt đầu tại "Ngữ cảnh & phương án"; tái tục giữ hành vi cũ.
- const firstStage = rp ? (ctx.productId==='motor'?'RISK_OBJECT':'INSURED_PARTY') : 'OFFER_CONTEXT';
+ // (correction 2026-07-27) Phiên bán mới bắt đầu tại stage gộp "Khách hàng & phương án" (= CUSTOMER_INFO relabel).
+ const firstStage = rp ? (ctx.productId==='motor'?'RISK_OBJECT':'INSURED_PARTY') : 'CUSTOMER_INFO';
  app = { id:'DRAFT-2026-NEW', submissionState:'NOT_SUBMITTED', owner:me,
    customerId:ctx.customerId||null, customerName:ctx.customerName||null,
    productId:ctx.productId||'motor', productName:prodRec.name||ctx.productName, package:ctx.packageName||null,
@@ -474,8 +474,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
  // PA/sản phẩm khác có stepper riêng theo registry, không hard-code.
  const AUTO_STAGES = (BANCA.journeyFor(app.productId).hiddenStages)||['INSURED_PARTY'];
  let steps = (BANCA.journeyEditStages ? BANCA.journeyEditStages(app.productId) : BANCA.STAGES.filter(s=>!AUTO_STAGES.includes(s.id)));
- // (correction 2026-07-27 §2) Bước đầu "Ngữ cảnh & phương án bảo hiểm" cho phiên bán mới (thay popup nhiều tầng).
- if(isNew) steps = [{id:'OFFER_CONTEXT', label:'Ngữ cảnh & phương án'}].concat(steps);
+ // (correction 2026-07-27 §1-6) Gộp Khách hàng + Ngữ cảnh + Phương án vào 1 stage đầu tiên.
+ // Relabel bước CUSTOMER_INFO thành "Khách hàng & phương án"; KHÔNG còn step OFFER_CONTEXT tách rời.
+ steps = steps.map(s => s.id==='CUSTOMER_INFO' ? Object.assign({}, s, {label:'Khách hàng & phương án'}) : s);
  let reqStep = qs.get('step')||app.currentStage;
  if(AUTO_STAGES.includes(reqStep)) reqStep='CUSTOMER_INFO';
  let curIdx = steps.findIndex(s=>s.id===reqStep); if(curIdx<0) curIdx=0;
@@ -1334,6 +1335,16 @@ if(app.submissionState==='NOT_SUBMITTED'){
    </div>
   </div>` : '';
  const consentGate = (BANCA.ui&&BANCA.ui.consentGate)?BANCA.ui.consentGate(app):'';
+ // (correction 2026-07-27 §1-6) Stage đầu = "Khách hàng & phương án": SalesSourceBar (trên) + form KH (giữa) + OfferSelectionWorkspace (dưới).
+ if(cur.id==='CUSTOMER_INFO'){
+  app.productLocked = (BANCA.ENTRY_MODES[entryMode]||{}).productLocked || !!app.renewalPolicyRef;
+  app.recommendReason = app.recommendReason || (app.adviceNeed && BANCA.needLabel?('Phù hợp nhu cầu '+BANCA.needLabel(app.adviceNeed)):(app.loanType?('Bảo vệ khoản vay '+app.loanType):'Đề xuất theo ngữ cảnh ngân hàng'));
+  stepBody = (BANCA.ui.salesSourceBar?BANCA.ui.salesSourceBar(app):'')
+   + `<div class="oc-title" style="margin:14px 0 6px;">Khách hàng &amp; ngữ cảnh</div>`
+   + stepBody
+   + `<div class="oc-title" style="margin:16px 0 6px;">Phương án bảo hiểm</div>`
+   + (BANCA.ui.offerSelectionWorkspace?BANCA.ui.offerSelectionWorkspace(app):'');
+ }
  shell('Yêu cầu bảo hiểm chưa nộp','Lập yêu cầu yêu cầu bảo hiểm', hdr + consentGate + adviceRefBanner + renewalBanner + stepper + stepBody + `
   <div class="ux-bottom-actions">
    ${(()=>{ // P0-7: điều hướng bỏ qua bước auto

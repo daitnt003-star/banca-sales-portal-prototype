@@ -169,6 +169,15 @@ function toggleAvatarMenu(e){
 // → Common Sales Entry Review → chỉ khi đó mới tạo Sales Session + Draft.
 let __ssCtx = {};
 function openStartSale(){
+ // (correction 2026-07-27 §5 AC01/AC02) Banca Integrated: ngân hàng đã truyền context →
+ // KHÔNG popup, tạo Sales Session & đi thẳng stage "Khách hàng & phương án".
+ if(BANCA.channel && BANCA.channel()==='BANCA_INTEGRATED'){
+  const me=BANCA.current();
+  const list=(BANCA.myCustomers?BANCA.myCustomers().filter(c=>c.scope[me]!=='PROSPECT'):[]);
+  const c=list[0];
+  location.href=rel()+'modules/application-workspace/index.html?new=1&mode=BANK_CUSTOMER'+(c?'&customer='+encodeURIComponent(c.id)+'&pname='+encodeURIComponent(c.name):'')+'&product=motor';
+  return;
+ }
  const root=document.getElementById('start-sale-root');
  const groups=[
   {label:'CÓ SẴN NGỮ CẢNH', items:[

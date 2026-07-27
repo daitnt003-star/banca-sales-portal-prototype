@@ -1,132 +1,60 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Yêu cầu bảo hiểm chưa nộp — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=44"></script></head><body><script>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bản chào — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=44"></script></head><body><script>
+// Thin wrapper cho lifecycle PREPARING (đang chuẩn bị) — dùng chung QuoteListShell + QuoteDataTable.
 const p = BANCA.persona(), me = BANCA.current(), r = rel();
 const qs = new URLSearchParams(location.search);
-const fStage = qs.get('stage') || 'ALL';
-const fWarn = qs.get('warn') === '1';
-const fOwner = qs.get('owner') || 'ALL';
-const fProd = qs.get('prod') || 'ALL';
-const fSearch = (qs.get('q')||'').toLowerCase();
-const fFrom = qs.get('from')||'', fTo = qs.get('to')||'';
-
 if(p.status!=='ACTIVE'){
- shell('Yêu cầu bảo hiểm chưa nộp','Không có quyền truy cập',`<div class="card"><div class="alert2 danger">Tài khoản ngừng hoạt động — không thể xem yêu cầu.</div></div>`,{startSale:false});
+ shell('Bản chào','Bản chào',`<div class="card"><div class="alert2 danger">Tài khoản ngừng hoạt động — không thể xem bản chào.</div></div>`,{startSale:false});
 } else {
+ const SCOPES = (BANCA.availableScopes?BANCA.availableScopes(me):['SELF']);
+ const fScope = SCOPES.includes(qs.get('scope'))?qs.get('scope'):'SELF';
+ const fUnit = qs.get('unit')||null;
+ const fStage = qs.get('stage')||'ALL';
+ const fWarn = qs.get('warn')==='1';
+ const fSearch = (qs.get('q')||'').toLowerCase();
+ const fProd = qs.get('prod')||'ALL', fFrom = qs.get('from')||'', fTo = qs.get('to')||'';
+ const canSell = (BANCA.resolveManagerProfile?BANCA.resolveManagerProfile(me).sellingEnabled!==false:true);
 
-const SCOPES = (BANCA.availableScopes?BANCA.availableScopes(me):['SELF']);
-const fScope = SCOPES.includes(qs.get('scope'))?qs.get('scope'):'SELF';
-let apps = (fScope==='SELF')
-  ? BANCA.myApps('NOT_SUBMITTED').filter(a=>a.owner===me)
-  : (BANCA.appsForScope?BANCA.appsForScope(fScope,me):BANCA.myApps('NOT_SUBMITTED')).filter(a=>a.submissionState==='NOT_SUBMITTED');
-const isMgr = fScope!=='SELF';
-const base = apps.slice();
-// P1: "Cần tôi xử lý" = yêu cầu của tôi còn thao tác được (có quyền nộp, quyền sản phẩm chưa đổi). Mặc định khi ở phạm vi cá nhân.
-const needsMe = a => { const prod=BANCA.products.find(x=>x.id===a.productId); const caps=prod?BANCA.capabilities(prod):[]; return a.owner===me && !(a.warnings||[]).includes('PRODUCT_AUTH_CHANGED') && caps.includes('can_submit'); };
-const needCount = base.filter(needsMe).length;
-const fView = (fScope==='SELF' && qs.get('view')!=='all') ? 'need' : 'all';
-if(fView==='need') apps = apps.filter(needsMe);
-if(fOwner!=='ALL') apps = apps.filter(a=>a.owner===fOwner);
-if(fStage!=='ALL') apps = apps.filter(a=>a.currentStage===fStage);
-if(fWarn) apps = apps.filter(a=>a.warnings.length);
-if(fProd!=='ALL') apps = apps.filter(a=>a.productId===fProd);
-// P0-11: search KH + SĐT (trên số đầy đủ ở tầng dữ liệu — mask chỉ là hiển thị)
-if(fSearch) apps = apps.filter(a=>{
- const c=BANCA.customerById(a.customerId)||{};
- const fullPhone=(c.phone||''); // mock số đầy đủ
- return (c.name||'').toLowerCase().includes(fSearch) || fullPhone.includes(fSearch) || (c.phone||'').includes(fSearch) || a.id.toLowerCase().includes(fSearch);
-});
-if(fFrom) apps = apps.filter(a=>a.updatedAt.slice(0,10)>=fFrom);
-if(fTo) apps = apps.filter(a=>a.updatedAt.slice(0,10)<=fTo);
-apps = BANCA.applyUnitFilter(apps, qs.get('unit')); // § correction — lọc theo đơn vị đã chọn
-apps.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+ let all = (fScope==='SELF')
+   ? BANCA.myApps('NOT_SUBMITTED').filter(a=>a.owner===me)
+   : (BANCA.appsForScope?BANCA.appsForScope(fScope,me):BANCA.myApps('NOT_SUBMITTED')).filter(a=>a.submissionState==='NOT_SUBMITTED');
+ all = BANCA.applyUnitFilter(all, fUnit);
+ const total = all.length;
+ let apps = all.slice();
+ if(fStage!=='ALL') apps = apps.filter(a=>a.currentStage===fStage);
+ if(fWarn) apps = apps.filter(a=>(a.warnings||[]).length);
+ if(fProd!=='ALL') apps = apps.filter(a=>a.productId===fProd);
+ if(fFrom) apps = apps.filter(a=>(a.updatedAt||'').slice(0,10)>=fFrom);
+ if(fTo) apps = apps.filter(a=>(a.updatedAt||'').slice(0,10)<=fTo);
+ if(fSearch) apps = apps.filter(a=>{ const c=BANCA.customerById(a.customerId)||{}; return (c.name||'').toLowerCase().includes(fSearch)||(c.phone||'').includes(fSearch)||a.id.toLowerCase().includes(fSearch); });
+ apps.sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
 
-const stageCounts = {};
-base.forEach(a=>{stageCounts[a.currentStage]=(stageCounts[a.currentStage]||0)+1;});
-const keepParams = ()=>{const o=new URLSearchParams(location.search); return o;};
-const linkWith=(k,v)=>{const o=keepParams(); if(v==null||v==='ALL'||v==='')o.delete(k);else o.set(k,v); return '?'+o.toString();};
-const pill = (id,label,n)=>`<a href="${linkWith('stage',id)}" class="chip" style="cursor:pointer;text-decoration:none;padding:6px 12px;font-size:12px;${fStage===id?'background:var(--brand-600);color:#fff;':''}">${label}${n!=null?` (${n})`:''}</a>`;
+ const counts = BANCA.quoteLifecycleCounts(me, fScope, fUnit);
+ // PREPARING quick filters: journey stage + warning (KHÔNG có "Cần tôi xử lý").
+ const stageCounts={}; all.forEach(a=>{stageCounts[a.currentStage]=(stageCounts[a.currentStage]||0)+1;});
+ const stageHref=(v)=>{const o=new URLSearchParams(location.search); if(v==='ALL')o.delete('stage');else o.set('stage',v); return '?'+o.toString();};
+ const warnHref=()=>{const o=new URLSearchParams(location.search); if(fWarn)o.delete('warn');else o.set('warn','1'); return '?'+o.toString();};
+ const chip=(href,label,on,n)=>`<a href="${href}" class="oqf-chip${on?' on':''}">${label}${n!=null?` (${n})`:''}</a>`;
+ const quick = `<div class="offer-quick-filters">
+   <div class="oqf-row"><span class="oqf-label">Bước hành trình:</span>
+     ${chip(stageHref('ALL'),'Tất cả',fStage==='ALL')}
+     ${BANCA.PREP_STAGE_ORDER.map(s=>chip(stageHref(s),BANCA.PREP_STAGE_LABELS[s],fStage===s,stageCounts[s]||0)).join('')}
+   </div>
+   <div class="oqf-row"><span class="oqf-label">Cảnh báo:</span>${chip(warnHref(),'Chỉ có cảnh báo',fWarn)}</div>
+ </div>`;
 
-// Filter drawer (17:04): ngoài chỉ giữ pills theo step + search; còn lại vào drawer; active hiện tag ×
-const drawerFields=[
- {name:'prod', label:'Sản phẩm', type:'select', value:fProd, options:[['ALL','Mọi sản phẩm'],...[...new Set(base.map(a=>a.productId))].map(x=>[x,(BANCA.products.find(pp=>pp.id===x)||{}).name||x])]},
- {name:'from', label:'Cập nhật từ ngày', type:'date', value:fFrom},
- {name:'to', label:'Cập nhật đến ngày', type:'date', value:fTo},
- {name:'warn', label:'Cảnh báo', type:'select', value:fWarn?'1':'', options:[['','Tất cả'],['1','Chỉ yêu cầu có cảnh báo']]},
- ...(isMgr?[{name:'owner', label:'Người tạo', type:'select', value:fOwner, options:[['ALL','Tất cả người tạo'],...[...new Set(base.map(a=>a.owner))].map(o=>[o,(BANCA.personas[o]||{}).name||o])]}]:[])
-];
-const fd = filterDrawer(drawerFields, {stage:fStage, q:qs.get('q')||''});
-const viewChip=(v,label,n)=>{const o=keepParams(); if(v==='need')o.delete('view');else o.set('view','all'); o.delete('stage'); const on=fView===v; return `<a href="?${o.toString()}" class="chip" style="cursor:pointer;text-decoration:none;padding:7px 14px;font-size:12.5px;font-weight:600;${on?'background:var(--brand-600);color:#fff;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${label} (${n})</a>`;};
-const filterBar = `${fScope==='SELF'?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
- ${viewChip('need','Cần tôi xử lý',needCount)}
- ${viewChip('all','Tất cả',base.length)}
-</div>`:''}
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
- ${pill('ALL','Mọi bước',apps.length)}
- ${BANCA.STAGES.filter(s=>s.id!=='INSURED_PARTY').map(s=>pill(s.id,s.label,stageCounts[s.id]||0)).join('')}
-</div>
-<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
- <form method="get" style="display:flex;gap:8px;align-items:center;">
-  ${fStage!=='ALL'?`<input type="hidden" name="stage" value="${fStage}">`:''}
-  ${fProd!=='ALL'?`<input type="hidden" name="prod" value="${fProd}">`:''}
-  ${fFrom?`<input type="hidden" name="from" value="${fFrom}">`:''}
-  ${fTo?`<input type="hidden" name="to" value="${fTo}">`:''}
-  ${fWarn?`<input type="hidden" name="warn" value="1">`:''}
-  ${fOwner!=='ALL'?`<input type="hidden" name="owner" value="${fOwner}">`:''}
-  <input name="q" value="${qs.get('q')||''}" placeholder="Tìm khách hàng / SĐT / mã yêu cầu" style="padding:7px 12px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:260px;">
- </form>
- ${fd.button}
-</div>
-${fd.tags}
-${fd.drawer}`;
+ const drawerFields=[
+  {name:'prod', label:'Sản phẩm', type:'select', value:fProd, options:[['ALL','Mọi sản phẩm'],...[...new Set(all.map(a=>a.productId))].map(x=>[x,(BANCA.products.find(pp=>pp.id===x)||{}).name||x])]},
+  {name:'from', label:'Cập nhật từ ngày', type:'date', value:fFrom},
+  {name:'to', label:'Cập nhật đến ngày', type:'date', value:fTo}
+ ];
+ const fd = filterDrawer(drawerFields, {stage:fStage, warn:fWarn?'1':'', q:qs.get('q')||''});
 
-const wsUrl = id => r+'modules/application-workspace/index.html?id='+id;
-const stageCta={CUSTOMER_INFO:'Tiếp tục thông tin khách hàng',INSURED_PARTY:'Tiếp tục đối tượng bảo hiểm',RISK_OBJECT:'Tiếp tục đối tượng bảo hiểm',PACKAGE_AND_QUOTE:'Tính phí dự kiến',RISK_DECLARATION:'Tiếp tục khai báo rủi ro',DOCUMENTS:'Bổ sung tài liệu',REVIEW_AND_SUBMIT:'Kiểm tra và nộp'};
-function continueBtn(a){
- const prod = BANCA.products.find(x=>x.id===a.productId);
- const caps = prod ? BANCA.capabilities(prod) : [];
- const mine = a.owner===me;
- if(!mine || a.warnings.includes('PRODUCT_AUTH_CHANGED') || !caps.includes('can_submit'))
-  return `<a class="btn btn-secondary btn-sm" href="${wsUrl(a.id)}" onclick="event.stopPropagation()" title="${!mine?'Yêu cầu của nhân viên tư vấn khác — chỉ xem':'Quyền sản phẩm thay đổi — chỉ xem'}">Mở</a>`;
- const label = (a.warnings||[]).some(w=>['QUOTE_EXPIRING','QUOTE_NEED_RERATE'].includes(w)) ? 'Tính phí lại' : (stageCta[a.currentStage]||'Tiếp tục');
- return `<a class="btn btn-primary btn-sm" href="${wsUrl(a.id)}" onclick="event.stopPropagation()">${label}</a>`;
+ const body = BANCA.ui.quoteListShell({
+   me, r, lifecycle:'PREPARING', g5:null, counts, scope:fScope, unit:fUnit, q:qs.get('q')||'',
+   apps, shown:apps.length, total, canSell,
+   quickFiltersHtml: quick,
+   advancedBtn: fd.button, advancedTags: fd.tags, advancedDrawer: fd.drawer
+ });
+ shell('Bản chào','Bản chào', body, {startSale:false});
 }
-
-// P2-4: badge ngân hàng
-const bankBadge = `<span class="chip" style="background:var(--brand-100);color:var(--brand-700);font-size:10px;">Janus Bank</span>`;
-
-const rows = apps.map(a=>{
- const c=BANCA.customerById(a.customerId)||{};
- return `<tr style="cursor:pointer;" onclick="location.href='${wsUrl(a.id)}'">
- <td><span style="font-weight:600;color:var(--brand-600);">${a.id}</span> ${bankBadge}${isMgr&&a.owner!==me?`<div style="font-size:12px;color:var(--ink-300);">${(BANCA.personas[a.owner]||{}).name||a.owner}</div>`:''}</td>
- <td>${BANCA.customerCell(c)}</td>
- <td style="font-size:12px;">${(()=>{const pa=BANCA.participantsOf?BANCA.participantsOf(a.id,a.owner):{}; return BANCA.sellerCell(pa&&!pa._fallback?pa.referrer:null, pa&&!pa._fallback?pa.advisor:null, (pa&&pa.sellingProducer)||a.owner);})()}</td>
- <td style="font-size:12px;">${a.productName}${a.package?' · '+a.package:''}${BANCA.demoMetaTooltip?BANCA.demoMetaTooltip(a):''}${a.productId==='health'&&BANCA.healthMemberSummary?(()=>{const ms=BANCA.healthMemberSummary(a);return `<div style="font-size:11px;color:var(--ink-500);margin-top:2px;">👨‍👩‍👧 ${ms.activeCount} người BH${ms.total?' · '+BANCA.vnd(ms.total):''}${ms.done<ms.activeCount?` · <span style="color:var(--amber-600);">${ms.done}/${ms.activeCount} hoàn tất</span>`:''}${ms.ineligible?` · <span style="color:var(--red-600);">${ms.ineligible} không đủ ĐK</span>`:''}</div>`;})():''}</td>
- <td style="font-size:12px;">${BANCA.stageLabel(a.currentStage)}</td>
- <td><div style="width:70px;height:6px;background:var(--line);border-radius:4px;"><div style="width:${a.progress}%;height:6px;background:var(--brand-600);border-radius:4px;"></div></div><span style="font-size:12px;color:var(--ink-500);">${a.progress}%</span></td>
- <td>${warnBadges(a.warnings)||'<span style="color:var(--ink-300);font-size:12px;">—</span>'}</td>
- <td style="font-size:11.5px;color:var(--ink-500);">${a.updatedAt}</td>
- <td style="white-space:nowrap;" onclick="event.stopPropagation();">${continueBtn(a)} <span class="ovf"><button class="btn btn-secondary btn-sm" aria-label="Thao tác khác" onclick="closeAllOvf(this);this.nextElementSibling.classList.toggle('open')">⋯</button><div class="ovf-menu"><a href="${wsUrl(a.id)}">Mở yêu cầu</a><a href="#" onclick="cancelApp('${a.id}');return false;" style="color:var(--red-600);">Hủy yêu cầu…</a></div></span></td>
-</tr>`;}).join('');
-
-const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
-const scopeBar = BANCA.ui.dataScopeSelector(me, fScope, qs.get('unit'), r);
-shell('Bản chào','Bản chào',
-BANCA.ui.offerGroupBar('PREPARING', r)+scopeBar+`
-${BANCA.uxListHeader('Bản chào — Đang chuẩn bị','Các bản chào đang được hoàn thiện trước khi nộp',`Hiển thị <b>${apps.length}</b> / ${base.length} bản chào · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
-${apps.length? `<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Nhân viên phụ trách</th><th>Sản phẩm</th><th>Bước hiện tại</th><th>Hoàn thành</th><th>Cảnh báo</th><th>Cập nhật</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>
-<div style="font-size:11.5px;color:var(--ink-300);margin-top:10px;">Click vào dòng để mở yêu cầu. Yêu cầu chưa nộp được lọc theo <b>bước hành trình</b>; cờ cảnh báo là badge, không phải trạng thái.</div>`
- : `<div class="card"><div class="empty-state">Không có yêu cầu nào khớp bộ lọc. ${(fSearch||fStage!=='ALL'||fWarn)?'<a href="?">Xóa bộ lọc</a>':'Bấm <b>"Tạo yêu cầu bảo hiểm"</b> góc trên để tạo yêu cầu đầu tiên.'}</div></div>`}
-`);
-window.closeAllOvf=(exceptBtn)=>{ document.querySelectorAll('.ovf-menu.open').forEach(m=>{ if(m.previousElementSibling!==exceptBtn) m.classList.remove('open'); }); };
-document.addEventListener('click',e=>{ if(!e.target.closest('.ovf')) document.querySelectorAll('.ovf-menu.open').forEach(m=>m.classList.remove('open')); });
-// Hủy = hành động nguy hiểm → confirmation 2 bước, không đặt cạnh nút chính.
-window.cancelApp=(id)=>{ if(confirm('Hủy yêu cầu '+id+'?\n\nHành động này không thể hoàn tác. Yêu cầu nháp sẽ bị xóa khỏi danh sách.')){ alert('Đã hủy yêu cầu '+id+' (demo).'); } };
-}
-</script>
-<style>
-.ovf{position:relative;display:inline-block;}
-.ovf-menu{display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:50;min-width:150px;padding:4px;}
-.ovf-menu.open{display:block;}
-.ovf-menu a{display:block;padding:8px 12px;font-size:12.5px;color:var(--ink-700);text-decoration:none;border-radius:6px;min-height:20px;}
-.ovf-menu a:hover{background:var(--paper);}
-</style>
-</body></html>
+</script></body></html>

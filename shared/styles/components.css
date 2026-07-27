@@ -137,3 +137,33 @@ table.offer-table td .task-cell{min-width:190px;}
 /* keep primary CTA visible on horizontal scroll */
 table.offer-table td:last-child, table.offer-table th:last-child{position:sticky;right:0;background:var(--paper-card);box-shadow:-6px 0 8px -6px rgba(10,25,60,.12);}
 table.offer-table tr:hover td:last-child{background:var(--paper);}
+
+/* ===== QuoteListShell (unified layout) ===== */
+.qls-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 12px;}
+.qls-title{font-size:24px;font-weight:700;color:var(--ink-900);margin:0;}
+.offer-group-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:0;}
+.ogb-tab{text-decoration:none;padding:9px 14px;font-size:13px;color:var(--ink-500);border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+.ogb-tab.on{color:var(--brand-700);border-bottom-color:var(--brand-600);font-weight:600;}
+.ogb-n{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:0 6px;font-size:11px;color:var(--ink-500);}
+.ogb-tab.on .ogb-n{background:var(--brand-100);border-color:var(--brand-500);color:var(--brand-700);}
+.qls-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+.qls-toolbar .spacer{flex:1;}
+.qls-searchform{display:inline;}
+.qls-count{font-size:12px;color:var(--ink-500);white-space:nowrap;}
+.qls-quick{margin-bottom:12px;}
+.qls-quick:empty{display:none;}
+.journey-chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand-700);background:var(--brand-100);border-radius:8px;padding:2px 8px;}
+.q-id{font-weight:600;color:var(--brand-600);font-size:13px;}
+.q-cust{font-size:12px;color:var(--ink-700);}
+.muted{color:var(--ink-300);}
+table.offer-table td .task-cell{min-width:180px;}
+.data-scope-selector{flex-wrap:nowrap;}
+.dss-label{white-space:nowrap;}
+.dss-select{min-width:120px;}
+
+/* clean horizontal scroll instead of squeezing columns */
+table.offer-table{min-width:940px;}
+table.offer-table th{white-space:nowrap;}
+table.offer-table td.col-task{min-width:220px;white-space:normal;}
+table.offer-table td:last-child, table.offer-table th:last-child{position:sticky;right:0;background:var(--paper-card);box-shadow:-6px 0 8px -6px rgba(10,25,60,.12);}
+table.offer-table tr:hover td:last-child{background:var(--paper);}

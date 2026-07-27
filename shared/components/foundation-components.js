@@ -281,7 +281,7 @@ BANCA.applyUnitFilter = function (apps, unitId) {
 // --- offerQuickFilters (§ correction) — render bộ quick-filter RIÊNG theo nhóm lifecycle từ config ---
 BANCA.ui.offerQuickFilters = function (groupId, qs, r) {
   var gf = (BANCA.OFFER_GROUP_FILTERS || {})[groupId];
-  if (!gf || gf.kind !== 'chips') return '';
+  if (!gf || !gf.filters) return '';
   function href(param, v) {
     var o = new URLSearchParams(location.search);
     if (v == null || o.get(param) === v) o.delete(param); else o.set(param, v);
@@ -322,14 +322,21 @@ BANCA.ui.customerTaskCell = function (app) {
   if (app.uw && app.uw.decision === 'APPROVED_WITH_CONDITION') desc += (desc ? ' · ' : '') + 'có điều kiện/loại trừ cần khách chấp nhận';
   return '<div class="task-cell">' + badge + (desc ? '<span class="task-desc">' + _esc(desc) + '</span>' : '') + '</div>';
 };
-// CTA sinh từ nextAction; 1 primary/dòng; KHÔNG cho seller xác nhận thay khách (AC07).
+// CTA sinh từ nextAction; PRIMARY chỉ khi nextActor = CURRENT_USER (AC). Không cho seller xác nhận thay khách.
 BANCA.ui.offerCta = function (app) {
+  // Draft (chưa nộp) → seller tiếp tục hoàn thiện (primary).
+  if (app.submissionState === 'NOT_SUBMITTED') {
+    var warn = (app.warnings || []).some(function (w) { return ['QUOTE_EXPIRING', 'QUOTE_NEED_RERATE'].indexOf(w) >= 0; });
+    return { label: warn ? 'Tính phí lại' : 'Tiếp tục', tab: null, primary: true };
+  }
   var v = BANCA.deriveCaseViewState ? BANCA.deriveCaseViewState(app) : {};
   var pa = v.primaryAction || { label: 'Mở', tab: 'overview', key: 'open' };
   var label = pa.label, tab = pa.tab || 'overview', key = pa.key;
-  // Actor = KHÁCH → seller chỉ được gửi/gửi lại/theo dõi, không "Xác nhận điều kiện".
   if (key === 'confirm') { label = (app.confirm && app.confirm.requested) ? 'Theo dõi xác nhận' : 'Gửi yêu cầu xác nhận'; tab = 'confirm'; }
   if (key === 'retryPay') { label = 'Gửi lại thanh toán'; }
-  var primaryKeys = ['chooseMethod', 'supplement', 'confirm', 'retryPay', 'retryIssue', 'viewPolicy'];
-  return { label: label, tab: tab, primary: primaryKeys.indexOf(key) >= 0 };
+  if (key === 'viewPolicy') { label = 'Xem hợp đồng'; }
+  // View/track = terminal/secondary; primary chỉ khi user phải HÀNH ĐỘNG.
+  var viewKeys = ['viewPolicy', 'viewReason', 'viewHist', 'trackUw', 'trackPay', 'trackIssue', 'open'];
+  var primary = (BANCA.nextActor ? BANCA.nextActor(app) : 'CURRENT_USER') === 'CURRENT_USER' && viewKeys.indexOf(key) < 0;
+  return { label: label, tab: tab, primary: primary };
 };

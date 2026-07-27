@@ -47,9 +47,10 @@
   'shared/js/mock-store.js',
   'shared/js/app-shell.js',
   'shared/components/foundation-components.js',
-  'shared/components/sales-context-offer.js'
+  'shared/components/sales-context-offer.js',
+  'shared/components/quote-list-shell.js'
  ];
- const V = 'v=20260727i'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260727m'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/components.css?'+V+'">');

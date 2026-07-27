@@ -32,6 +32,7 @@
   'shared/mock/seed/manager-profiles.js',
   'shared/mock/seed/org-units.js',
   'shared/mock/seed/handoffs.js',
+  'shared/mock/seed/post-sale.js',
   'shared/mock/scenarios/rm-01-ready.js',
   'shared/mock/scenarios/rm-02-conditional.js',
   'shared/mock/scenarios/ts-01-conditional.js',
@@ -49,10 +50,11 @@
   'shared/js/app-shell.js',
   'shared/components/foundation-components.js',
   'shared/components/confirm-payment.js',
+  'shared/components/policy-cockpit.js',
   'shared/components/sales-context-offer.js',
   'shared/components/quote-list-shell.js'
  ];
- const V = 'v=20260727z'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260728c'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/components.css?'+V+'">');

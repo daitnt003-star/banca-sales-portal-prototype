@@ -22,7 +22,7 @@ BANCA.manifest =
     },
     {
       "id": "unsubmitted-applications",
-      "title": "Yêu cầu bảo hiểm chưa nộp",
+      "title": "Yêu cầu chưa nộp",
       "route": "modules/unsubmitted-applications/index.html",
       "permission": "VIEW_WORKSPACE",
       "navGroup": "business",
@@ -30,7 +30,7 @@ BANCA.manifest =
     },
     {
       "id": "submitted-applications",
-      "title": "Yêu cầu bảo hiểm đã nộp",
+      "title": "Yêu cầu đã nộp",
       "route": "modules/submitted-applications/index.html",
       "permission": "VIEW_WORKSPACE",
       "navGroup": "business",

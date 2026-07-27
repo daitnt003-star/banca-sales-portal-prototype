@@ -110,7 +110,40 @@ BANCA.policies = [
     {id:'vat-invoice', name:'Hóa đơn VAT', fileName:'INV-HEALTH-2202.pdf', kind:'PDF', version:'Hiện hành', issuedAt:'2026-07-21', source:'Kế toán', status:'Sẵn sàng', canView:true, canDownload:true, canSendToCustomer:true}
    ],
    payment:{paymentId:'PAY-HEALTH-2207',paymentExperience:'CUSTOMER_REMOTE',paymentInstrument:'BANK_TRANSFER',deliveryChannel:'SMS',merchantReference:'MR-APP-2026-HLT7',gatewayTransactionId:'GTW-HEALTH-2207',paidAt:'2026-07-21 11:15'},
-   billing:[{date:'2026-07-21', amount:9450000, method:'BANK_TRANSFER', ref:'GTW-HEALTH-2207', status:'SUCCESS'}]}
+   billing:[{date:'2026-07-21', amount:9450000, method:'BANK_TRANSFER', ref:'GTW-HEALTH-2207', status:'SUCCESS'}]},
+  // --- Demo §21.F: hợp đồng Health (multi-insured) + PA để chứng minh Policy Cockpit
+  // DÙNG CHUNG cho mọi sản phẩm (§11). Khác biệt chỉ ở khối "Tổng quan".
+  {id:'JB-POL-2026-0311', certificate:'CERT-2026-0311', owner:'RM-01', customerId:'CUS-001',
+   productType:'health', productId:'health', productName:'Bảo hiểm sức khỏe', packageCode:'HEALTH_STD', package:'Sức khỏe Tiêu chuẩn',
+   premium:24600000, issueDate:'2026-07-22', effectiveFrom:'2026-07-25', effectiveTo:'2027-07-24', status:'ACTIVE', renewalStatus:null, isNew:true, appId:null,
+   policyholder:{name:'Trần Minh Anh', cif:'CIF-100234', phone:'0903 123 456', email:'minhanh@example.com', identityNumber:'079085004321'},
+   insuredMembers:[
+    {name:'Trần Minh Anh', dob:'1985-04-12', age:41, relationship:'Bản thân', package:'HEALTH_STD', identityNumber:'079085004321', certificateNumber:'CERT-2026-0311-01', memberStatus:'Hiệu lực'},
+    {name:'Lê Thu Hà',     dob:'1988-09-03', age:37, relationship:'Vợ/chồng', package:'HEALTH_STD', identityNumber:'079088003333', certificateNumber:'CERT-2026-0311-02', memberStatus:'Hiệu lực'},
+    {name:'Trần Gia Bảo',  dob:'2015-02-20', age:11, relationship:'Con', package:'HEALTH_BASIC', isChild:true, certificateNumber:'CERT-2026-0311-03', memberStatus:'Hiệu lực'}
+   ],
+   specialConditions:['Loại trừ bệnh dạ dày có sẵn của người được bảo hiểm chính trong 24 tháng đầu'],
+   payment:{paidAt:'2026-07-23 14:20', paymentInstrument:'BANK_TRANSFER', gatewayTransactionId:'TXN-91422'},
+   billing:[{period:'Kỳ 1/1', date:'2026-07-23', amount:24600000, method:'BANK_TRANSFER', ref:'TXN-91422', status:'SUCCESS'}],
+   audit:[{at:'2026-07-18 09:10',by:'Nguyễn Văn An',action:'Gửi bản chào sức khỏe'},
+          {at:'2026-07-20 16:40',by:'UW Nguyễn Thị Thẩm',action:'Duyệt có điều kiện (loại trừ bệnh có sẵn)'},
+          {at:'2026-07-21 10:05',by:'Khách hàng',action:'Xác nhận điều kiện/loại trừ (OTP từng người ≥18)'},
+          {at:'2026-07-23 14:20',by:'Cổng thanh toán',action:'Thanh toán thành công'},
+          {at:'2026-07-25 08:00',by:'Core System',action:'Phát hành hợp đồng + GCN/thẻ điện tử từng người'}],
+   endorsements:[], claims:[]},
+  {id:'JB-POL-2026-0322', certificate:'CERT-2026-0322', owner:'RM-01', customerId:'CUS-002',
+   productType:'pa', productId:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageCode:'PA_STD', package:'PA Tiêu chuẩn',
+   premium:1850000, issueDate:'2026-07-10', effectiveFrom:'2026-07-12', effectiveTo:'2027-07-11', status:'ACTIVE', renewalStatus:null, isNew:false, appId:null,
+   policyholder:{name:'Phạm Quốc Huy', cif:'CIF-100455', phone:'0908 888 222', email:'huy.pq@example.com', identityNumber:'079090008888'},
+   insuredPerson:{name:'Phạm Quốc Huy', dob:'1990-06-15', identityNumber:'079090008888', occupationCode:'OFF-01', occupationClass:'CLASS_1', contact:'0908 888 222', relationship:'Bản thân'},
+   beneficiary:'Theo quy định pháp luật',
+   payment:{paidAt:'2026-07-11 09:05', paymentInstrument:'CARD', gatewayTransactionId:'TXN-90880'},
+   billing:[{period:'Kỳ 1/1', date:'2026-07-11', amount:1850000, method:'CARD', ref:'TXN-90880', status:'SUCCESS'}],
+   audit:[{at:'2026-07-09 11:00',by:'Nguyễn Văn An',action:'Tạo bản chào PA'},
+          {at:'2026-07-10 08:30',by:'Hệ thống',action:'Chấp thuận tự động (STP)'},
+          {at:'2026-07-11 09:05',by:'Cổng thanh toán',action:'Thanh toán thành công'},
+          {at:'2026-07-12 07:30',by:'Core System',action:'Phát hành hợp đồng + GCN'}],
+   endorsements:[], claims:[]}
 ];
 BANCA.policyById = id => BANCA.policies.find(p=>p.id===id);
 BANCA.myPolicies = (p = BANCA.current()) => {

@@ -95,3 +95,16 @@
 .offer-group-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:10px;}
 .ogb-tab{text-decoration:none;padding:7px 14px;border-radius:8px;font-size:13px;color:var(--ink-500);background:var(--paper-card);border:1px solid var(--line);}
 .ogb-tab.on{background:var(--brand-600);color:#fff;font-weight:600;border-color:var(--brand-600);}
+
+/* ===== DataScopeSelector + offerQuickFilters (§ correction) ===== */
+.data-scope-selector{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.dss-label{font-size:12px;color:var(--ink-500);font-weight:600;}
+.dss-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.dss-chip{text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;color:var(--ink-500);background:var(--paper-card);border:1px solid var(--line);}
+.dss-chip.on{background:var(--brand-600);color:#fff;font-weight:600;border-color:var(--brand-600);}
+.dss-unit{padding:6px 8px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;background:var(--paper-card);}
+.offer-quick-filters{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.oqf-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.oqf-label{font-size:12px;color:var(--ink-500);min-width:96px;}
+.oqf-chip{text-decoration:none;padding:5px 12px;border-radius:8px;font-size:12px;color:var(--ink-700);background:var(--paper-card);border:1px solid var(--line);}
+.oqf-chip.on{background:var(--brand-600);color:#fff;border-color:var(--brand-600);}

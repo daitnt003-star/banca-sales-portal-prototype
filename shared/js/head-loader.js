@@ -12,6 +12,7 @@
   'shared/mock/seed/customer-data-access.js',
   'shared/mock/seed/status-mappings.js',
   'shared/mock/seed/quote-version.js',
+  'shared/mock/seed/offer-filters.js',
   'shared/mock/seed/vehicle-master.js',
   'shared/mock/seed/product-schemas.js',
   'shared/mock/seed/insured-units.js',
@@ -48,7 +49,7 @@
   'shared/components/foundation-components.js',
   'shared/components/sales-context-offer.js'
  ];
- const V = 'v=20260727e'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260727f'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/components.css?'+V+'">');

@@ -36,6 +36,7 @@ if(fSearch) apps = apps.filter(a=>{
 });
 if(fFrom) apps = apps.filter(a=>a.updatedAt.slice(0,10)>=fFrom);
 if(fTo) apps = apps.filter(a=>a.updatedAt.slice(0,10)<=fTo);
+apps = BANCA.applyUnitFilter(apps, qs.get('unit')); // § correction — lọc theo đơn vị đã chọn
 apps.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
 
 const stageCounts = {};
@@ -107,8 +108,7 @@ const rows = apps.map(a=>{
 </tr>`;}).join('');
 
 const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
-const scopeKeep=s=>{const o=new URLSearchParams(location.search); if(s==='SELF')o.delete('scope');else o.set('scope',s); return '?'+o.toString();};
-const scopeBar = SCOPES.length>1 ? `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">${SCOPES.map(s=>`<a href="${scopeKeep(s)}" class="tab" style="text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;${fScope===s?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${scopeLabelOf(s)}</a>`).join('')}</div>` : '';
+const scopeBar = BANCA.ui.dataScopeSelector(me, fScope, qs.get('unit'), r);
 shell('Bản chào','Bản chào',
 BANCA.ui.offerGroupBar('PREPARING', r)+scopeBar+`
 ${BANCA.uxListHeader('Bản chào — Đang chuẩn bị','Các bản chào đang được hoàn thiện trước khi nộp',`Hiển thị <b>${apps.length}</b> / ${base.length} bản chào · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}

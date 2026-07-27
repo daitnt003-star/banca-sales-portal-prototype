@@ -231,3 +231,66 @@ BANCA.OFFER_G5_MAP = {
   ISSUED: ['ISSUE', 'DONE'],
   FAILED: ['FAILED']
 };
+
+// --- DataScopeSelector (§ correction 2026-07-27) — bộ CHỌN PHẠM VI DỮ LIỆU, không phải nav tab ---
+// Chỉ hiện scope user có quyền; scope quản lý nhiều đơn vị → kèm unit selector.
+BANCA.ui.dataScopeSelector = function (me, activeScope, activeUnit, r) {
+  r = r || '';
+  var avail = (BANCA.availableScopes ? BANCA.availableScopes(me) : ['SELF']);
+  if (avail.indexOf('SELF') < 0) avail = ['SELF'].concat(avail);
+  var defs = (BANCA.DATA_SCOPES || []).filter(function (d) { return avail.indexOf(d.id) >= 0; });
+  function href(scope, unit) {
+    var o = new URLSearchParams(location.search);
+    if (scope === 'SELF') o.delete('scope'); else o.set('scope', scope);
+    o.delete('unit'); if (unit) o.set('unit', unit);
+    return '?' + o.toString();
+  }
+  var chips = defs.map(function (d) {
+    var on = d.id === activeScope;
+    return '<a href="' + href(d.id) + '" class="dss-chip' + (on ? ' on' : '') + '">' + _esc(d.label) + '</a>';
+  }).join('');
+  // Unit selector khi scope là TEAM/BRANCH/REGION và có >1 đơn vị cùng cấp.
+  var unitSel = '';
+  var cur = (BANCA.DATA_SCOPES || []).find(function (d) { return d.id === activeScope; });
+  if (cur && cur.unitType) {
+    var units = (BANCA.ORG_UNITS || []).filter(function (u) { return u.type === cur.unitType; });
+    if (units.length > 1) {
+      unitSel = '<select class="dss-unit" onchange="(function(v){var o=new URLSearchParams(location.search); if(v)o.set(\'unit\',v); else o.delete(\'unit\'); location.search=o.toString();})(this.value)">' +
+        '<option value="">Tất cả ' + _esc((BANCA.orgUnitLabelType ? BANCA.orgUnitLabelType(cur.unitType) : cur.unitType)).toLowerCase() + '</option>' +
+        units.map(function (u) { return '<option value="' + u.id + '"' + (u.id === activeUnit ? ' selected' : '') + '>' + _esc(u.name) + '</option>'; }).join('') +
+        '</select>';
+    }
+  }
+  return '<div class="data-scope-selector"><span class="dss-label">Phạm vi dữ liệu:</span><div class="dss-chips">' + chips + '</div>' + unitSel + '</div>';
+};
+// Lọc theo đơn vị đã chọn (khớp branch/team của owner).
+BANCA.applyUnitFilter = function (apps, unitId) {
+  if (!unitId) return apps;
+  var u = BANCA.orgUnitById ? BANCA.orgUnitById(unitId) : null; if (!u) return apps;
+  var at = u.attrs || {};
+  return apps.filter(function (a) {
+    var per = (BANCA.personas || {})[a.owner] || {};
+    if (at.team && per.team !== at.team) return false;
+    if (at.branch && per.branch !== at.branch) return false;
+    return true;
+  });
+};
+
+// --- offerQuickFilters (§ correction) — render bộ quick-filter RIÊNG theo nhóm lifecycle từ config ---
+BANCA.ui.offerQuickFilters = function (groupId, qs, r) {
+  var gf = (BANCA.OFFER_GROUP_FILTERS || {})[groupId];
+  if (!gf || gf.kind !== 'chips') return '';
+  function href(param, v) {
+    var o = new URLSearchParams(location.search);
+    if (v == null || o.get(param) === v) o.delete(param); else o.set(param, v);
+    return '?' + o.toString();
+  }
+  return '<div class="offer-quick-filters">' + gf.filters.map(function (f) {
+    var cur = qs.get(f.param);
+    return '<div class="oqf-row"><span class="oqf-label">' + _esc(f.label) + ':</span>' +
+      f.options.map(function (o) {
+        var on = cur === o.v;
+        return '<a href="' + href(f.param, o.v) + '" class="oqf-chip' + (on ? ' on' : '') + '">' + _esc(o.label) + '</a>';
+      }).join('') + '</div>';
+  }).join('') + '</div>';
+};

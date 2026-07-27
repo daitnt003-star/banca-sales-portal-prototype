@@ -39,6 +39,9 @@ const inGroup = a => {
   return fGroup==='ALL' || (BANCA.APP_STATUS[a.status]||{}).group===fGroup;
 };
 let apps = all.filter(inGroup);
+// § correction — unit filter + per-group quick filter (config-driven, không hard-code).
+apps = BANCA.applyUnitFilter(apps, qs.get('unit'));
+if(fG5) apps = BANCA.applyGroupFilters(apps, fG5, qs, me);
 if(fView!=='all') apps = apps.filter(a=> fView==='sla'?slaRisk(a):bucketOf(a)===fView);
 // P0-12: filter mở rộng
 if(fUW!=='ALL') apps = apps.filter(a=>a.uw && a.uw.decision===fUW);
@@ -70,7 +73,7 @@ const viewChip=(v,label)=>{const o=new URLSearchParams(location.search); o.delet
 const smartRow = fScope==='SELF' ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
  ${viewChip('need','Cần tôi xử lý')}${viewChip('uw','Chờ hệ thống / UW')}${viewChip('cust','Chờ khách')}${viewChip('done','Đã hoàn tất')}${viewChip('sla','⚠ Rủi ro SLA')}${viewChip('all','Tất cả')}
 </div>` : '';
-const filterBar=`${fG5?'':smartRow}${!fG5 && fView==='all'?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">${BANCA.STATUS_GROUPS.map(g=>{
+const filterBar=`${fG5?BANCA.ui.offerQuickFilters(fG5, qs, r):smartRow}${!fG5 && fView==='all'?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">${BANCA.STATUS_GROUPS.map(g=>{
  const n=g.id==='ALL'?all.length:(groupCounts[g.id]||0);
  return `<a href="${keep('group',g.id)}" class="chip" style="cursor:pointer;text-decoration:none;padding:6px 12px;font-size:12px;${fGroup===g.id?'background:var(--brand-600);color:#fff;':''}">${g.label} (${n})</a>`;
 }).join('')}</div>`:''}
@@ -125,7 +128,7 @@ const rows=apps.map(a=>{
 </tr>`;}).join('');
 
 const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
-const scopeBar = SCOPES.length>1 ? `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">${SCOPES.map(s=>`<a href="${keep('scope',s==='SELF'?null:s)}" class="tab" style="text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;${fScope===s?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${scopeLabelOf(s)}</a>`).join('')}</div>` : '';
+const scopeBar = BANCA.ui.dataScopeSelector(me, fScope, qs.get('unit'), r);
 shell('Bản chào','Bản chào',
 BANCA.ui.offerGroupBar(fG5||'PROCESSING', r)+scopeBar+`
 ${BANCA.uxListHeader('Bản chào — '+({PROCESSING:'Đang xử lý',WAIT_CUST:'Chờ khách hàng',ISSUED:'Đã phát hành',FAILED:'Không thành công'}[fG5]||'Đã nộp'),'Theo dõi trạng thái xử lý sau khi nộp và các việc cần hành động',`Hiển thị <b>${apps.length}</b> / ${all.length} bản chào · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}

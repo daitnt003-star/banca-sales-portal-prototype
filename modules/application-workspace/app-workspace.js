@@ -1076,25 +1076,10 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const uploaded = [...new Set([...(app.docsUploaded||[]),...(ovA.__docsUploaded||[])])];
   const ctx = {source:app.source, vehicleAgeYears:(app.quote&&app.quote.inputsSnapshot&&app.quote.inputsSnapshot.vehicleAgeYears)||(app.vehicle? 2026-(app.vehicle.year||2024):0), idv:(app.vehicle&&app.vehicle.value)||0, mortgage:mgDoc};
   const req = BANCA.docRequirements(ctx);
-  const cellOf = r => r.status==='REQUIRED'? ['●','var(--red-600)','#fdecec','Bắt buộc']
-   : r.status==='INHERITED'? ['↻','#2563eb','#eaf1fe','Kế thừa kỳ trước']
-   : r.active? ['◐','var(--amber-600)','#fdf3e3','Bắt buộc (điều kiện đã kích hoạt)']
-   : ['○','var(--ink-300)','var(--paper)','Không cần cho yêu cầu này'];
   const needDocs = BANCA.DOC_CATALOG.filter(d=>{const rr=req[d.code];return rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active);});
   const otherDocs = BANCA.DOC_CATALOG.filter(d=>!needDocs.includes(d));
-  const fileOf = {REG:'dang-ky-xe.pdf',INSPECT:'dang-kiem.pdf',PHOTOS:'anh-xe.zip',ID:'cccd.pdf',DRIVER_LICENSE:'gplx.pdf',VALUE_PROOF:'hoa-don-vat.pdf',AUTHORIZATION:'uy-quyen.pdf',BENEFICIARY:'xac-nhan-nth.pdf',SURVEY:'bien-ban-giam-dinh.pdf'};
-  const docRow = d => {
-   const rr=req[d.code]; const [ic,fg,bg,tip]=cellOf(rr);
-   const up=uploaded.includes(d.code);
-   const need = rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active);
-   return `<tr>
-    <td><span title="${tip}" style="display:inline-flex;width:24px;height:24px;border-radius:6px;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:${bg};color:${fg};">${ic}</span></td>
-    <td style="font-size:13px;">${d.name}<div style="font-size:11px;color:var(--ink-300);">${d.sub}${rr.note?' · '+rr.note:''}</div></td>
-    <td>${up?'<span class="badge badge-ready">Đã tải lên</span>': need?'<span class="badge badge-blocked">Còn thiếu — chặn nộp</span>': rr.status==='INHERITED'?'<span class="badge badge-conditional">Dùng bản kỳ trước</span>':'<span style="color:var(--ink-300);font-size:11px;">—</span>'}</td>
-    <td style="font-size:12px;color:var(--ink-500);">${up?fileOf[d.code]:'—'}</td>
-    <td>${readOnly?'':up?'<button class="btn btn-secondary btn-sm">Xem</button> <button class="btn btn-secondary btn-sm">Thay thế</button>': (need||rr.status==='CONDITIONAL')?`<button class="btn ${need?'btn-primary':'btn-secondary'} btn-sm" onclick="uploadDoc('${d.code}')">Tải lên</button>`:''}</td>
-   </tr>`;
-  };
+  // (§10) cellOf/fileOf/docRow — bảng tài liệu LEGACY đã bị thay bằng BANCA.docItemHtml
+  // (1 DocumentItem dùng chung mọi nơi). Xoá vì không còn nơi gọi.
   // Unified Document Item — OCR là capability; đọc chung store với bước Đối tượng bảo hiểm
   const ocrMap = {REG:['enabled','VEHICLE_REGISTRATION'], INSPECT:['optional',null], VALUE_PROOF:['optional',null], ID:['enabled','NATIONAL_ID']};
   const toDef = d => { const rr=req[d.code]; const need=rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active); const om=ocrMap[d.code]||['none',null]; return {code:d.code, name:d.name, sub:(d.sub||'')+(rr.note?' · '+rr.note:''), ocr:om[0], required:need, docType:om[1], uploaded:uploaded.includes(d.code)}; };
@@ -1103,12 +1088,14 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const isOcr = code => !!(storeAll[code] && storeAll[code].ocrStatus);   // đã bóc tách OCR (CCCD, đăng ký xe)
   const requiredDone = needDocs.filter(d=>isUploaded(d.code)).length;
   const blocking = needDocs.filter(d=>!isUploaded(d.code));
-  // Section "Tài liệu được OCR" — chỉ đọc, không cho thay thế
+  // Tài liệu đã OCR: hiển thị TRONG danh sách chung, chỉ khoá thay thế (§10)
+  // §10 — KHÔNG tách section OCR riêng. Tài liệu đã OCR nằm CÙNG danh sách,
+  // chỉ khác ở chỗ bị khoá thay thế (đã bóc tách ở bước trước) + có chip trạng thái OCR.
   const ocrDocs = BANCA.DOC_CATALOG.filter(d=>isOcr(d.code));
-  const ocrSection = ocrDocs.length? `<div class="section-title" style="margin-top:0;"><h2>Tài liệu được OCR</h2><span class="subtitle">Bóc tách ở bước Khách hàng / Đối tượng bảo hiểm — chỉ xem, không thay thế tại đây</span></div>
-    <div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;">${ocrDocs.map(d=>BANCA.docItemHtml(app.id, Object.assign(toDef(d),{locked:true}))).join('')}</div>` : '';
+  // §10/§14 — legend + danh sách dùng BANCA.ui.documentChecklist (component chung),
+  // không dựng markup legend riêng cho từng bước.
   const legendInner = (done,blk)=>`<div>Tài liệu bắt buộc: <b style="color:${blk.length?'var(--red-600)':'var(--teal-600)'};">${done}/${needDocs.length}</b>${blk.length?' · còn thiếu: '+blk.map(d=>d.name).join(', '):' · đã đủ'}</div>`;
-  const legendNote = `<div id="doc-legend" class="card" style="padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-500);">${legendInner(requiredDone, blocking)}</div>`;
+  const legendNote = `<div id="doc-legend" class="card doc-legend">${legendInner(requiredDone, blocking)}</div>`;
   // FIX: bước Tài liệu trước đây thiếu __docRefresh → upload xong bộ đếm "x/y" và cờ chặn nộp không cập nhật
   // (nhìn như "tải lên không hoạt động"). Định nghĩa lại để refresh legend theo store thật sau mỗi upload.
   window.__docRefresh = function(){
@@ -1156,7 +1143,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
       </div></div>`;
     root.appendChild(d);
   };
-  const reqRender = needDocs.filter(d=>!isOcr(d.code));   // OCR docs hiển thị ở section riêng
+  const reqRender = needDocs;   // §10 — 1 checklist duy nhất, gồm cả tài liệu đã OCR
   // ===== Tài liệu khác — chỉ hiện khi đã tải HOẶC người dùng chủ động chọn thêm (giống Health: không show hết) =====
   const OKEY = 'banca_otherdocs_'+app.id;
   const otherAdded = (function(){ try{ return JSON.parse(localStorage.getItem(OKEY)||'[]'); }catch(e){ return []; } })();
@@ -1188,9 +1175,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
         return BANCA.docItemHtml(app.id, toDef(d)) + (added&&!readOnly?`<div style="padding:0 14px 10px;margin-top:-4px;"><button class="btn btn-secondary btn-sm" onclick="removeOtherDoc('${app.id}','${d.code}')">Bỏ khỏi danh sách</button></div>`:'');
       }).join('')}</div>` : (otherAvailable.length? '' : '<div style="font-size:12px;color:var(--ink-300);margin-bottom:8px;">Không còn tài liệu tùy chọn khả dụng.</div>'));
   stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Tài liệu Bảo hiểm vật chất xe — chỉ hiển thị tài liệu <b>bắt buộc</b> cho yêu cầu này. Tài liệu khác chọn thêm từ danh sách khi cần (không show hết).</div>`
-   + legendNote + ocrSection
-   + `<div class="section-title" ${ocrDocs.length?'':'style="margin-top:0;"'} style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;"><div><h2>Tài liệu bắt buộc cho yêu cầu này</h2><span class="subtitle">Tài liệu đã tải hiển thị nút Xem / Thay thế; dòng còn thiếu ưu tiên xử lý trước khi nộp.</span></div>${readOnly?'':`<button class="btn btn-secondary btn-sm" onclick="docSendToCustomer()" style="white-space:nowrap;">📤 Gửi khách tự tải</button>`}</div>
-      <div class="card" style="padding:0;overflow:hidden;">${reqRender.map(d=>BANCA.docItemHtml(app.id, toDef(d))).join('')||'<div class="empty-state" style="padding:20px;">Không có tài liệu bắt buộc.</div>'}</div>`
+   + legendNote
+   + `<div class="section-title" style="margin-top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;"><div><h2>Tài liệu bắt buộc cho yêu cầu này</h2><span class="subtitle">Tài liệu đã tải hiển thị nút Xem / Thay thế; dòng còn thiếu ưu tiên xử lý trước khi nộp.</span></div>${readOnly?'':`<button class="btn btn-secondary btn-sm" onclick="docSendToCustomer()" style="white-space:nowrap;">📤 Gửi khách tự tải</button>`}</div>
+      <div class="card" style="padding:0;overflow:hidden;">${reqRender.map(d=>BANCA.docItemHtml(app.id, Object.assign(toDef(d), isOcr(d.code)?{locked:true}:{}))).join('')||'<div class="empty-state" style="padding:20px;">Không có tài liệu bắt buộc.</div>'}</div>`
    + otherBlock
    + `<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chấp nhận PDF/JPG/PNG ≤ 10MB. OCR là capability của từng tài liệu; trạng thái upload/OCR/duyệt/xác minh tách riêng.${mgDoc.mortgaged?' <b style="color:var(--amber-600);">Xe thế chấp — bên thụ hưởng là bắt buộc.</b>':''}</div>`;
   }
@@ -2050,15 +2037,15 @@ function submittedDocTable(){
     <div class="doc-item-actions">${up?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Xem tài liệu (demo)\')">Xem</button>':'<span style="font-size:11px;color:var(--ink-300);">Chưa nộp</span>'}</div>
   </div>`;
  };
- const ocrDocs = docs.filter(d=>ocrCodes[d.code] && uploaded.includes(d.code));
- const restDocs = docs.filter(d=>!(ocrCodes[d.code] && uploaded.includes(d.code)));
+ // §10 — 1 danh sách tài liệu duy nhất; tài liệu đã OCR KHÔNG tách section riêng,
+ // trạng thái "Đã bóc tách" đã là 1 chip ngay trên dòng tài liệu.
+ const restDocs = docs;
  const legend = `<div class="card" style="padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-500);">
    <div>Tài liệu bắt buộc: <b style="color:${uploadedRequired>=requiredCount?'var(--teal-600)':'var(--red-600)'};">${uploadedRequired}/${requiredCount}</b> đã nộp/đối chiếu</div>
    <div style="display:flex;gap:10px;flex-wrap:wrap;"><span><b style="color:var(--red-600);">●</b> Bắt buộc</span><span><b style="color:var(--amber-600);">◐</b> Có điều kiện</span><span><b style="color:var(--ink-300);">○</b> Không cần</span></div>
  </div>`;
  return legend
-   + (ocrDocs.length?`<div class="section-title" style="margin-top:0;"><h2>Tài liệu được OCR</h2><span class="subtitle">Bóc tách ở bước Khách hàng / Đối tượng bảo hiểm — chỉ xem</span></div><div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;">${ocrDocs.map(trackItem).join('')}</div>`:'')
-   + `<div class="section-title" ${ocrDocs.length?'':'style="margin-top:0;"'}><h2>Thư viện tài liệu yêu cầu</h2><span class="subtitle">Cùng nguồn trạng thái với tab Bổ sung</span></div>
+   + `<div class="section-title" style="margin-top:0;"><h2>Thư viện tài liệu yêu cầu</h2><span class="subtitle">Cùng nguồn trạng thái với tab Bổ sung</span></div>
       <div class="card" style="padding:0;overflow:hidden;">${restDocs.length?restDocs.map(trackItem).join(''):'<div class="empty-state" style="padding:24px;">Chưa có tài liệu tại bước này.</div>'}</div>`;
 }
 // P1: status summary banner — dẫn dắt màn bằng trạng thái + việc cần làm

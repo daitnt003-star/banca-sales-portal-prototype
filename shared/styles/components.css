@@ -304,3 +304,7 @@ table.dtable tr:hover td{background:var(--paper);}
   .policy-cockpit .pc-rail{position:static;}
   .pc-kv{grid-template-columns:160px 1fr;}
 }
+
+/* §10 — legend checklist tài liệu (dùng chung edit mode + tracking mode) */
+.doc-legend{padding:10px 14px;margin-bottom:var(--space-md);display:flex;justify-content:space-between;
+  gap:var(--space-md);flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-500);}

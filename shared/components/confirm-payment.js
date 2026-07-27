@@ -194,6 +194,27 @@ BANCA.ui = BANCA.ui || {};
       '</div>';
   };
 
+  // --- DocumentChecklist (§10 §14) — 1 checklist DÙNG CHUNG mọi bước/sản phẩm.
+  // Bọc quanh BANCA.docItemHtml (DocumentItem chung). OCR KHÔNG có section riêng:
+  // tài liệu đã bóc tách nằm cùng danh sách, chỉ khoá thay thế + có chip trạng thái OCR.
+  BANCA.ui.documentChecklist = function (cfg) {
+    cfg = cfg || {};
+    var items = cfg.items || [];
+    var required = items.filter(function (d) { return d.required; });
+    var done = required.filter(function (d) { return d.uploaded; });
+    var missing = required.filter(function (d) { return !d.uploaded; });
+    var legend = '<div class="card doc-legend" id="' + (cfg.legendId || 'doc-legend') + '">' +
+      '<div>Tài liệu bắt buộc: <b style="color:' + (missing.length ? 'var(--red-600)' : 'var(--teal-600)') + ';">' +
+      done.length + '/' + required.length + '</b>' +
+      (missing.length ? ' · còn thiếu: ' + e(missing.map(function (d) { return d.name; }).join(', ')) : ' · đã đủ') +
+      '</div></div>';
+    var list = items.length
+      ? '<div class="card" style="padding:0;overflow:hidden;">' +
+        items.map(function (d) { return BANCA.docItemHtml(cfg.appId, d); }).join('') + '</div>'
+      : BANCA.ui.emptyState(cfg.empty || 'Không có tài liệu bắt buộc.');
+    return (cfg.showLegend === false ? '' : legend) + (cfg.headerHtml || '') + list;
+  };
+
   // --- UnderwritingStatusPanel (§9.1) — 1 panel cho mọi UW mode ---
   // STP không hiện khối manual underwriting (§15.2 progressive disclosure).
   BANCA.ui.underwritingStatusPanel = function (app, cfg) {

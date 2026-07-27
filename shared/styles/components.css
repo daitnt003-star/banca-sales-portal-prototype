@@ -91,79 +91,60 @@
 .sos-note{font-size:11.5px;color:var(--ink-500);margin-top:6px;}
 @media(max-width:640px){.sales-source-bar{flex-direction:column;align-items:flex-start;}}
 
-/* ===== BancaOfferGroupBar (§8.1) ===== */
-.offer-group-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:10px;}
-.ogb-tab{text-decoration:none;padding:7px 14px;border-radius:8px;font-size:13px;color:var(--ink-500);background:var(--paper-card);border:1px solid var(--line);}
-.ogb-tab.on{background:var(--brand-600);color:#fff;font-weight:600;border-color:var(--brand-600);}
-
-/* ===== DataScopeSelector + offerQuickFilters (§ correction) ===== */
-.data-scope-selector{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-.dss-label{font-size:12px;color:var(--ink-500);font-weight:600;}
-.dss-chips{display:flex;gap:6px;flex-wrap:wrap;}
-.dss-chip{text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;color:var(--ink-500);background:var(--paper-card);border:1px solid var(--line);}
-.dss-chip.on{background:var(--brand-600);color:#fff;font-weight:600;border-color:var(--brand-600);}
-.dss-unit{padding:6px 8px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;background:var(--paper-card);}
-.offer-quick-filters{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
-.oqf-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.oqf-label{font-size:12px;color:var(--ink-500);min-width:96px;}
-.oqf-chip{text-decoration:none;padding:5px 12px;border-radius:8px;font-size:12px;color:var(--ink-700);background:var(--paper-card);border:1px solid var(--line);}
-.oqf-chip.on{background:var(--brand-600);color:#fff;border-color:var(--brand-600);}
-
-/* ===== Task-oriented offer list redesign (§ correction) ===== */
+/* ============================================================
+ * QUOTE LIST — consolidated (1 nguồn, không append trùng nữa)
+ * ============================================================ */
 .nowrap{white-space:nowrap;}
-.data-scope-selector{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
-.dss-field{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;}
-.dss-label{color:var(--ink-500);font-weight:600;}
-.dss-select{padding:5px 8px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;background:var(--paper-card);}
-/* Compact list header (AC02) */
-.offer-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 10px;padding-bottom:10px;border-bottom:1px solid var(--line);}
-.offer-toolbar .spacer{flex:1;}
-.offer-toolbar .otb-search{padding:6px 12px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:240px;}
-.offer-count{font-size:12px;color:var(--ink-500);}
-/* Task table: shorter rows, intentional spacing */
-table.offer-table{width:100%;border-collapse:collapse;}
-table.offer-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-500);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);font-weight:600;}
-table.offer-table td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;}
-table.offer-table tr:hover td{background:var(--paper);}
-.task-cell{display:flex;flex-direction:column;gap:3px;}
-.task-desc{font-size:12px;color:var(--ink-500);}
-.col-cust{min-width:150px;} .col-prod{min-width:150px;}
+.muted{color:var(--ink-300);}
 
-/* task table column sizing */
-table.offer-table td:first-child, table.offer-table th:first-child{white-space:nowrap;}
-table.offer-table .col-prod{max-width:200px;}
-table.offer-table td .task-cell{min-width:190px;}
-
-/* keep primary CTA visible on horizontal scroll */
-table.offer-table td:last-child, table.offer-table th:last-child{position:sticky;right:0;background:var(--paper-card);box-shadow:-6px 0 8px -6px rgba(10,25,60,.12);}
-table.offer-table tr:hover td:last-child{background:var(--paper);}
-
-/* ===== QuoteListShell (unified layout) ===== */
-.qls-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 12px;}
+/* Title + primary CTA */
+.qls-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px;}
 .qls-title{font-size:24px;font-weight:700;color:var(--ink-900);margin:0;}
-.offer-group-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:0;}
-.ogb-tab{text-decoration:none;padding:9px 14px;font-size:13px;color:var(--ink-500);border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;}
+
+/* Lifecycle tabs (underline, KHÔNG nền đặc — tránh chữ đè nền) */
+.offer-group-bar{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--line);}
+.ogb-tab{text-decoration:none;padding:9px 14px;font-size:13px;color:var(--ink-500);background:transparent;border:0;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:7px;margin-bottom:-1px;}
+.ogb-tab:hover{color:var(--ink-900);}
 .ogb-tab.on{color:var(--brand-700);border-bottom-color:var(--brand-600);font-weight:600;}
-.ogb-n{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:0 6px;font-size:11px;color:var(--ink-500);}
-.ogb-tab.on .ogb-n{background:var(--brand-100);border-color:var(--brand-500);color:var(--brand-700);}
-.qls-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+.ogb-n{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:0 7px;font-size:11px;color:var(--ink-500);min-width:20px;text-align:center;}
+.ogb-tab.on .ogb-n{background:var(--brand-600);border-color:var(--brand-600);color:#fff;}
+
+/* Toolbar: scope + search + advanced + count (một hàng, cùng vị trí mọi lifecycle) */
+.qls-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .qls-toolbar .spacer{flex:1;}
 .qls-searchform{display:inline;}
+.otb-search{padding:7px 12px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;width:220px;}
 .qls-count{font-size:12px;color:var(--ink-500);white-space:nowrap;}
+
+/* DataScopeSelector (dropdown, label không wrap) */
+.data-scope-selector{display:inline-flex;align-items:center;gap:14px;flex-wrap:nowrap;}
+.dss-field{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap;}
+.dss-label{color:var(--ink-500);font-weight:600;white-space:nowrap;}
+.dss-select{padding:6px 10px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;background:var(--paper-card);min-width:130px;}
+
+/* Quick filters (1 hàng/lifecycle) */
 .qls-quick{margin-bottom:12px;}
 .qls-quick:empty{display:none;}
-.journey-chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand-700);background:var(--brand-100);border-radius:8px;padding:2px 8px;}
-.q-id{font-weight:600;color:var(--brand-600);font-size:13px;}
-.q-cust{font-size:12px;color:var(--ink-700);}
-.muted{color:var(--ink-300);}
-table.offer-table td .task-cell{min-width:180px;}
-.data-scope-selector{flex-wrap:nowrap;}
-.dss-label{white-space:nowrap;}
-.dss-select{min-width:120px;}
+.offer-quick-filters{display:flex;flex-direction:column;gap:8px;}
+.oqf-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.oqf-label{font-size:12px;color:var(--ink-500);min-width:110px;}
+.oqf-chip{text-decoration:none;padding:5px 12px;border-radius:16px;font-size:12px;color:var(--ink-700);background:var(--paper-card);border:1px solid var(--line-strong);}
+.oqf-chip:hover{border-color:var(--brand-500);color:var(--brand-700);}
+.oqf-chip.on{background:var(--brand-600);color:#fff;border-color:var(--brand-600);font-weight:600;}
 
-/* clean horizontal scroll instead of squeezing columns */
-table.offer-table{min-width:940px;}
-table.offer-table th{white-space:nowrap;}
-table.offer-table td.col-task{min-width:220px;white-space:normal;}
-table.offer-table td:last-child, table.offer-table th:last-child{position:sticky;right:0;background:var(--paper-card);box-shadow:-6px 0 8px -6px rgba(10,25,60,.12);}
+/* QuoteDataTable */
+table.offer-table{width:100%;border-collapse:collapse;min-width:940px;}
+table.offer-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-500);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap;}
+table.offer-table td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;}
+table.offer-table tr:hover td{background:var(--paper);}
+table.offer-table th[style*="right"]{text-align:right;}
+.col-id .q-id{font-weight:600;color:var(--brand-600);font-size:13px;}
+.col-id .q-cust{font-size:12px;color:var(--ink-700);margin-top:1px;}
+.col-prod{max-width:220px;}
+.col-task{min-width:220px;}
+.task-cell{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+.task-desc{font-size:12px;color:var(--ink-500);}
+.journey-chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand-700);background:var(--brand-100);border-radius:6px;padding:2px 8px;}
+/* pin CTA phải để luôn thấy hành động */
+table.offer-table td:last-child,table.offer-table th:last-child{position:sticky;right:0;background:var(--paper-card);box-shadow:-6px 0 8px -6px rgba(10,25,60,.12);text-align:right;}
 table.offer-table tr:hover td:last-child{background:var(--paper);}

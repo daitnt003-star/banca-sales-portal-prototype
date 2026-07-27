@@ -86,7 +86,7 @@ if(isNew){
 }
 
 if(!app){
- shell('Không gian xử lý yêu cầu','Không tìm thấy hồ sơ',`<div class="card"><div class="empty-state">Yêu cầu không tồn tại hoặc đã bị xóa. <a href="${r}modules/unsubmitted-applications/index.html">Về danh sách</a></div></div>`,{startSale:false});
+ shell('Bản chào','Không tìm thấy hồ sơ',`<div class="card"><div class="empty-state">Yêu cầu không tồn tại hoặc đã bị xóa. <a href="${r}modules/unsubmitted-applications/index.html">Về danh sách</a></div></div>`,{startSale:false});
  return;
 }
 
@@ -95,7 +95,7 @@ const canView = app.owner===me
  || (p.managerScope==='TEAM' && per.team===p.team)
  || (p.managerScope==='BRANCH' && per.branch===p.branch);
 if(!canView || p.status!=='ACTIVE'){
- shell('Không gian xử lý yêu cầu','ACCESS_DENIED',`<div class="card"><div class="alert2 danger"><b>ACCESS_DENIED</b><br>Persona <b>${me}</b> không có quyền truy cập yêu cầu <b>${app.id}</b> (owner: ${app.owner}). Data scope + trạng thái tài khoản được kiểm tra trên mọi route.</div></div>`,{startSale:false});
+ shell('Bản chào','ACCESS_DENIED',`<div class="card"><div class="alert2 danger"><b>ACCESS_DENIED</b><br>Persona <b>${me}</b> không có quyền truy cập yêu cầu <b>${app.id}</b> (owner: ${app.owner}). Data scope + trạng thái tài khoản được kiểm tra trên mọi route.</div></div>`,{startSale:false});
  return;
 }
 const readOnly = app.owner!==me;
@@ -1345,7 +1345,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
    + `<div class="oc-title" style="margin:16px 0 6px;">Phương án bảo hiểm</div>`
    + (BANCA.ui.offerSelectionWorkspace?BANCA.ui.offerSelectionWorkspace(app):'');
  }
- shell('Yêu cầu bảo hiểm chưa nộp','Lập yêu cầu yêu cầu bảo hiểm', hdr + consentGate + adviceRefBanner + renewalBanner + stepper + stepBody + `
+ shell('Bản chào','Lập yêu cầu bảo hiểm', hdr + consentGate + adviceRefBanner + renewalBanner + stepper + stepBody + `
   <div class="ux-bottom-actions">
    ${(()=>{ // P0-7: điều hướng bỏ qua bước auto
     const visible = steps.filter(s=>!AUTO_STAGES.includes(s.id));
@@ -2797,7 +2797,7 @@ const routedBanner = (qs.get('routed')==='1' && app.routing) ? (function(){
 
 // bỏ hết alert giải thích (.alert2.info) ở mọi tab tracking cho gọn — giữ warn/danger (actionable) và success (teal inline).
 const trackCleanStyle = `<style>.track-clean .alert2.info{display:none!important;}</style>`;
-shell('Yêu cầu bảo hiểm đã nộp','Không gian theo dõi yêu cầu đã nộp', trackCleanStyle+'<div class="track-clean">'+hdr+tabBar+routedBanner+body+'</div>', {startSale:false});
+shell('Bản chào','Theo dõi bản chào', trackCleanStyle+'<div class="track-clean">'+hdr+tabBar+routedBanner+body+'</div>', {startSale:false});
 
 window.viewVersion=function(v){ if(String(v)!==String(caseVer)) alert('Xem snapshot phiên bản V'+v+' (demo). Bản đã nộp cũ được giữ nguyên.'); };
 window.compareVersions=function(id){

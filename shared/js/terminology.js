@@ -13,6 +13,7 @@ BANCA.T = {
   quickAdvisory: 'Tư vấn nhanh',
   help: 'Trợ giúp',
   insuranceRequest: 'Yêu cầu bảo hiểm',
+  offers: 'Bản chào',
   unsubmitted: 'Chưa nộp',
   submitted: 'Đã nộp',
   unsubmittedRequestTitle: 'Yêu cầu bảo hiểm chưa nộp',

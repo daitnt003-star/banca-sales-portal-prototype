@@ -30,8 +30,14 @@ const bucketOf = a => {
 };
 const bucketCount = b => all.filter(a=> b==='sla'?slaRisk(a):bucketOf(a)===b).length;
 const fView = (fScope==='SELF' && ['need','uw','cust','done','sla'].includes(qs.get('view'))) ? qs.get('view')
-            : (fScope==='SELF' && qs.get('view')!=='all' && qs.get('group')==null) ? 'need' : 'all';
-const inGroup = a => fGroup==='ALL' || (BANCA.APP_STATUS[a.status]||{}).group===fGroup;
+            : (fScope==='SELF' && qs.get('view')!=='all' && qs.get('group')==null && qs.get('g5')==null) ? 'need' : 'all';
+// §8.1 — "Bản chào" 5-group: g5 map sang các nhóm APP_STATUS nội bộ.
+const fG5 = qs.get('g5') || null;
+const g5groups = fG5 ? (BANCA.OFFER_G5_MAP[fG5]||[]) : null;
+const inGroup = a => {
+  if(g5groups) return g5groups.includes((BANCA.APP_STATUS[a.status]||{}).group);
+  return fGroup==='ALL' || (BANCA.APP_STATUS[a.status]||{}).group===fGroup;
+};
 let apps = all.filter(inGroup);
 if(fView!=='all') apps = apps.filter(a=> fView==='sla'?slaRisk(a):bucketOf(a)===fView);
 // P0-12: filter mở rộng
@@ -120,9 +126,9 @@ const rows=apps.map(a=>{
 
 const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
 const scopeBar = SCOPES.length>1 ? `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">${SCOPES.map(s=>`<a href="${keep('scope',s==='SELF'?null:s)}" class="tab" style="text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;${fScope===s?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${scopeLabelOf(s)}</a>`).join('')}</div>` : '';
-shell('Yêu cầu bảo hiểm đã nộp','Yêu cầu bảo hiểm đã nộp',
-scopeBar+`
-${BANCA.uxListHeader('Danh sách yêu cầu bảo hiểm đã nộp','Theo dõi trạng thái xử lý sau khi nộp và các việc cần hành động',`Hiển thị <b>${apps.length}</b> / ${all.length} yêu cầu · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
+shell('Bản chào','Bản chào',
+BANCA.ui.offerGroupBar(fG5||'PROCESSING', r)+scopeBar+`
+${BANCA.uxListHeader('Bản chào — '+({PROCESSING:'Đang xử lý',WAIT_CUST:'Chờ khách hàng',ISSUED:'Đã phát hành',FAILED:'Không thành công'}[fG5]||'Đã nộp'),'Theo dõi trạng thái xử lý sau khi nộp và các việc cần hành động',`Hiển thị <b>${apps.length}</b> / ${all.length} bản chào · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
 ${apps.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Nhân viên phụ trách</th><th>Việc cần làm</th><th>Trạng thái</th><th>Sản phẩm</th><th>KQ thẩm định</th><th>SLA</th><th>Phí</th><th>Cập nhật</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
 <div style="font-size:11.5px;color:var(--ink-300);margin-top:10px;">Click dòng để mở. Filter kết hợp: trạng thái + KQ thẩm định + sản phẩm + KH/SĐT + ngày nộp.</div>`
  :`<div class="card"><div class="empty-state">Không có yêu cầu khớp bộ lọc. <a href="?">Xóa bộ lọc</a></div></div>`}

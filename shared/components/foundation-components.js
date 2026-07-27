@@ -112,6 +112,11 @@ BANCA.ensureIdentifiedPrefill = function (app) {
   var pii = BANCA.fetchCustomerPII(ref);
   app.piiFields = pii.fields;
   if (!app.customerName && pii.fields.fullName) app.customerName = pii.fields.fullName.value;
+  // Đồng bộ customerId với record đã match để form Section 2 (customerById) resolve đúng, không hiện "Khách hàng mới".
+  if (pii.externalCustomerRef && (!app.customerId || app.customerId !== pii.externalCustomerRef)) {
+    var matched = (BANCA.customers || []).find(function (c) { return c.id === pii.externalCustomerRef; });
+    if (matched) app.customerId = matched.id;
+  }
   app.dataSourceOrigin = pii.source;
   return app;
 };
@@ -201,4 +206,28 @@ BANCA.ui.offerContextStep = function (app, opts) {
 
   var cta = opts.nextHref ? '<div class="oc-actions"><a class="btn btn-primary" href="' + e(opts.nextHref) + '">Chọn phương án & tiếp tục →</a></div>' : '';
   return '<div class="offer-context-step">' + partA + partB + cta + '</div>';
+};
+
+// --- BancaOfferGroupBar (§8.1/§8.2) — "Bản chào" là 1 object, 5 nhóm status hiển thị ---
+// Nhóm 1 (Đang chuẩn bị) = danh sách chưa nộp; 4 nhóm còn lại = đã nộp lọc theo g5.
+BANCA.ui.offerGroupBar = function (activeGroup, r) {
+  r = r || '';
+  var groups = [
+    { id: 'PREPARING', label: 'Đang chuẩn bị', href: r + 'modules/unsubmitted-applications/index.html' },
+    { id: 'PROCESSING', label: 'Đang xử lý', href: r + 'modules/submitted-applications/index.html?g5=PROCESSING' },
+    { id: 'WAIT_CUST', label: 'Chờ khách hàng', href: r + 'modules/submitted-applications/index.html?g5=WAIT_CUST' },
+    { id: 'ISSUED', label: 'Đã phát hành', href: r + 'modules/submitted-applications/index.html?g5=ISSUED' },
+    { id: 'FAILED', label: 'Không thành công', href: r + 'modules/submitted-applications/index.html?g5=FAILED' }
+  ];
+  return '<div class="offer-group-bar">' + groups.map(function (g) {
+    var on = g.id === activeGroup;
+    return '<a href="' + g.href + '" class="ogb-tab' + (on ? ' on' : '') + '">' + g.label + '</a>';
+  }).join('') + '</div>';
+};
+// Map nhóm hiển thị 5-group → nhóm nội bộ APP_STATUS của trang đã nộp.
+BANCA.OFFER_G5_MAP = {
+  PROCESSING: ['UW', 'SUPPLEMENT'],
+  WAIT_CUST: ['CONFIRM', 'PAYMENT'],
+  ISSUED: ['ISSUE', 'DONE'],
+  FAILED: ['FAILED']
 };

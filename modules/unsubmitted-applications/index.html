@@ -109,9 +109,9 @@ const rows = apps.map(a=>{
 const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
 const scopeKeep=s=>{const o=new URLSearchParams(location.search); if(s==='SELF')o.delete('scope');else o.set('scope',s); return '?'+o.toString();};
 const scopeBar = SCOPES.length>1 ? `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">${SCOPES.map(s=>`<a href="${scopeKeep(s)}" class="tab" style="text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;${fScope===s?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${scopeLabelOf(s)}</a>`).join('')}</div>` : '';
-shell('Yêu cầu bảo hiểm chưa nộp','Yêu cầu bảo hiểm chưa nộp',
-scopeBar+`
-${BANCA.uxListHeader('Danh sách yêu cầu bảo hiểm chưa nộp','Theo dõi các yêu cầu đang được hoàn thiện trước khi nộp',`Hiển thị <b>${apps.length}</b> / ${base.length} yêu cầu · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
+shell('Bản chào','Bản chào',
+BANCA.ui.offerGroupBar('PREPARING', r)+scopeBar+`
+${BANCA.uxListHeader('Bản chào — Đang chuẩn bị','Các bản chào đang được hoàn thiện trước khi nộp',`Hiển thị <b>${apps.length}</b> / ${base.length} bản chào · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
 ${apps.length? `<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Nhân viên phụ trách</th><th>Sản phẩm</th><th>Bước hiện tại</th><th>Hoàn thành</th><th>Cảnh báo</th><th>Cập nhật</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>
 <div style="font-size:11.5px;color:var(--ink-300);margin-top:10px;">Click vào dòng để mở yêu cầu. Yêu cầu chưa nộp được lọc theo <b>bước hành trình</b>; cờ cảnh báo là badge, không phải trạng thái.</div>`
  : `<div class="card"><div class="empty-state">Không có yêu cầu nào khớp bộ lọc. ${(fSearch||fStage!=='ALL'||fWarn)?'<a href="?">Xóa bộ lọc</a>':'Bấm <b>"Tạo yêu cầu bảo hiểm"</b> góc trên để tạo yêu cầu đầu tiên.'}</div></div>`}

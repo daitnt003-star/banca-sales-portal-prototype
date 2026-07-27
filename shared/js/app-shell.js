@@ -40,8 +40,8 @@ function navItems(){
   [T('home'),'modules/seller-workspace/index.html','home',null,'VIEW_WORKSPACE'],
   [T('quickAdvisory'),'modules/quick-advisory/index.html','advise',GRP.sales,'VIEW_WORKSPACE'],
   [T('insuranceRequest'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE', true],
-  [T('unsubmitted'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE'],
-  [T('submitted'),'modules/submitted-applications/index.html','sent',GRP.sales,'VIEW_WORKSPACE'],
+  // §8.1 — "Bản chào" là 1 object nghiệp vụ (không tách "chưa nộp/đã nộp" thành 2 mục menu).
+  [T('offers'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE'],
   [T('policy'),'modules/policies/index.html','doc',GRP.after,'VIEW_WORKSPACE'],
   [T('help'),'modules/help/index.html','help',GRP.support,'VIEW_WORKSPACE'],
   [T('management'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE', true],

@@ -361,3 +361,18 @@ BANCA.ui.searchBar = function (cfg) {
   }).join('');
   return '<form method="get" class="banca-search-form">' + hidden + box + '</form>';
 };
+
+// --- Shared UX states (§ đóng gói: empty/error/loading dùng chung, không dựng inline mỗi nơi) ---
+BANCA.ui.emptyState = function (msg, actionHtml) {
+  return '<div class="card"><div class="empty-state">' + _esc(msg || 'Không có dữ liệu.') + (actionHtml ? ' ' + actionHtml : '') + '</div></div>';
+};
+BANCA.ui.errorState = function (msg, retryHtml) {
+  return '<div class="card"><div class="alert2 danger"><b>Đã xảy ra lỗi.</b> ' + _esc(msg || '') + (retryHtml ? ' ' + retryHtml : '') + '</div></div>';
+};
+BANCA.ui.loadingState = function (msg) {
+  return '<div class="card"><div class="alert2 info">' + _esc(msg || 'Đang tải…') + '</div></div>';
+};
+BANCA.ui.skeletonRows = function (n) {
+  n = n || 4; var row = '<div class="skel-row"></div>';
+  return '<div class="card">' + new Array(n).fill(row).join('') + '</div>';
+};

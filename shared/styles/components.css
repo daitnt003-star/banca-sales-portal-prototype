@@ -158,3 +158,7 @@ table.offer-table tr:hover td:last-child{background:var(--paper);}
 .banca-search .bs-input::placeholder{color:var(--ink-300);}
 
 .banca-search.block{display:flex;width:100%;margin-bottom:8px;}
+
+/* ===== shared skeleton ===== */
+.skel-row{height:14px;border-radius:6px;margin:10px 0;background:linear-gradient(90deg,var(--paper) 25%,var(--line) 37%,var(--paper) 63%);background-size:400% 100%;animation:skel 1.3s ease infinite;}
+@keyframes skel{0%{background-position:100% 0}100%{background-position:-100% 0}}

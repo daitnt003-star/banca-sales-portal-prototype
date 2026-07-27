@@ -645,8 +645,8 @@ if(p.status!=='ACTIVE'){
    return detail+` <button class="btn btn-secondary btn-sm" onclick="alert('Tạo yêu cầu bồi thường (demo)')">Tạo bồi thường</button>`;
  }
  const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
- const scopeKeep=s=>{const o=new URLSearchParams(location.search); if(s==='SELF')o.delete('scope');else o.set('scope',s); return '?'+o.toString();};
- const scopeBar = SCOPES.length>1 ? `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">${SCOPES.map(s=>`<a href="${scopeKeep(s)}" class="tab" style="text-decoration:none;padding:6px 14px;border-radius:8px;font-size:12.5px;${fScope===s?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${scopeLabelOf(s)}</a>`).join('')}</div>` : '';
+ // Dùng chung DataScopeSelector (đồng bộ với danh sách Bản chào) — không tự dựng scope tab riêng.
+ const scopeBar = `<div style="margin-bottom:12px;">${BANCA.ui.dataScopeSelector(me, fScope, qs.get('unit'), r)}</div>`;
  shell('Hợp đồng','Hợp đồng',
  scopeBar+`
  ${BANCA.uxListHeader('Danh sách hợp đồng','Theo dõi hợp đồng đã phát hành, tái tục và hiệu lực',`Hiển thị <b>${pols.length}</b> / ${all.length} hợp đồng · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}

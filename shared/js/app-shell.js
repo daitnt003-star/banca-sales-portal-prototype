@@ -61,11 +61,12 @@ function shell(active,title,body,opts){
  const initials=(p&&p.name)?p.name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():BANCA.current().slice(0,2);
  const _mp = BANCA.resolveManagerProfile ? BANCA.resolveManagerProfile(BANCA.current()) : {sellingEnabled:true};
  const canSell = p.status==='ACTIVE' && !p.serviceError && _mp.sellingEnabled!==false;
- // §6.1 + §15.1 — MỘT CTA primary duy nhất: "Tư vấn và bán bảo hiểm".
- // CTA tự xác định ngữ cảnh bên trong (banking context → vào thẳng; chưa có → tư vấn nhanh),
- // KHÔNG dẫn seller vào danh sách khách hàng trước. "Tiếp tục yêu cầu gần nhất" là secondary.
+ // §6.1 + §15.1 — CHỈ MỘT CTA **primary**: "Tư vấn và bán bảo hiểm" (tự xác định ngữ cảnh
+ // bên trong, không dẫn seller vào danh sách khách hàng trước).
+ // §15.1 giới hạn số nút PRIMARY, KHÔNG cấm nút phụ: "Tư vấn nhanh" giữ nguyên là lối tắt
+ // secondary cho seller đã biết khách chưa chốt nhu cầu — vào thẳng, đỡ 1 bước modal.
  const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">${BANCA.t('adviseAndSell')}</button>` : '';
- const adviseBtn = ''; // gộp vào CTA primary — tránh 2 nút cùng độ nổi bật (§15.1)
+ const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('quickAdvisory')}</button>` : '';
  let resumeBtn='';
  if(canSell){
    try{ const _me=BANCA.current();

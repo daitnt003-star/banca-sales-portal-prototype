@@ -408,13 +408,15 @@ BANCA.ui.tabBar = function (items, activeId, opts) {
 };
 
 // --- dataTable (§ đóng gói: bảng list đơn giản; bảng phức tạp giữ markup, dùng chung class .dtable) ---
-// columns=[{label, align?, cell:(row)=>html}], rows=[...], cfg{rowClick:(row)=>url, empty}
+// columns=[{label, align?, cell:(row)=>html}], rows=[...],
+// cfg{rowClick:(row)=>url, rowClickJs:(row)=>jsExpr, empty}
 BANCA.ui.dataTable = function (columns, rows, cfg) {
   cfg = cfg || {};
   if (!rows || !rows.length) return BANCA.ui.emptyState(cfg.empty || 'Không có dữ liệu.');
   var thead = '<tr>' + columns.map(function (c) { return '<th' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + _esc(c.label || '') + '</th>'; }).join('') + '</tr>';
   var body = rows.map(function (row) {
-    var click = cfg.rowClick ? ' style="cursor:pointer;" onclick="location.href=\'' + cfg.rowClick(row) + '\'"' : '';
+    var click = cfg.rowClick ? ' style="cursor:pointer;" onclick="location.href=\'' + cfg.rowClick(row) + '\'"'
+      : cfg.rowClickJs ? ' style="cursor:pointer;" onclick="' + cfg.rowClickJs(row) + '"' : '';
     return '<tr' + click + '>' + columns.map(function (c) {
       return '<td' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + (c.cell ? c.cell(row) : '') + '</td>';
     }).join('') + '</tr>';

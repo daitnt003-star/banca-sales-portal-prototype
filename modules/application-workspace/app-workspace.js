@@ -146,15 +146,15 @@ function ocrResultCard(res, opts){
  const thr = opts.threshold||0.85;
  const rows = res.fields.map(f=>{
   const low = f.confidence < thr;
-  return `<div style="display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);">
-   <div style="color:var(--ink-500);font-size:12.5px;">${f.label}</div>
+  return `<div style="display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);">
+   <div style="color:var(--ink-500);font-size:12px;">${f.label}</div>
    <div style="font-size:13px;${low?'color:var(--amber-600);font-weight:600;':''}">${f.value}${low?' <span class="badge badge-conditional" style="font-size:9px;">Cần kiểm tra</span>':''}</div>
    <div style="text-align:right;font-size:12px;color:${low?'var(--amber-600)':'var(--teal-600)'};">${BANCA.pctConf(f.confidence)}</div>
   </div>`;
  }).join('');
  return `<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--teal-600);">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-   <div><b style="font-size:15px;">${opts.title||'Kết quả OCR'}</b> <span style="font-size:12px;color:var(--ink-500);">· nguồn ${opts.source||'OCR'} · độ tin cậy tổng ${BANCA.pctConf(res.overall)}</span></div>
+   <div><b style="font-size:14px;">${opts.title||'Kết quả OCR'}</b> <span style="font-size:12px;color:var(--ink-500);">· nguồn ${opts.source||'OCR'} · độ tin cậy tổng ${BANCA.pctConf(res.overall)}</span></div>
    <div>${BANCA.ocrStateBadge('ocr', res.overall<thr?'LOW_CONFIDENCE':'EXTRACTED')}</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--teal-600);margin-bottom:8px;">✓ Đã tự động điền các trường bên dưới từ ảnh</div>
@@ -209,10 +209,10 @@ window.ocrFromFile = function(inputEl, docType, target){
     const bankVal=1450000000, ocrVal=res.ocrValue||1400000000;
     html += `<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--amber-600);">
       <b style="color:var(--amber-600);">⚠️ Cần xác nhận giá trị xe để tính phí</b>
-      <div style="font-size:12.5px;color:var(--ink-500);margin:6px 0 10px;">Giá trị tính phí có 2 nguồn khác nhau. Chọn giá trị cho yêu cầu này (không ghi đè dữ liệu gốc).</div>
+      <div style="font-size:12px;color:var(--ink-500);margin:6px 0 10px;">Giá trị tính phí có 2 nguồn khác nhau. Chọn giá trị cho yêu cầu này (không ghi đè dữ liệu gốc).</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <label style="border:1px solid var(--line);border-radius:9px;padding:12px;cursor:pointer;display:flex;gap:8px;"><input type="radio" name="vehval" value="${bankVal}" checked><div><div style="font-size:12px;color:var(--ink-500);">Nguồn ngân hàng</div><b>${BANCA.vnd(bankVal)}</b></div></label>
-        <label style="border:1px solid var(--line);border-radius:9px;padding:12px;cursor:pointer;display:flex;gap:8px;"><input type="radio" name="vehval" value="${ocrVal}"><div><div style="font-size:12px;color:var(--ink-500);">OCR / khai báo</div><b>${BANCA.vnd(ocrVal)}</b></div></label>
+        <label style="border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;display:flex;gap:8px;"><input type="radio" name="vehval" value="${bankVal}" checked><div><div style="font-size:12px;color:var(--ink-500);">Nguồn ngân hàng</div><b>${BANCA.vnd(bankVal)}</b></div></label>
+        <label style="border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;display:flex;gap:8px;"><input type="radio" name="vehval" value="${ocrVal}"><div><div style="font-size:12px;color:var(--ink-500);">OCR / khai báo</div><b>${BANCA.vnd(ocrVal)}</b></div></label>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="confirmVehicleSnapshot()">Xác nhận & lưu Vehicle Snapshot</button>
       <div id="veh-snap-msg" style="font-size:12px;color:var(--teal-600);margin-top:8px;"></div>
@@ -320,25 +320,25 @@ const healthNavigatorHtml = function(a, curUnitId, stepId){
   const dot = {ok:['var(--teal-600)','#eefaf7'],warn:['var(--amber-600)','#fdf3e3'],danger:['var(--red-600)','#fdecec']}[s.tone]||['var(--ink-300)','var(--paper)'];
   const isCur = u.insuredUnitId===curUnitId;
   const inactive = u.active===false;
-  return `<a href="?id=${a.id}&step=${stepId}&unit=${u.insuredUnitId}${isNew?'&new=1':''}" style="text-decoration:none;display:block;border:1.5px solid ${isCur?'var(--brand-600)':'var(--line)'};border-radius:9px;padding:9px 11px;margin-bottom:7px;background:${isCur?'var(--brand-100)':(inactive?'var(--paper)':'#fff')};${inactive?'opacity:.65;':''}">
+  return `<a href="?id=${a.id}&step=${stepId}&unit=${u.insuredUnitId}${isNew?'&new=1':''}" style="text-decoration:none;display:block;border:1.5px solid ${isCur?'var(--brand-600)':'var(--line)'};border-radius:8px;padding:8px 12px;margin-bottom:6px;background:${isCur?'var(--brand-100)':(inactive?'var(--paper)':'#fff')};${inactive?'opacity:.65;':''}">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
-     <span style="font-weight:700;font-size:12.5px;color:var(--ink-900);">${inactive?'∅':s.icon} ${u.name||('Thành viên '+(u.index+1))}</span>
+     <span style="font-weight:700;font-size:12px;color:var(--ink-900);">${inactive?'∅':s.icon} ${u.name||('Thành viên '+(u.index+1))}</span>
      <span class="badge" style="background:${dot[1]};color:${dot[0]};font-size:9px;">${inactive?'Đã loại':s.label}</span>
     </div>
-    <div style="font-size:11px;color:var(--ink-500);margin-top:3px;">${u.relationship||'—'}${u.age!=null?' · '+u.age+' tuổi':''}${u.isChild?' · trẻ em':''}${u.package?' · '+healthPkgName(u.package):' · chưa chọn gói'}</div>
+    <div style="font-size:11px;color:var(--ink-500);margin-top:2px;">${u.relationship||'—'}${u.age!=null?' · '+u.age+' tuổi':''}${u.isChild?' · trẻ em':''}${u.package?' · '+healthPkgName(u.package):' · chưa chọn gói'}</div>
     <div style="font-size:11px;color:var(--ink-700);margin-top:2px;">${rt&&!inactive?BANCA.vnd(rt.totalPremium)+'/năm':(inactive?'không tính phí':'—')}${(!inactive&&s.missing&&s.missing.length)?` · <span style="color:${dot[0]};">${s.missing[0]}</span>`:''}</div>
    </a>`;
  }).join('');
  const cur = units.find(function(u){return u.insuredUnitId===curUnitId;});
- const rowS=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:3px 0;"><span style="color:var(--ink-500);">${k}</span><b>${v}</b></div>`;
- const summary = `<div class="card" style="padding:12px 13px;margin-top:4px;">
+ const rowS=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:2px 0;"><span style="color:var(--ink-500);">${k}</span><b>${v}</b></div>`;
+ const summary = `<div class="card" style="padding:12px 12px;margin-top:4px;">
    <div class="label" style="margin-bottom:8px;">Tóm tắt gia đình</div>
    ${rowS('Số thành viên', fam.memberCount+' · active '+fam.lines.length)}
    ${rowS('Thành viên hiện tại', cur?(cur.name||'—'):'—')}
    ${rowS('Chiết khấu gia đình', fam.familyDiscount?('−'+BANCA.vnd(fam.familyDiscount)):'—')}
-   <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0 3px;border-top:1px solid var(--line);margin-top:4px;"><span style="font-weight:700;">Tổng phí gia đình</span><b style="color:var(--brand-600);">${BANCA.vnd(fam.total)}</b></div>
+   <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0 2px;border-top:1px solid var(--line);margin-top:4px;"><span style="font-weight:700;">Tổng phí gia đình</span><b style="color:var(--brand-600);">${BANCA.vnd(fam.total)}</b></div>
    <div style="font-size:11px;color:var(--ink-500);margin-top:4px;">Tiến độ: <b style="color:${rd.ready?'var(--teal-600)':'var(--amber-600)'};">${units.filter(function(u){return u.active!==false&&BANCA.healthUnitStatus(a,u).code==='complete';}).length}/${fam.lines.length} hoàn tất</b></div>
-   ${rd.ready?'<div class="alert2 info" style="margin:8px 0 0;padding:7px 9px;font-size:11.5px;">✓ Mọi thành viên active đủ điều kiện nộp.</div>':`<div class="alert2 warn" style="margin:8px 0 0;padding:7px 9px;font-size:11.5px;">Còn chặn: ${rd.blockers.map(function(b){return (b.name||'')+' — '+((b.missing||[])[0]||b.code);}).slice(0,3).join('; ')}</div>`}
+   ${rd.ready?'<div class="alert2 info" style="margin:8px 0 0;padding:6px 8px;font-size:11px;">✓ Mọi thành viên active đủ điều kiện nộp.</div>':`<div class="alert2 warn" style="margin:8px 0 0;padding:6px 8px;font-size:11px;">Còn chặn: ${rd.blockers.map(function(b){return (b.name||'')+' — '+((b.missing||[])[0]||b.code);}).slice(0,3).join('; ')}</div>`}
   </div>`;
  return `<aside style="width:272px;flex-shrink:0;">
    <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Người được bảo hiểm</div>
@@ -362,10 +362,10 @@ function gcnPanel(a){
   const pkgCode=pol.packageCode||a.package;
   const pkg=healthPkg(pkgCode);
   const prem=(a.payment&&a.payment.amount)||(a.uw&&a.uw.newPremium)||a.premium||0;
-  const row=(k,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:12.5px;">${val}</td></tr>`;
+  const row=(k,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:12px;">${val}</td></tr>`;
   return `<div class="card" style="padding:0;overflow:hidden;">
    <div style="background:var(--brand-900);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
-    <div><div style="font-size:10px;letter-spacing:.1em;color:#9db6e0;">GIẤY CHỨNG NHẬN BẢO HIỂM SỨC KHỎE (PREVIEW)</div>
+    <div><div style="font-size:11px;letter-spacing:.1em;color:#9db6e0;">GIẤY CHỨNG NHẬN BẢO HIỂM SỨC KHỎE (PREVIEW)</div>
     <b style="font-size:14px;">${a.policyId||'—'} · ${pol.certificate||pol.certificateNumber||'—'}</b></div>
     <div style="font-size:11px;color:#9db6e0;">Janus Bank × ABC Insurance</div>
    </div>
@@ -379,7 +379,7 @@ function gcnPanel(a){
      ${row('Tổng phí', `<b>${BANCA.vnd(prem)}</b>/năm`)}
     </tbody></table>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-     ${healthBenefitRows(pkgCode).map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:9px;padding:12px;"><div class="label" style="margin-bottom:6px;">${k}</div><div style="font-size:12px;color:var(--ink-700);font-weight:700;">${v}</div></div>`).join('')}
+     ${healthBenefitRows(pkgCode).map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:12px;"><div class="label" style="margin-bottom:6px;">${k}</div><div style="font-size:12px;color:var(--ink-700);font-weight:700;">${v}</div></div>`).join('')}
     </div>
     <div style="font-size:11px;color:var(--ink-300);margin-top:10px;">Loại trừ chính: ${(pkg.exclusions||['Theo quy tắc bảo hiểm sức khỏe']).join('; ')}.</div>
    </div>
@@ -393,10 +393,10 @@ function gcnPanel(a){
   const pkgCode=pol.packageCode||a.package;
   const pkg=paPkg(pkgCode);
   const prem=(a.payment&&a.payment.amount)||(a.uw&&a.uw.newPremium)||a.premium||0;
-  const row=(k,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:12.5px;">${val}</td></tr>`;
+  const row=(k,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:12px;">${val}</td></tr>`;
   return `<div class="card" style="padding:0;overflow:hidden;">
    <div style="background:var(--brand-900);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
-    <div><div style="font-size:10px;letter-spacing:.1em;color:#9db6e0;">GIẤY CHỨNG NHẬN BẢO HIỂM TAI NẠN CON NGƯỜI (PREVIEW)</div>
+    <div><div style="font-size:11px;letter-spacing:.1em;color:#9db6e0;">GIẤY CHỨNG NHẬN BẢO HIỂM TAI NẠN CON NGƯỜI (PREVIEW)</div>
     <b style="font-size:14px;">${a.policyId||'—'} · ${pol.certificate||pol.certificateNumber||'—'}</b></div>
     <div style="font-size:11px;color:#9db6e0;">Janus Bank × ABC Insurance</div>
    </div>
@@ -411,7 +411,7 @@ function gcnPanel(a){
      ${row('Tổng phí', `<b>${BANCA.vnd(prem)}</b>/năm`)}
     </tbody></table>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-     ${paBenefitRows(pkgCode).map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:9px;padding:12px;"><div class="label" style="margin-bottom:6px;">${k}</div><div style="font-size:12px;color:var(--ink-700);font-weight:700;">${v}</div></div>`).join('')}
+     ${paBenefitRows(pkgCode).map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:12px;"><div class="label" style="margin-bottom:6px;">${k}</div><div style="font-size:12px;color:var(--ink-700);font-weight:700;">${v}</div></div>`).join('')}
     </div>
     <div style="font-size:11px;color:var(--ink-300);margin-top:10px;">Loại trừ chính: ${(pkg.exclusions||['Theo quy tắc bảo hiểm PA']).join('; ')}.</div>
    </div>
@@ -424,10 +424,10 @@ function gcnPanel(a){
  const addOns=(snap.addOns||pkg.defaultAddOns||[]).map(x=>(BANCA.motorAddOns[x]||{}).name||x).join(', ')||'Không';
  const prem=(a.uw&&a.uw.newPremium)||a.premium;
  const eff=a.policyId? (BANCA.policyById(a.policyId)||{}) : {};
- const row=(k,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:12.5px;">${val}</td></tr>`;
+ const row=(k,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:12px;">${val}</td></tr>`;
  return `<div class="card" style="padding:0;overflow:hidden;">
   <div style="background:var(--brand-900);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
-   <div><div style="font-size:10px;letter-spacing:.1em;color:#9db6e0;">GIẤY CHỨNG NHẬN BẢO HIỂM (PREVIEW)</div>
+   <div><div style="font-size:11px;letter-spacing:.1em;color:#9db6e0;">GIẤY CHỨNG NHẬN BẢO HIỂM (PREVIEW)</div>
    <b style="font-size:14px;">${a.policyId||'—'}</b></div>
    <div style="font-size:11px;color:#9db6e0;">Janus Bank × FPT IS Insurance</div>
   </div>
@@ -440,12 +440,12 @@ function gcnPanel(a){
     ${row('Tổng phí', `<b>${BANCA.vnd(prem)}</b>/năm`)}
    </tbody></table>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-    <div style="border:1px solid var(--line);border-radius:9px;padding:12px;">
+    <div style="border:1px solid var(--line);border-radius:8px;padding:12px;">
      <div class="label" style="margin-bottom:6px;">PHẦN 1 — TNDS BẮT BUỘC</div>
      <div style="font-size:12px;color:var(--ink-700);">Về người: <b>150.000.000 ₫</b>/người/vụ</div>
      <div style="font-size:12px;color:var(--ink-700);">Về tài sản: <b>100.000.000 ₫</b>/vụ</div>
     </div>
-    <div style="border:1px solid var(--line);border-radius:9px;padding:12px;">
+    <div style="border:1px solid var(--line);border-radius:8px;padding:12px;">
      <div class="label" style="margin-bottom:6px;">PHẦN 2 — VẬT CHẤT XE (${pkg.name||a.package||''})</div>
      <div style="font-size:12px;color:var(--ink-700);">Số tiền BH (IDV): <b>${BANCA.vnd(snap.sumInsured||v.value||0)}</b></div>
      <div style="font-size:12px;color:var(--ink-700);">Khấu trừ: <b>${BANCA.vnd(snap.deductible||pkg.defaultDeductible||0)}</b>/vụ</div>
@@ -457,7 +457,7 @@ function gcnPanel(a){
     const ovG=(BANCA.overlay.applications&&BANCA.overlay.applications[a.id])||{};
     const mgG=ovG.mortgage||a.mortgage;
     if(!(mgG&&mgG.mortgaged)) return '';
-    return `<div style="border:1px solid var(--amber-600);background:#fdf3e3;border-radius:9px;padding:12px;margin-top:12px;">
+    return `<div style="border:1px solid var(--amber-600);background:#fdf3e3;border-radius:8px;padding:12px;margin-top:12px;">
      <div class="label" style="margin-bottom:6px;color:var(--amber-600);">ĐIỀU KHOẢN THỤ HƯỞNG (xe thế chấp)</div>
      <div style="font-size:12px;color:var(--ink-700);">Bên thụ hưởng: <b>${mgG.bank||'—'}</b>${mgG.lenderType?' ('+mgG.lenderType+')':''}${mgG.branch?' · '+mgG.branch:''} · HĐ tín dụng <b>${mgG.creditContract||'—'}</b></div>
      <div style="font-size:12px;color:var(--ink-700);margin-top:4px;">Quyền lợi bồi thường <b>tổn thất toàn bộ / vượt ngưỡng lớn</b> được chi trả cho <b>bên thụ hưởng (${mgG.bank||'—'})</b> trước để cấn trừ dư nợ; phần chênh lệch (nếu có) trả chủ xe. Tổn thất bộ phận nhỏ chi trả chủ xe/garage theo thông lệ.</div>
@@ -486,23 +486,23 @@ if(app.submissionState==='NOT_SUBMITTED'){
  const stepLink = (s,i)=>{
   const done = doneIdx>=0 && i < doneIdx;
   const active = i===curIdx;
-  return `<a href="?id=${app.id}&step=${s.id}${isNew?'&new=1':''}" style="text-decoration:none;display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:8px;font-size:12px;${active?'background:var(--brand-600);color:#fff;font-weight:600;':done?'background:var(--teal-100);color:var(--teal-600);':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}"><span style="width:17px;height:17px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;${active?'background:rgba(255,255,255,.25);':done?'background:var(--teal-600);color:#fff;':'background:var(--line);'}">${done?'✓':i+1}</span>${s.label}</a>`;
+  return `<a href="?id=${app.id}&step=${s.id}${isNew?'&new=1':''}" style="text-decoration:none;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;${active?'background:var(--brand-600);color:#fff;font-weight:600;':done?'background:var(--teal-100);color:var(--teal-600);':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}"><span style="width:17px;height:17px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;${active?'background:rgba(255,255,255,.25);':done?'background:var(--teal-600);color:#fff;':'background:var(--line);'}">${done?'✓':i+1}</span>${s.label}</a>`;
  };
  const stepper = `<div style="display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;">${steps.map(stepLink).join('')}</div>`;
 
- const input=(l,v,ro,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">${l}${ro?' <span class="chip" style="font-size:9px;">Ngân hàng</span>':''}</label><input value="${v==null?'':v}" ${ro||readOnly?'readonly style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink-500);"':'style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;" onblur="autosave()"'}>${extra?`<div style="font-size:10.5px;color:var(--ink-300);margin-top:3px;">${extra}</div>`:''}</div>`;
- const inputId=(id,l,v,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">${l}</label><input id="${id}" value="${v==null?'':v}" ${readOnly?'readonly':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;" onblur="autosave()">${extra?`<div style="font-size:10.5px;color:var(--ink-300);margin-top:3px;">${extra}</div>`:''}</div>`;
+ const input=(l,v,ro,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">${l}${ro?' <span class="chip" style="font-size:9px;">Ngân hàng</span>':''}</label><input value="${v==null?'':v}" ${ro||readOnly?'readonly style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink-500);"':'style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;" onblur="autosave()"'}>${extra?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${extra}</div>`:''}</div>`;
+ const inputId=(id,l,v,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">${l}</label><input id="${id}" value="${v==null?'':v}" ${readOnly?'readonly':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;" onblur="autosave()">${extra?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${extra}</div>`:''}</div>`;
 
  // 2026-07-20 16:35 (user chốt): select-tag search — input + datalist; search ra option sẵn có,
  // gõ giá trị mới rồi Enter/blur là tự nhận (insert in-session), KHÔNG cần nút "Tạo mới".
- const combo=(id,label,options,value,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">${label}</label>
-  <input id="${id}" list="${id}-list" value="${value==null?'':value}" ${readOnly?'readonly style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink-500);"':`placeholder="Gõ để tìm hoặc nhập mới rồi Enter…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;" onchange="comboChanged('${id}')"`}>
+ const combo=(id,label,options,value,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">${label}</label>
+  <input id="${id}" list="${id}-list" value="${value==null?'':value}" ${readOnly?'readonly style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink-500);"':`placeholder="Gõ để tìm hoặc nhập mới rồi Enter…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;" onchange="comboChanged('${id}')"`}>
   <datalist id="${id}-list">${options.map(o=>`<option value="${o}">`).join('')}</datalist>
-  ${extra?`<div style="font-size:10.5px;color:var(--ink-300);margin-top:3px;">${extra}</div>`:''}</div>`;
+  ${extra?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${extra}</div>`:''}</div>`;
 
  // Component DÙNG CHUNG: checkbox "Bên mua đồng thời là người được bảo hiểm chính".
  // Mọi sản phẩm gọi cùng 1 markup — chỉ khác checked/disabled/onchange (bản chất là ẩn/hiện/khóa, KHÔNG khác style).
- const buyerInsuredToggle = (checked, opts) => { opts=opts||{}; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" ${checked?'checked':''} ${opts.disabled?'disabled':''}${opts.onchange?` onchange="${opts.onchange}"`:''}> ${opts.label||'Bên mua đồng thời là người được bảo hiểm chính'}</label>`; };
+ const buyerInsuredToggle = (checked, opts) => { opts=opts||{}; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" ${checked?'checked':''} ${opts.disabled?'disabled':''}${opts.onchange?` onchange="${opts.onchange}"`:''}> ${opts.label||'Bên mua đồng thời là người được bảo hiểm chính'}</label>`; };
 
  let stepBody='';
  if(cur.id==='OFFER_CONTEXT'){
@@ -527,42 +527,42 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const srcKind = app.sourceAdviceId?'ADVICE':app.leadId?'REFERRAL':entryMode==='BANK_CUSTOMER'?'BANK':entryMode==='INSURANCE_CUSTOMER'?'BANK':'PORTAL';
   const idDoc = {code:'ID', name:'CCCD / Hộ chiếu', sub:'Định danh khách — OCR tự động điền', ocr:'enabled', required:!bankFed, docType:'NATIONAL_ID'};
   // Card khách hàng — DÙNG CHUNG format Health (card viền trái brand · header tên + badge + nút · doc-item OCR có label · lưới trường · banner).
-  const srcLine = `<div style="font-size:11.5px;color:var(--ink-500);margin-bottom:10px;">Nguồn khách hàng: ${BANCA.sourceBadge?BANCA.sourceBadge(srcKind):''} <span class="chip" style="background:var(--brand-100);color:var(--brand-700);">${entrySourceLabel}</span>${custDocPolicy.note?' · '+custDocPolicy.note:''}</div>`;
+  const srcLine = `<div style="font-size:11px;color:var(--ink-500);margin-bottom:10px;">Nguồn khách hàng: ${BANCA.sourceBadge?BANCA.sourceBadge(srcKind):''} <span class="chip" style="background:var(--brand-100);color:var(--brand-700);">${entrySourceLabel}</span>${custDocPolicy.note?' · '+custDocPolicy.note:''}</div>`;
 
   if(bankFed && cust){
     const custBadge = cust.cif
       ? `<span class="chip" style="font-size:9px;background:var(--brand-100);color:var(--brand-700);">CIF ${cust.cif}</span>`
       : '<span class="chip" style="font-size:9px;">Prospect</span>';
-    stepBody = `<div class="card" style="padding:13px;margin-bottom:12px;border-left:3px solid var(--brand-600);">
+    stepBody = `<div class="card" style="padding:12px;margin-bottom:12px;border-left:3px solid var(--brand-600);">
      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
       <b style="font-size:13px;">${cust.name} ${custBadge}</b>
       <button class="btn btn-secondary btn-sm" onclick="viewSourceContext()">Xem ngữ cảnh nguồn</button>
      </div>
      ${srcLine}
      <div style="margin-bottom:10px;">
-      <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ định danh — OCR tự động điền họ tên · ngày sinh · số giấy tờ (đối chiếu/bổ sung khi cần)</div>
+      <div style="font-size:11px;color:var(--ink-500);margin-bottom:4px;">Giấy tờ định danh — OCR tự động điền họ tên · ngày sinh · số giấy tờ (đối chiếu/bổ sung khi cần)</div>
       <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, Object.assign({}, idDoc, {locked:readOnly}))}</div>
      </div>
      <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
       ${input('Họ tên', cust.name, !!cust.cif)}${input('Ngày sinh', cust.dob, !!cust.cif)}
       ${input('CIF', cust.cif||'— (prospect)', true)}
-      <div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">Điện thoại</label><div style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;">${phoneCell(cust,'c1')}</div></div>
+      <div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">Điện thoại</label><div style="padding:8px;border:1px solid var(--line);border-radius:6px;font-size:13px;">${phoneCell(cust,'c1')}</div></div>
       ${input('Email', cust.email, false)}${input('Segment', cust.segment, true)}
       ${input('Khoản vay / tài sản liên quan', cust.loanRef||'Không', true)}${input('Bảo hiểm hiện có', (cust.existingInsurance||[]).join(', ')||'Không', true)}
      </div>
      <div class="alert2 info" style="margin:6px 0 0;">Người được bảo hiểm: <b>chính chủ</b> (${cust.name}) · KYC ngân hàng được chấp nhận — trường đã xác minh chỉ đọc, trường thiếu cho phép bổ sung.</div>
     </div>`;
   } else {
-    stepBody = `<div class="card" style="padding:13px;margin-bottom:12px;border-left:3px solid var(--amber-600);">
+    stepBody = `<div class="card" style="padding:12px;margin-bottom:12px;border-left:3px solid var(--amber-600);">
      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
       <b style="font-size:13px;">Khách hàng mới${app.sourceAdviceId?' (từ tư vấn)':''} <span class="chip" style="font-size:9px;background:#fdf3e3;color:var(--amber-600);">Cần định danh</span></b>
       <button class="btn btn-secondary btn-sm" onclick="viewSourceContext()">Xem ngữ cảnh nguồn</button>
      </div>
      ${srcLine}
      <div class="alert2 warn" style="margin-bottom:12px;">Khách hàng mới cần <b>consent</b> và định danh trước khi tạo yêu cầu chính thức. Tải/chụp CCCD ở mục Giấy tờ định danh để tự điền, hoặc nhập thủ công. OCR chỉ bóc tách dữ liệu, không thay cho KYC.</div>
-     <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" id="prospect-consent" ${readOnly?'disabled':''}> Khách hàng đồng ý cung cấp và xử lý dữ liệu cá nhân cho mục đích bảo hiểm.</label>
+     <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" id="prospect-consent" ${readOnly?'disabled':''}> Khách hàng đồng ý cung cấp và xử lý dữ liệu cá nhân cho mục đích bảo hiểm.</label>
      <div style="margin-bottom:10px;">
-      <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ định danh — tải/chụp CCCD để OCR tự động điền các trường bên dưới</div>
+      <div style="font-size:11px;color:var(--ink-500);margin-bottom:4px;">Giấy tờ định danh — tải/chụp CCCD để OCR tự động điền các trường bên dưới</div>
       <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, idDoc)}</div>
      </div>
      <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
@@ -592,13 +592,13 @@ if(app.submissionState==='NOT_SUBMITTED'){
     const guardianOptions = guardianCandidates.map(function(x){ return '<option value="'+x.insuredUnitId+'" '+(u.guardianUnitId===x.insuredUnitId?'selected':'')+'>'+esc(x.name)+' · '+esc(x.relationship||'Thành viên hồ sơ')+'</option>'; }).join('');
     const guardianChoice = u.guardianUnitId || '__new';
     const guardianBlock = (u.isChild && !inactive) ? `<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
-        <div><label style="font-size:11px;color:var(--ink-500);">Chọn người đại diện</label><select ${readOnly?'disabled':''} onchange="healthUnitSetGuardianChoice('${app.id}','${uid}',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"><option value="__new" ${guardianChoice==='__new'?'selected':''}>+ Thêm người đại diện mới</option>${guardianOptions}</select></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Tên người đại diện</label><input value="${u.guardianName||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianName',this.value)" placeholder="Nhập mới hoặc chọn từ hồ sơ" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Quan hệ đại diện</label><input value="${u.guardianRelationship||'Cha/Mẹ'}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianRelationship',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--ink-500);">SĐT người đại diện</label><input value="${u.guardianPhone||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianPhone',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div class="alert2 info" style="grid-column:1/-1;margin:0;padding:7px 9px;font-size:12px;">Có thể chọn người lớn đã có trong hồ sơ để tự điền tên/SĐT, hoặc chọn “Thêm người đại diện mới” để nhập tay.</div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Chọn người đại diện</label><select ${readOnly?'disabled':''} onchange="healthUnitSetGuardianChoice('${app.id}','${uid}',this.value)" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"><option value="__new" ${guardianChoice==='__new'?'selected':''}>+ Thêm người đại diện mới</option>${guardianOptions}</select></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Tên người đại diện</label><input value="${u.guardianName||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianName',this.value)" placeholder="Nhập mới hoặc chọn từ hồ sơ" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Quan hệ đại diện</label><input value="${u.guardianRelationship||'Cha/Mẹ'}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianRelationship',this.value)" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:11px;color:var(--ink-500);">SĐT người đại diện</label><input value="${u.guardianPhone||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','guardianPhone',this.value)" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+        <div class="alert2 info" style="grid-column:1/-1;margin:0;padding:6px 8px;font-size:12px;">Có thể chọn người lớn đã có trong hồ sơ để tự điền tên/SĐT, hoặc chọn “Thêm người đại diện mới” để nhập tay.</div>
       </div>` : '';
-    return `<div class="card" style="padding:13px;margin-bottom:9px;${inactive?'opacity:.6;':''}border-left:3px solid ${inactive?'var(--ink-300)':(elig.errors.length?'var(--red-600)':'var(--brand-600)')};">
+    return `<div class="card" style="padding:12px;margin-bottom:8px;${inactive?'opacity:.6;':''}border-left:3px solid ${inactive?'var(--ink-300)':(elig.errors.length?'var(--red-600)':'var(--brand-600)')};">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
        <b style="font-size:13px;">${u.name||('Người được BH '+(idx+1))} <span class="chip" style="font-size:9px;">${uid}</span>${u.isChild?'<span class="chip" style="font-size:9px;background:var(--purple-100);color:var(--purple-600);">Trẻ em</span>':''}${inactive?'<span class="chip" style="font-size:9px;background:#fdecec;color:var(--red-600);">Đã loại</span>':''}</b>
        <div style="display:flex;gap:6px;">
@@ -607,19 +607,19 @@ if(app.submissionState==='NOT_SUBMITTED'){
        </div>
       </div>
       ${!inactive?`<div style="margin-bottom:10px;">
-       <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ định danh — OCR tự động điền họ tên · ngày sinh · giới tính · số giấy tờ</div>
+       <div style="font-size:11px;color:var(--ink-500);margin-bottom:4px;">Giấy tờ định danh — OCR tự động điền họ tên · ngày sinh · giới tính · số giấy tờ</div>
        <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, {code:'HID-'+uid, name:(u.isChild?'Giấy khai sinh / CCCD':'CCCD / Hộ chiếu')+' — '+(u.name||('Người được BH '+(idx+1))), sub:'Định danh người được bảo hiểm · OCR chỉ prefill, không thay cho KYC/xác minh', ocr:readOnly?'none':'enabled', required:false, docType:'NATIONAL_ID', locked:readOnly})}</div>
       </div>`:''}
       <div style="display:grid;grid-template-columns:1.3fr 130px 120px 110px 80px;gap:10px;align-items:end;">
-        <div><label style="font-size:11px;color:var(--ink-500);">Họ tên</label><input value="${u.name||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','name',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Ngày sinh</label><input type="date" value="${u.dob||''}" ${readOnly||(idx===0&&buyerIsInsured)?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','dob',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Quan hệ</label><select ${readOnly||(idx===0&&buyerIsInsured)?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','relationship',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;">${relOpts.map(function(rl){return '<option '+(u.relationship===rl?'selected':'')+'>'+rl+'</option>';}).join('')}</select></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Giới tính</label><select ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','gender',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"><option value="">—</option><option ${u.gender==='Nam'?'selected':''}>Nam</option><option ${u.gender==='Nữ'?'selected':''}>Nữ</option></select></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Tuổi BH</label><input readonly value="${u.age!=null?u.age:'—'}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;background:var(--paper);color:var(--ink-500);"></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Họ tên</label><input value="${u.name||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','name',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Ngày sinh</label><input type="date" value="${u.dob||''}" ${readOnly||(idx===0&&buyerIsInsured)?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','dob',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Quan hệ</label><select ${readOnly||(idx===0&&buyerIsInsured)?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','relationship',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;">${relOpts.map(function(rl){return '<option '+(u.relationship===rl?'selected':'')+'>'+rl+'</option>';}).join('')}</select></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Giới tính</label><select ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','gender',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"><option value="">—</option><option ${u.gender==='Nam'?'selected':''}>Nam</option><option ${u.gender==='Nữ'?'selected':''}>Nữ</option></select></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Tuổi BH</label><input readonly value="${u.age!=null?u.age:'—'}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;background:var(--paper);color:var(--ink-500);"></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:9px;">
-        <div><label style="font-size:11px;color:var(--ink-500);">Giấy tờ (CCCD/khai sinh)</label><input value="${u.identityNumber||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','identityNumber',this.value)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-        <div><label style="font-size:11px;color:var(--ink-500);">Nghề nghiệp</label><input value="${u.occupation||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','occupation',this.value)" placeholder="VD: Nhân viên văn phòng" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px;">
+        <div><label style="font-size:11px;color:var(--ink-500);">Giấy tờ (CCCD/khai sinh)</label><input value="${u.identityNumber||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','identityNumber',this.value)" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+        <div><label style="font-size:11px;color:var(--ink-500);">Nghề nghiệp</label><input value="${u.occupation||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','occupation',this.value)" placeholder="VD: Nhân viên văn phòng" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
       </div>
       ${guardianBlock}${eligBanner}
     </div>`;
@@ -633,9 +633,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
    <div class="card" style="padding:16px;margin-bottom:12px;">
     ${buyerInsuredToggle(buyerIsInsured, {disabled:readOnly, onchange:`healthSetField('${app.id}','buyerIsInsured',this.checked)`})}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Ngày hiệu lực (chung)</label><input type="date" value="${effDate}" ${readOnly?'disabled':''} onchange="healthSetField('${app.id}','effectiveDate',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Số thành viên</label><input readonly value="${units.length}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;background:var(--paper);color:var(--ink-500);"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Đủ điều kiện sơ bộ</label><input readonly value="${units.filter(function(u){return u.active!==false && BANCA.healthUnitEligibility(app,u).eligible;}).length}/${units.filter(function(u){return u.active!==false;}).length}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;background:var(--paper);color:var(--ink-500);"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Ngày hiệu lực (chung)</label><input type="date" value="${effDate}" ${readOnly?'disabled':''} onchange="healthSetField('${app.id}','effectiveDate',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Số thành viên</label><input readonly value="${units.length}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;background:var(--paper);color:var(--ink-500);"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Đủ điều kiện sơ bộ</label><input readonly value="${units.filter(function(u){return u.active!==false && BANCA.healthUnitEligibility(app,u).eligible;}).length}/${units.filter(function(u){return u.active!==false;}).length}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;background:var(--paper);color:var(--ink-500);"></div>
     </div>
     ${!buyerIsInsured?`<div class="alert2 warn" style="margin-top:12px;">Bên mua khác người được bảo hiểm chính — cần consent của người được bảo hiểm khi nộp yêu cầu.</div>`:''}
    </div>
@@ -660,20 +660,20 @@ if(app.submissionState==='NOT_SUBMITTED'){
     <div class="label" style="margin-bottom:10px;">Thông tin người được bảo hiểm</div>
     ${buyerInsuredToggle(buyerIsInsured, {disabled:readOnly, onchange:`paSetField('${app.id}','buyerIsInsured',this.checked)`})}
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Họ tên</label>
-      <input value="${app.insuredName||(cust?cust.name:'')||''}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','insuredName',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Ngày sinh người được BH</label>
-      <input type="date" value="${insuredDob||''}" ${buyerIsInsured||readOnly?'disabled':''} onchange="paSetField('${app.id}','insuredDob',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Ngày hiệu lực dự kiến</label>
-      <input type="date" value="${effDate}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','effectiveDate',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Tuổi bảo hiểm</label>
-      <input readonly value="${insuredAge!=null?insuredAge:'Chưa có DOB'}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;background:var(--paper);color:var(--ink-500);"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Mã nghề nghiệp</label>
-      <input value="${app.occupationCode||''}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','occupationCode',this.value)" placeholder="VD: OFFICE_ADMIN" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Nhóm nghề nghiệp</label>
-      <select ${readOnly?'disabled':''} onchange="paSetField('${app.id}','occupationClass',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;">${occOpts}</select></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Quan hệ với bên mua</label>
-      <input value="${buyerIsInsured?'Bản thân':(app.relationship||'')}" ${buyerIsInsured||readOnly?'disabled':''} onchange="paSetField('${app.id}','relationship',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Họ tên</label>
+      <input value="${app.insuredName||(cust?cust.name:'')||''}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','insuredName',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Ngày sinh người được BH</label>
+      <input type="date" value="${insuredDob||''}" ${buyerIsInsured||readOnly?'disabled':''} onchange="paSetField('${app.id}','insuredDob',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Ngày hiệu lực dự kiến</label>
+      <input type="date" value="${effDate}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','effectiveDate',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Tuổi bảo hiểm</label>
+      <input readonly value="${insuredAge!=null?insuredAge:'Chưa có DOB'}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;background:var(--paper);color:var(--ink-500);"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Mã nghề nghiệp</label>
+      <input value="${app.occupationCode||''}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','occupationCode',this.value)" placeholder="VD: OFFICE_ADMIN" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Nhóm nghề nghiệp</label>
+      <select ${readOnly?'disabled':''} onchange="paSetField('${app.id}','occupationClass',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;">${occOpts}</select></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Quan hệ với bên mua</label>
+      <input value="${buyerIsInsured?'Bản thân':(app.relationship||'')}" ${buyerIsInsured||readOnly?'disabled':''} onchange="paSetField('${app.id}','relationship',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
     </div>
     ${!buyerIsInsured?`<div class="alert2 warn" style="margin-top:12px;">Bên mua khác người được bảo hiểm — cần consent của người được bảo hiểm trước khi nộp yêu cầu bảo hiểm.</div>`:''}
     <div class="alert2 ${eligibilityTone}" style="margin-top:12px;">${eligibilityText} Tuổi được tính từ DOB đến ngày hiệu lực dự kiến; không nhập tay.</div>
@@ -686,14 +686,14 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const cards = Object.values(BANCA.healthPackages||{}).map(function(pk){
     const rt = unit && unit.age!=null ? BANCA.rateHealth({packageCode:pk.code, members:[{name:unit.name, age:unit.age, relationship:unit.relationship}]}) : null;
     const isSel = sel===pk.code;
-    const benefits = healthBenefitRows(pk.code).map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;padding:3px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><b style="text-align:right;">${v}</b></div>`).join('');
+    const benefits = healthBenefitRows(pk.code).map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><b style="text-align:right;">${v}</b></div>`).join('');
     return `<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
-     <div style="display:flex;justify-content:space-between;"><b style="font-size:13.5px;">${pk.name}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
-     <div style="font-size:11.5px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
+     <div style="display:flex;justify-content:space-between;"><b style="font-size:13px;">${pk.name}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
+     <div style="font-size:11px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
      <div style="font-size:11px;color:var(--ink-300);">Thời hạn ${(pk.termMonths||12)} tháng · Phạm vi ${pk.territory||'Việt Nam'}</div>
      <div style="margin-top:8px;">${benefits}</div>
      <div style="font-size:11px;color:var(--ink-500);margin-top:8px;">Loại trừ chính: ${(pk.exclusions||[]).slice(0,2).join('; ')}</div>
-     <div style="font-size:14.5px;font-weight:700;color:var(--brand-600);margin-top:6px;">${rt?BANCA.vnd(rt.totalPremium):'—'}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (phí thành viên)</span></div>
+     <div style="font-size:14px;font-weight:700;color:var(--brand-600);margin-top:6px;">${rt?BANCA.vnd(rt.totalPremium):'—'}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (phí thành viên)</span></div>
      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
       ${!readOnly&&!inactive?`<button class="btn ${isSel?'btn-secondary':'btn-primary'} btn-sm" onclick="healthUnitPickPackage('${app.id}','${curUnitId}','${pk.code}')" ${isSel?'disabled':''}>${isSel?'Đang chọn':'Chọn cho thành viên này'}</button>`:''}
       <button class="btn btn-secondary btn-sm" onclick="showHealthPackageDetail('${pk.code}')">Xem quyền lợi chi tiết</button>
@@ -701,22 +701,22 @@ if(app.submissionState==='NOT_SUBMITTED'){
     </div>`;
   }).join('');
   const fam = BANCA.healthFamilyRating(app);
-  const famRows = fam.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.name} · ${healthPkgName(l.package)}</span><b>${l.eligible?BANCA.vnd(l.premium):'—'}</b></div>`;}).join('');
+  const famRows = fam.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.name} · ${healthPkgName(l.package)}</span><b>${l.eligible?BANCA.vnd(l.premium):'—'}</b></div>`;}).join('');
   const famBlock = `<div class="card" style="padding:14px;">
     <div class="label" style="margin-bottom:8px;">Báo giá gia đình (phí từng người → chiết khấu → tổng)</div>
     ${famRows}
     ${fam.familyDiscount?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--teal-600);"><span>Chiết khấu gia đình (≥3 thành viên)</span><b>−${BANCA.vnd(fam.familyDiscount)}</b></div>`:''}
-    <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:8px 0 0;border-top:1px solid var(--line);margin-top:4px;color:var(--brand-600);"><span>Tổng phí gia đình</span><span>${BANCA.vnd(fam.total)}</span></div>
-    <div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Mỗi thành viên có quote riêng theo insuredUnitId. Biểu phí minh họa.</div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:8px 0 0;border-top:1px solid var(--line);margin-top:4px;color:var(--brand-600);"><span>Tổng phí gia đình</span><span>${BANCA.vnd(fam.total)}</span></div>
+    <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Mỗi thành viên có quote riêng theo insuredUnitId. Biểu phí minh họa.</div>
    </div>`;
   // Beneficiary — section CÓ ĐIỀU KIỆN: chỉ khi gói có quyền lợi tử vong.
   const beneBlock = (sel && BANCA.healthPackageHasDeathBenefit(sel)) ? (function(){
     const bs = unit.beneficiaries||[];
     const total = bs.reduce(function(s,b){return s+(Number(b.share)||0);},0);
     const rows = bs.map(function(b,bi){return `<div style="display:grid;grid-template-columns:1.4fr 1fr 90px 60px;gap:8px;margin-bottom:6px;align-items:end;">
-       <div><input value="${b.name||''}" ${readOnly?'disabled':''} onchange="healthUnitBeneSet('${app.id}','${curUnitId}',${bi},'name',this.value)" placeholder="Họ tên" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;"></div>
-       <div><input value="${b.relationship||''}" ${readOnly?'disabled':''} onchange="healthUnitBeneSet('${app.id}','${curUnitId}',${bi},'relationship',this.value)" placeholder="Quan hệ" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;"></div>
-       <div><input type="number" value="${b.share||''}" ${readOnly?'disabled':''} onchange="healthUnitBeneSet('${app.id}','${curUnitId}',${bi},'share',this.value)" placeholder="%" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:7px;"></div>
+       <div><input value="${b.name||''}" ${readOnly?'disabled':''} onchange="healthUnitBeneSet('${app.id}','${curUnitId}',${bi},'name',this.value)" placeholder="Họ tên" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;"></div>
+       <div><input value="${b.relationship||''}" ${readOnly?'disabled':''} onchange="healthUnitBeneSet('${app.id}','${curUnitId}',${bi},'relationship',this.value)" placeholder="Quan hệ" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;"></div>
+       <div><input type="number" value="${b.share||''}" ${readOnly?'disabled':''} onchange="healthUnitBeneSet('${app.id}','${curUnitId}',${bi},'share',this.value)" placeholder="%" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px;"></div>
        <div>${!readOnly?`<button class="btn btn-secondary btn-sm" onclick="healthUnitBeneRemove('${app.id}','${curUnitId}',${bi})">Xóa</button>`:''}</div>
       </div>`;}).join('');
     return `<div class="card" style="padding:14px;margin-top:12px;"><div class="label" style="margin-bottom:8px;">Người thụ hưởng của ${unit.name||'thành viên'} <span class="chip" style="font-size:9px;">tổng phải = 100%</span></div>
@@ -725,8 +725,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
       ${!readOnly?`<button class="btn btn-secondary btn-sm" onclick="healthUnitBeneAdd('${app.id}','${curUnitId}')">+ Thêm người thụ hưởng</button>`:''}
      </div>`;
   })() : `<div class="alert2 info" style="margin-top:12px;font-size:12px;">Gói sức khỏe đang chọn không có quyền lợi tử vong — không cần khai người thụ hưởng (section có điều kiện).</div>`;
-  const header = unit ? `<div class="card" style="padding:11px 14px;margin-bottom:12px;background:var(--brand-100);border-color:transparent;">
-     <span style="font-size:12px;color:var(--ink-500);">Đang cấu hình gói cho</span> <b style="font-size:13.5px;">${unit.name||'—'} · ${unit.age!=null?unit.age+' tuổi':'chưa có DOB'} · ${unit.relationship||'—'}</b>${inactive?' <span class="chip" style="background:#fdecec;color:var(--red-600);">Đã loại</span>':''}
+  const header = unit ? `<div class="card" style="padding:12px 14px;margin-bottom:12px;background:var(--brand-100);border-color:transparent;">
+     <span style="font-size:12px;color:var(--ink-500);">Đang cấu hình gói cho</span> <b style="font-size:13px;">${unit.name||'—'} · ${unit.age!=null?unit.age+' tuổi':'chưa có DOB'} · ${unit.relationship||'—'}</b>${inactive?' <span class="chip" style="background:#fdecec;color:var(--red-600);">Đã loại</span>':''}
     </div>` : '';
   const applyAll = (sel && !readOnly && !inactive) ? `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
      <button class="btn btn-secondary btn-sm" onclick="showHealthCompare()">So sánh gói</button>
@@ -745,14 +745,14 @@ if(app.submissionState==='NOT_SUBMITTED'){
     const rt = BANCA.ratePA({packageCode:pk.code, sumInsured:pk.sumInsured, age:calcAge||app.insuredAge||30, occupationClass:app.occupationClass||'CLASS_1'});
     const isSel = sel===pk.code;
     const prem = rt&&!rt.ineligible ? BANCA.vnd(rt.totalPremium) : '—';
-    const benefits = paBenefitRows(pk.code).map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:11.5px;padding:3px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><b style="text-align:right;">${v}</b></div>`).join('');
+    const benefits = paBenefitRows(pk.code).map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><b style="text-align:right;">${v}</b></div>`).join('');
     return `<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
-     <div style="display:flex;justify-content:space-between;"><b style="font-size:13.5px;">${pk.name}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
-     <div style="font-size:11.5px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
+     <div style="display:flex;justify-content:space-between;"><b style="font-size:13px;">${pk.name}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
+     <div style="font-size:11px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
      <div style="font-size:11px;color:var(--ink-300);">Thời hạn ${(pk.termMonths||12)} tháng · Phạm vi ${pk.territory||'Việt Nam'}</div>
      <div style="margin-top:8px;">${benefits}</div>
      <div style="font-size:11px;color:var(--ink-500);margin-top:8px;">Loại trừ chính: ${(pk.exclusions||[]).slice(0,2).join('; ')}</div>
-     <div style="font-size:14.5px;font-weight:700;color:var(--brand-600);margin-top:6px;">${prem}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (phí dự kiến)</span></div>
+     <div style="font-size:14px;font-weight:700;color:var(--brand-600);margin-top:6px;">${prem}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (phí dự kiến)</span></div>
      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
       ${!readOnly?`<button class="btn ${isSel?'btn-secondary':'btn-primary'} btn-sm" onclick="paPickPackage('${app.id}','${pk.code}')" ${isSel?'disabled':''}>${isSel?'Đang chọn':'Chọn gói'}</button>`:''}
       <button class="btn btn-secondary btn-sm" onclick="showPaPackageDetail('${pk.code}')">Xem quyền lợi chi tiết</button>
@@ -763,7 +763,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const quoteBlock = q ? `<div class="card" style="padding:14px;">
     <div class="label">Báo giá — ${q.quoteId||q.id||''} <span class="chip" style="font-size:9px;">${q.quoteType||'INDICATIVE'}</span></div>
     <div style="font-size:18px;font-weight:700;color:var(--brand-600);margin-top:6px;">${BANCA.vnd(q.premium||q.adjustedPremium)}<span style="font-size:12px;color:var(--ink-300);font-weight:400;">/năm</span></div>
-    <div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Biểu phí minh họa (DEMO_TARIFF). Phí có thể đổi sau khai báo rủi ro.</div>
+    <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Biểu phí minh họa (DEMO_TARIFF). Phí có thể đổi sau khai báo rủi ro.</div>
    </div>` : '<div class="alert2 info">Chọn gói để tính phí dự kiến.</div>';
   stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Gói Bảo hiểm tai nạn cá nhân theo số tiền bảo hiểm — phí tính theo tuổi × nhóm nghề (${(BANCA.journeyFor('pa').packageSchemaId)}).</div>
    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="showPaCompare()">So sánh các gói</button></div>
@@ -808,20 +808,20 @@ if(app.submissionState==='NOT_SUBMITTED'){
 
   const conflictCard = ownerConflict ? `<div class="alert2 warn" style="margin:0 0 10px;padding:10px 12px;">
     <b style="color:var(--red-600);">⚠️ Xung đột dữ liệu — Chủ xe</b>
-    <div style="font-size:12.5px;color:var(--ink-500);margin:6px 0 10px;">Nguồn ngân hàng và OCR khác nhau. Chọn giá trị dùng cho yêu cầu (không ghi đè master).</div>
+    <div style="font-size:12px;color:var(--ink-500);margin:6px 0 10px;">Nguồn ngân hàng và OCR khác nhau. Chọn giá trị dùng cho yêu cầu (không ghi đè master).</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <label style="border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;background:#fff;"><input type="radio" name="ownconf" value="bank" checked onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${cust.name}';"> <b>${cust.name}</b><div style="font-size:11px;color:var(--ink-500);">Nguồn ngân hàng (CIF ${cust.cif||'—'})</div></label>
-      <label style="border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;background:#fff;"><input type="radio" name="ownconf" value="ocr" onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${gx('ownerName')}';"> <b>${gx('ownerName')}</b><div style="font-size:11px;color:var(--ink-500);">OCR đăng ký xe</div></label>
+      <label style="border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;background:#fff;"><input type="radio" name="ownconf" value="bank" checked onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${cust.name}';"> <b>${cust.name}</b><div style="font-size:11px;color:var(--ink-500);">Nguồn ngân hàng (CIF ${cust.cif||'—'})</div></label>
+      <label style="border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;background:#fff;"><input type="radio" name="ownconf" value="ocr" onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${gx('ownerName')}';"> <b>${gx('ownerName')}</b><div style="font-size:11px;color:var(--ink-500);">OCR đăng ký xe</div></label>
     </div>
   </div>` : '';
 
   // 1 card đối tượng (giống member card Health): header + doc-item OCR có label + lưới trường nhận dạng/kỹ thuật
-  const vehicleCard = `<div class="card" style="padding:13px;margin-bottom:9px;border-left:3px solid var(--brand-600);">
+  const vehicleCard = `<div class="card" style="padding:12px;margin-bottom:8px;border-left:3px solid var(--brand-600);">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
      <b style="font-size:13px;">🚗 ${vehTitle} ${idnBadge}</b>
     </div>
     <div style="margin-bottom:10px;">
-     <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ xe — OCR tự động điền hãng · dòng · loại · số khung · số máy · năm SX (KHÔNG lấy giá trị xe)</div>
+     <div style="font-size:11px;color:var(--ink-500);margin-bottom:4px;">Giấy tờ xe — OCR tự động điền hãng · dòng · loại · số khung · số máy · năm SX (KHÔNG lấy giá trị xe)</div>
      <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, Object.assign({}, regDef, {locked:readOnly}))}</div>
     </div>
     ${conflictCard}
@@ -835,23 +835,23 @@ if(app.submissionState==='NOT_SUBMITTED'){
     </div>
   </div>`;
 
-  const g3 = `<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Sử dụng &amp; định giá <span style="font-weight:400;color:var(--ink-300);font-size:10.5px;">(không lấy từ OCR)</span></div><div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
+  const g3 = `<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Sử dụng &amp; định giá <span style="font-weight:400;color:var(--ink-300);font-size:11px;">(không lấy từ OCR)</span></div><div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
     ${combo('vm-usage','Mục đích sử dụng',BANCA.vehicleMaster.usages,v.usage)}
     ${inputId('vm-value','Giá trị xe (VNĐ)', vValue?vValue.toLocaleString('vi-VN'):'', bankAssetValue?'Nguồn: Janus Loan System (asset context) — có thể chỉnh theo định giá':'Giá trị thị trường — nhập tay hoặc từ dịch vụ định giá')}
-  </div>${bankAssetValue?'<div style="font-size:11.5px;color:var(--ink-500);margin-top:2px;">'+BANCA.sourceBadge('BANK')+' Giá trị tài sản lấy từ Janus Loan System.</div>':''}</div>`;
+  </div>${bankAssetValue?'<div style="font-size:11px;color:var(--ink-500);margin-top:2px;">'+BANCA.sourceBadge('BANK')+' Giá trị tài sản lấy từ Janus Loan System.</div>':''}</div>`;
 
   const g4 = `<div class="card" style="padding:16px;margin-bottom:12px;border-left:3px solid ${mgCur.mortgaged?'var(--amber-600)':'var(--line)'};">
-   <div class="label" style="margin-bottom:8px;">Sở hữu &amp; khoản vay <span style="font-weight:400;color:var(--ink-300);font-size:10.5px;">(nguồn duy nhất quyết định bên thụ hưởng — không lấy từ OCR)</span></div>
+   <div class="label" style="margin-bottom:8px;">Sở hữu &amp; khoản vay <span style="font-weight:400;color:var(--ink-300);font-size:11px;">(nguồn duy nhất quyết định bên thụ hưởng — không lấy từ OCR)</span></div>
    ${bankFedCust&&cust.loanRef?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">${BANCA.sourceBadge('BANK')} Ngữ cảnh khoản vay (Janus Loan System): <b>${cust.loanRef}</b> — không cần nhập lại.</div>`:''}
-   <div class="field" style="max-width:480px;"><label style="font-size:11.5px;color:var(--ink-500);">Chiếc xe này có đang được dùng làm tài sản thế chấp/bảo đảm cho khoản vay không?</label>
-    <select id="mg-flag" ${readOnly?'disabled':''} onchange="mortgageChanged()" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;">
+   <div class="field" style="max-width:480px;"><label style="font-size:11px;color:var(--ink-500);">Chiếc xe này có đang được dùng làm tài sản thế chấp/bảo đảm cho khoản vay không?</label>
+    <select id="mg-flag" ${readOnly?'disabled':''} onchange="mortgageChanged()" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;">
      <option value="0" ${mgCur.mortgaged?'':'selected'}>Không</option>
      <option value="1" ${mgCur.mortgaged?'selected':''}>Có — xe là tài sản thế chấp/bảo đảm</option>
     </select></div>
    <div id="mg-block" style="display:${mgCur.mortgaged?'block':'none'};margin-top:10px;">
     <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
-     <div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">Loại bên thụ hưởng</label>
-      <select id="mg-type" ${readOnly?'disabled':''} onchange="mortgageChanged()" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;">
+     <div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">Loại bên thụ hưởng</label>
+      <select id="mg-type" ${readOnly?'disabled':''} onchange="mortgageChanged()" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;">
        <option ${(mgCur.lenderType||'Ngân hàng')==='Ngân hàng'?'selected':''}>Ngân hàng</option>
        <option ${mgCur.lenderType==='Công ty tài chính'?'selected':''}>Công ty tài chính</option>
        <option ${mgCur.lenderType==='Công ty cho thuê tài chính'?'selected':''}>Công ty cho thuê tài chính</option>
@@ -860,7 +860,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
      ${input('Chi nhánh', mgCur.branch||'')}
      ${input('Số hợp đồng tín dụng', mgCur.creditContract||v.loanRef||'')}
     </div>
-    <div style="font-size:10.5px;color:var(--ink-300);">Bên thụ hưởng nhập độc lập — không suy ra từ kênh bán (Nhân viên tư vấn).</div>
+    <div style="font-size:11px;color:var(--ink-300);">Bên thụ hưởng nhập độc lập — không suy ra từ kênh bán (Nhân viên tư vấn).</div>
    </div>
    ${app.source==='RENEWAL'?'<div style="font-size:11px;color:var(--amber-600);margin-top:6px;">⚠ Yêu cầu tái tục: câu hỏi này PHẢI hỏi lại — không kế thừa từ kỳ trước.</div>':''}
   </div>`;
@@ -884,10 +884,10 @@ if(app.submissionState==='NOT_SUBMITTED'){
    const rt=BANCA.rateMotor({packageCode:pk.code,sumInsured:val,termMonths:12,addOns:pk.defaultAddOns,deductible:pk.defaultDeductible,ncdPercent:snap.ncdPercent||0,vehicleAgeYears:snap.vehicleAgeYears||0});
    const isSel=curPkgCode===pk.code;
    return `<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
-    <div style="display:flex;justify-content:space-between;"><b style="font-size:13.5px;">${pk.name}${isSel&&customized?' <span style="font-size:10px;color:var(--amber-600);font-weight:600;">(đã tùy chỉnh)</span>':''}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
-    <div style="font-size:11.5px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
+    <div style="display:flex;justify-content:space-between;"><b style="font-size:13px;">${pk.name}${isSel&&customized?' <span style="font-size:11px;color:var(--amber-600);font-weight:600;">(đã tùy chỉnh)</span>':''}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
+    <div style="font-size:11px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
     <div style="font-size:11px;color:var(--ink-300);">Quyền lợi lõi: ${pk.coverageList.map(c=>BANCA.coverageLabels[c]).join(', ')}</div>
-    <div style="font-size:14.5px;font-weight:700;color:var(--brand-600);margin-top:6px;">${BANCA.vnd(rt.totalPremium)}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (tham khảo, mặc định gói)</span></div>
+    <div style="font-size:14px;font-weight:700;color:var(--brand-600);margin-top:6px;">${BANCA.vnd(rt.totalPremium)}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (tham khảo, mặc định gói)</span></div>
     ${!readOnly&&caps.includes('can_quote')?`<button class="btn ${isSel?'btn-secondary':'btn-primary'} btn-sm" style="margin-top:8px;" onclick="pickPackage('${pk.code}')" ${isSel?'disabled style="margin-top:8px;opacity:.6;"':''}>${isSel?'Đang chọn':'Chọn gói'}</button>`:''}
    </div>`;
   }).join('');
@@ -898,13 +898,13 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const addOnToggles = Object.values(BANCA.motorAddOns).map(a=>{
    const on=(snap.addOns||[]).includes(a.code);
    const amt=odBaseNow? Math.round(odBaseNow*a.ratePct/100) : 0;
-   return `<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;padding:7px 10px;border:1px solid ${on?'var(--brand-600)':'var(--line)'};border-radius:8px;cursor:pointer;${on?'background:var(--brand-100);':''}"><input type="checkbox" class="addon-cb" data-code="${a.code}" ${on?'checked':''} ${readOnly?'disabled':''} onchange="autoRerate()"> ${a.name} <b style="font-size:11.5px;">+${amt?BANCA.vnd(amt):a.ratePct+'%'}</b> <span style="color:var(--ink-300);font-size:10px;">(bỏ chọn để không mua)</span></label>`;
+   return `<label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border:1px solid ${on?'var(--brand-600)':'var(--line)'};border-radius:8px;cursor:pointer;${on?'background:var(--brand-100);':''}"><input type="checkbox" class="addon-cb" data-code="${a.code}" ${on?'checked':''} ${readOnly?'disabled':''} onchange="autoRerate()"> ${a.name} <b style="font-size:11px;">+${amt?BANCA.vnd(amt):a.ratePct+'%'}</b> <span style="color:var(--ink-300);font-size:11px;">(bỏ chọn để không mua)</span></label>`;
   }).join('');
 
   // Khối báo giá — DÙNG CHUNG style với Health (dòng flex có gạch đứt → tổng đậm màu brand → caption).
   const qRow=(label,amount,opts)=>{
    opts=opts||{};
-   return `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:4px 0;border-bottom:1px dashed var(--line);"><span style="color:${opts.strong?'var(--ink-900)':'var(--ink-500)'};${opts.strong?'font-weight:700;':''}">${label}</span><b style="white-space:nowrap;color:${opts.neg?'var(--teal-600)':opts.pos?'var(--amber-600)':'inherit'};">${amount}</b></div>`;
+   return `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);"><span style="color:${opts.strong?'var(--ink-900)':'var(--ink-500)'};${opts.strong?'font-weight:700;':''}">${label}</span><b style="white-space:nowrap;color:${opts.neg?'var(--teal-600)':opts.pos?'var(--amber-600)':'inherit'};">${amount}</b></div>`;
   };
   const quoteBlock = q&&q.subtotal!=null? (()=>{
    const effStatus = qStatus;
@@ -916,16 +916,16 @@ if(app.submissionState==='NOT_SUBMITTED'){
      <span id="q-badge">${BANCA.quoteStatusBadge(effStatus)}</span>
     </div>
     <div id="q-table-wrap" style="transition:opacity .2s;">
-     ${qRow('TNDS bắt buộc <span style="font-size:10.5px;color:var(--ink-300);">(phí luật cố định)</span>', BANCA.vnd(q.tplPremium))}
+     ${qRow('TNDS bắt buộc <span style="font-size:11px;color:var(--ink-300);">(phí luật cố định)</span>', BANCA.vnd(q.tplPremium))}
      ${qRow('Phí gốc vật chất · '+pkgName+' · IDV '+BANCA.vnd(snap.sumInsured||val), BANCA.vnd(q.odBase))}
      ${(q.lines||[]).map(l=>qRow((l.amount<0?'− ':'+ ')+l.label+' ('+l.pct+'%)', (l.amount<0?'−':'+')+BANCA.vnd(Math.abs(l.amount)), {neg:l.amount<0,pos:l.amount>0})).join('')}
      ${qRow('Tạm tính trước giảm phí', BANCA.vnd(q.subtotal), {strong:true})}
      ${q.ncdAmount?qRow('Chiết khấu không tổn thất (NCD '+q.ncdPct+'%)','−'+BANCA.vnd(q.ncdAmount),{neg:true}):''}
      ${qRow('VAT '+BANCA.VAT_PCT+'% (phần vật chất)','+'+BANCA.vnd(q.vatAmount),{pos:true})}
-     <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:8px 0 0;border-top:1px solid var(--line);margin-top:4px;color:var(--brand-600);"><span id="q-total-label">Phí phải đóng (TNDS + Vật chất)</span><span id="q-total">${BANCA.vnd(q.totalPremium)}</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:8px 0 0;border-top:1px solid var(--line);margin-top:4px;color:var(--brand-600);"><span id="q-total-label">Phí phải đóng (TNDS + Vật chất)</span><span id="q-total">${BANCA.vnd(q.totalPremium)}</span></div>
     </div>
     <div id="q-dirty-note" style="display:none;font-size:12px;color:var(--red-600);font-weight:600;margin-top:6px;">Phí sẽ thay đổi — bấm "Tính phí" để cập nhật.</div>
-    <div style="font-size:10.5px;color:${stale?'var(--red-600)':'var(--ink-300)'};margin-top:6px;">TNDS tách riêng · add-on &amp; NCD tính trên phần vật chất. Hiệu lực đến ${q.validUntil} · rated ${q.ratedAt}. Biểu phí minh họa.</div>
+    <div style="font-size:11px;color:${stale?'var(--red-600)':'var(--ink-300)'};margin-top:6px;">TNDS tách riêng · add-on &amp; NCD tính trên phần vật chất. Hiệu lực đến ${q.validUntil} · rated ${q.ratedAt}. Biểu phí minh họa.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
      ${!readOnly&&caps.includes('can_quote')&&effStatus!=='ACTIVE'?`<button class="btn btn-primary btn-sm" id="rate-btn" onclick="rerate()">Tính phí lại</button>`:''}
      ${!readOnly&&caps.includes('can_quote')?`<button class="btn btn-secondary btn-sm" onclick="restoreDefaults()" title="Đưa add-on & khấu trừ về đúng cấu hình gốc của gói đang chọn">Khôi phục mặc định gói</button>`:''}
@@ -939,14 +939,14 @@ if(app.submissionState==='NOT_SUBMITTED'){
   <div class="card" style="padding:14px;margin-bottom:12px;">
    <div class="label" style="margin-bottom:10px;">Tùy chọn báo giá</div>
    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
-    <div><label style="font-size:11.5px;color:var(--ink-500);">Thời hạn bảo hiểm</label>
-     <select ${readOnly?'disabled':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;" onchange="autoRerate()"><option>12 tháng (20/07/2026 → 19/07/2027)</option></select></div>
-    <div><label style="font-size:11.5px;color:var(--ink-500);">Mức khấu trừ</label>
-     <select id="opt-ded" ${readOnly?'disabled':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;" onchange="autoRerate()">${dedSel}</select></div>
-    <div><label style="font-size:11.5px;color:var(--ink-500);">Sum insured (IDV)</label>
-     <div style="padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;background:var(--paper);font-size:13px;">${BANCA.vnd(snap.sumInsured||val)}</div></div>
+    <div><label style="font-size:11px;color:var(--ink-500);">Thời hạn bảo hiểm</label>
+     <select ${readOnly?'disabled':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;" onchange="autoRerate()"><option>12 tháng (20/07/2026 → 19/07/2027)</option></select></div>
+    <div><label style="font-size:11px;color:var(--ink-500);">Mức khấu trừ</label>
+     <select id="opt-ded" ${readOnly?'disabled':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;" onchange="autoRerate()">${dedSel}</select></div>
+    <div><label style="font-size:11px;color:var(--ink-500);">Sum insured (IDV)</label>
+     <div style="padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;background:var(--paper);font-size:13px;">${BANCA.vnd(snap.sumInsured||val)}</div></div>
    </div>
-   <div style="margin-top:12px;"><label style="font-size:11.5px;color:var(--ink-500);">Add-on <span style="color:var(--ink-300);">— tick sẵn = mặc định gói, bỏ được (phí đổi sau khi Tính phí lại)</span></label>
+   <div style="margin-top:12px;"><label style="font-size:11px;color:var(--ink-500);">Add-on <span style="color:var(--ink-300);">— tick sẵn = mặc định gói, bỏ được (phí đổi sau khi Tính phí lại)</span></label>
     <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">${addOnToggles}</div></div>
   </div>
   ${quoteBlock}`;
@@ -962,19 +962,19 @@ if(app.submissionState==='NOT_SUBMITTED'){
     if(q.branchOn && ra[q.branchOn]!==true) return '';
     if(q.type==='text'){
      return `<div class="card" style="padding:12px 14px;margin-bottom:8px;"><div style="font-size:13px;color:var(--ink-900);">${q.label} <span class="chip" style="font-size:9px;">${q.triggers||'detail'}</span></div>
-      <textarea ${readOnly||inactive?'disabled':''} onchange="healthUnitSetRisk('${app.id}','${curUnitId}','${q.code}',this.value,'text')" style="width:100%;min-height:64px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12.5px;">${v||''}</textarea></div>`;
+      <textarea ${readOnly||inactive?'disabled':''} onchange="healthUnitSetRisk('${app.id}','${curUnitId}','${q.code}',this.value,'text')" style="width:100%;min-height:64px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:12px;">${v||''}</textarea></div>`;
     }
     const yes=v===true, no=v===false;
     return `<div class="card" style="padding:12px 14px;margin-bottom:8px;"><div style="font-size:13px;color:var(--ink-900);">${q.label} <span class="chip" style="font-size:9px;">${q.triggers}</span></div>
-     <div style="display:flex;gap:14px;margin-top:8px;font-size:12.5px;">
+     <div style="display:flex;gap:14px;margin-top:8px;font-size:12px;">
       <label><input type="radio" name="hq_${curUnitId}_${q.code}" ${yes?'checked':''} ${readOnly||inactive?'disabled':''} onchange="healthUnitSetRisk('${app.id}','${curUnitId}','${q.code}',true,'bool')"> Có</label>
       <label><input type="radio" name="hq_${curUnitId}_${q.code}" ${no?'checked':''} ${readOnly||inactive?'disabled':''} onchange="healthUnitSetRisk('${app.id}','${curUnitId}','${q.code}',false,'bool')"> Không</label>
      </div></div>`;
   }).join('');
   const elig = unit ? BANCA.healthUnitEligibility(app, unit) : {errors:[],warnings:[]};
   const branchNote = (elig.errors.length||elig.warnings.length) ? `<div class="alert2 ${elig.errors.length?'danger':'warn'}" style="margin-top:8px;">${elig.errors.concat(elig.warnings).map(function(e){return (elig.errors.indexOf(e)>=0?'🚫 ':'⚠ ')+e.msg;}).join('<br>')}</div>` : `<div class="alert2 info" style="margin-top:8px;">Chưa phát sinh yếu tố cần thẩm định cho thành viên này.</div>`;
-  const header = unit ? `<div class="card" style="padding:11px 14px;margin-bottom:12px;background:var(--brand-100);border-color:transparent;">
-     <span style="font-size:12px;color:var(--ink-500);">Khai báo sức khỏe cho</span> <b style="font-size:13.5px;">${unit.name||'—'} · ${unit.age!=null?unit.age+' tuổi':'?'} · ${unit.isChild?'bộ câu hỏi TRẺ EM':'bộ câu hỏi NGƯỜI LỚN'}</b>${inactive?' <span class="chip" style="background:#fdecec;color:var(--red-600);">Đã loại</span>':''}
+  const header = unit ? `<div class="card" style="padding:12px 14px;margin-bottom:12px;background:var(--brand-100);border-color:transparent;">
+     <span style="font-size:12px;color:var(--ink-500);">Khai báo sức khỏe cho</span> <b style="font-size:13px;">${unit.name||'—'} · ${unit.age!=null?unit.age+' tuổi':'?'} · ${unit.isChild?'bộ câu hỏi TRẺ EM':'bộ câu hỏi NGƯỜI LỚN'}</b>${inactive?' <span class="chip" style="background:#fdecec;color:var(--red-600);">Đã loại</span>':''}
     </div>` : '';
   const main = `<div class="alert2 info" style="margin-bottom:12px;">Khai báo sức khỏe theo từng người (questionnaireMode PER_MEMBER). Câu trả lời không dùng chung giữa các thành viên; đổi câu trả lời có thể kích hoạt thẩm định/phụ phí/loại trừ.</div>
    ${header}${inactive?'<div class="alert2 warn">Thành viên đã bị loại khỏi yêu cầu — không cần khai báo.</div>':qHtml+branchNote}`;
@@ -987,7 +987,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const ra = app.riskAnswers || {};
   const isMotor = app.productId==='motor';
   const mgLine = isMotor ? `<div class="card" style="padding:10px 14px;margin-bottom:8px;background:var(--paper);">
-   <div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-500);">
+   <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink-500);">
     <span>Tình trạng thế chấp <span class="chip" style="font-size:9px;">suy ra từ bước Đối tượng bảo hiểm</span></span>
     <b style="color:var(--ink-700);">${mgD.mortgaged?('Có — '+(mgD.bank||'')+' (bên thụ hưởng)'):'Không'}</b>
    </div></div>` : '';
@@ -996,15 +996,15 @@ if(app.submissionState==='NOT_SUBMITTED'){
    if(q.branchOn && ra[q.branchOn]!==true) return '';
    if(q.type==='number'){
     return `<div class="card" style="padding:12px 14px;margin-bottom:8px;"><div style="font-size:13px;color:var(--ink-900);">${q.label}</div>
-     <input type="number" min="0" value="${v==null?'':v}" ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','${q.code}',this.value,'number')" style="width:140px;margin-top:8px;padding:7px;border:1px solid var(--line);border-radius:7px;"></div>`;
+     <input type="number" min="0" value="${v==null?'':v}" ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','${q.code}',this.value,'number')" style="width:140px;margin-top:8px;padding:6px;border:1px solid var(--line);border-radius:6px;"></div>`;
    }
    if(q.type==='text'){
     return `<div class="card" style="padding:12px 14px;margin-bottom:8px;"><div style="font-size:13px;color:var(--ink-900);">${q.label} <span class="chip" style="font-size:9px;">${q.triggers||'detail'}</span></div>
-     <textarea ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','${q.code}',this.value,'text')" style="width:100%;min-height:70px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:12.5px;">${v||''}</textarea></div>`;
+     <textarea ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','${q.code}',this.value,'text')" style="width:100%;min-height:70px;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:12px;">${v||''}</textarea></div>`;
    }
    const yes=v===true, no=v===false;
    return `<div class="card" style="padding:12px 14px;margin-bottom:8px;"><div style="font-size:13px;color:var(--ink-900);">${q.label} <span class="chip" style="font-size:9px;">${q.triggers}</span></div>
-    <div style="display:flex;gap:14px;margin-top:8px;font-size:12.5px;">
+    <div style="display:flex;gap:14px;margin-top:8px;font-size:12px;">
      <label><input type="radio" name="rq_${q.code}" ${yes?'checked':''} ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','${q.code}',true,'bool')"> Có</label>
      <label><input type="radio" name="rq_${q.code}" ${no?'checked':''} ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','${q.code}',false,'bool')"> Không</label>
     </div></div>`;
@@ -1012,9 +1012,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const paBranch = app.productId==='pa' && ra.hazardousActivity===true ? `<div class="card" style="padding:14px;margin-bottom:8px;border-left:4px solid var(--amber-600);">
     <div class="label" style="margin-bottom:8px;color:var(--amber-600);">Thông tin bổ sung cho hoạt động nguy hiểm</div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Loại hoạt động</label><input value="${ra.activityType||''}" ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','activityType',this.value,'text')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Tần suất</label><select ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','frequency',this.value,'text')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"><option value="">Chọn</option><option ${ra.frequency==='OCCASIONAL'?'selected':''} value="OCCASIONAL">Thỉnh thoảng</option><option ${ra.frequency==='MONTHLY'?'selected':''} value="MONTHLY">Hàng tháng</option><option ${ra.frequency==='WEEKLY'?'selected':''} value="WEEKLY">Hàng tuần</option></select></div>
-     <div><label style="font-size:11.5px;color:var(--ink-500);">Tính chất</label><select ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','professionalOrRecreational',this.value,'text')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"><option value="">Chọn</option><option ${ra.professionalOrRecreational==='RECREATIONAL'?'selected':''} value="RECREATIONAL">Giải trí</option><option ${ra.professionalOrRecreational==='PROFESSIONAL'?'selected':''} value="PROFESSIONAL">Chuyên nghiệp/nghề nghiệp</option></select></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Loại hoạt động</label><input value="${ra.activityType||''}" ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','activityType',this.value,'text')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Tần suất</label><select ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','frequency',this.value,'text')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"><option value="">Chọn</option><option ${ra.frequency==='OCCASIONAL'?'selected':''} value="OCCASIONAL">Thỉnh thoảng</option><option ${ra.frequency==='MONTHLY'?'selected':''} value="MONTHLY">Hàng tháng</option><option ${ra.frequency==='WEEKLY'?'selected':''} value="WEEKLY">Hàng tuần</option></select></div>
+     <div><label style="font-size:11px;color:var(--ink-500);">Tính chất</label><select ${readOnly?'disabled':''} onchange="setRiskAnswer('${app.id}','professionalOrRecreational',this.value,'text')" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:2px;"><option value="">Chọn</option><option ${ra.professionalOrRecreational==='RECREATIONAL'?'selected':''} value="RECREATIONAL">Giải trí</option><option ${ra.professionalOrRecreational==='PROFESSIONAL'?'selected':''} value="PROFESSIONAL">Chuyên nghiệp/nghề nghiệp</option></select></div>
     </div>
     <div class="alert2 warn" style="margin-top:10px;">Khai báo này kích hoạt referral/loading result. Nếu là hoạt động chuyên nghiệp hoặc tần suất cao, yêu cầu chuyển thẩm định.</div>
    </div>` : '';
@@ -1033,8 +1033,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
      {code:'CONSENT', name:'Consent xử lý dữ liệu cá nhân & sức khỏe', done: true, note:'Đã ghi nhận khi tạo yêu cầu'},
      {code:'ADVISORY_MINUTES', name:'Biên bản tư vấn', done: true, note:'Bản ghi tư vấn gói sức khỏe'}
    ];
-   const commonRows = commonDocs.map(function(d){return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);">
-     <div style="font-size:12.5px;">${d.name}<div style="font-size:11px;color:var(--ink-300);">${d.note}</div></div>
+   const commonRows = commonDocs.map(function(d){return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);">
+     <div style="font-size:12px;">${d.name}<div style="font-size:11px;color:var(--ink-300);">${d.note}</div></div>
      ${d.done?'<span class="badge badge-ready">Đã có</span>':'<span class="badge badge-blocked">Còn thiếu</span>'}</div>`;}).join('');
    // Nhóm 2 — THEO NGƯỜI (khai sinh trẻ, hồ sơ y tế phát sinh từ khai báo).
    const unitDocRows = units.filter(function(u){return u.active!==false;}).map(function(u){
@@ -1048,11 +1048,11 @@ if(app.submissionState==='NOT_SUBMITTED'){
      const itemRows = items.map(function(it){
        const st = it.code==='NONE' ? 'na' : ((u.docs&&u.docs[it.code]==='UPLOADED')?'up':'missing');
        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);">
-         <div style="font-size:12.5px;">${it.name}</div>
-         <div>${st==='up'?'<span class="badge badge-ready">Đã tải lên</span>':st==='na'?'<span style="font-size:11.5px;color:var(--ink-300);">—</span>':`<span class="badge badge-blocked">Còn thiếu</span>${!readOnly?` <button class="btn btn-primary btn-sm" onclick="healthUnitDoc('${app.id}','${u.insuredUnitId}','${it.code}')">Tải lên</button>`:''}`}</div>
+         <div style="font-size:12px;">${it.name}</div>
+         <div>${st==='up'?'<span class="badge badge-ready">Đã tải lên</span>':st==='na'?'<span style="font-size:11px;color:var(--ink-300);">—</span>':`<span class="badge badge-blocked">Còn thiếu</span>${!readOnly?` <button class="btn btn-primary btn-sm" onclick="healthUnitDoc('${app.id}','${u.insuredUnitId}','${it.code}')">Tải lên</button>`:''}`}</div>
        </div>`;
      }).join('');
-     return `<div class="card" style="padding:13px;margin-bottom:8px;${isCur?'border:1.5px solid var(--brand-600);':''}"><b style="font-size:12.5px;">${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${itemRows}</div>`;
+     return `<div class="card" style="padding:12px;margin-bottom:8px;${isCur?'border:1.5px solid var(--brand-600);':''}"><b style="font-size:12px;">${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${itemRows}</div>`;
    }).join('');
    const main = `<div class="alert2 info" style="margin-bottom:12px;">Tài liệu Bảo hiểm sức khỏe (documentMode COMMON_AND_PER_MEMBER) — không dùng checklist xe. OCR dùng chung layout tài liệu.</div>
     <div class="section-title" style="margin-top:0;"><h2>Nhóm 1 — Tài liệu chung</h2><span class="subtitle">Bên mua · consent · eKYC · biên bản tư vấn</span></div>
@@ -1067,7 +1067,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
     <div class="card" style="padding:16px;">
      <div class="label" style="margin-bottom:10px;">Định danh khách hàng</div>
      ${bankKyc?`<div class="alert2 info">Đã xác minh từ Janus Bank. Không yêu cầu upload CCCD/CMND cho yêu cầu này.</div>`:`<div class="alert2 warn">Khách hàng mới cần đối chiếu giấy tờ định danh trước khi nộp.</div>`}
-     ${stpOk?`<div class="alert2 info">Không yêu cầu tài liệu bổ sung sau STP.</div>`:`<div style="font-size:12.5px;color:var(--ink-500);">Nếu STP yêu cầu bổ sung, tài liệu sẽ hiển thị tại đây theo decision result.</div>`}
+     ${stpOk?`<div class="alert2 info">Không yêu cầu tài liệu bổ sung sau STP.</div>`:`<div style="font-size:12px;color:var(--ink-500);">Nếu STP yêu cầu bổ sung, tài liệu sẽ hiển thị tại đây theo decision result.</div>`}
     </div>`;
   } else {
   // Ma trận tài liệu ●◐↻○ (doc 2026-07-20) — phân biệt bắt buộc / có điều kiện / kế thừa / không cần
@@ -1088,9 +1088,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
    const up=uploaded.includes(d.code);
    const need = rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active);
    return `<tr>
-    <td><span title="${tip}" style="display:inline-flex;width:24px;height:24px;border-radius:7px;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:${bg};color:${fg};">${ic}</span></td>
+    <td><span title="${tip}" style="display:inline-flex;width:24px;height:24px;border-radius:6px;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:${bg};color:${fg};">${ic}</span></td>
     <td style="font-size:13px;">${d.name}<div style="font-size:11px;color:var(--ink-300);">${d.sub}${rr.note?' · '+rr.note:''}</div></td>
-    <td>${up?'<span class="badge badge-ready">Đã tải lên</span>': need?'<span class="badge badge-blocked">Còn thiếu — chặn nộp</span>': rr.status==='INHERITED'?'<span class="badge badge-conditional">Dùng bản kỳ trước</span>':'<span style="color:var(--ink-300);font-size:11.5px;">—</span>'}</td>
+    <td>${up?'<span class="badge badge-ready">Đã tải lên</span>': need?'<span class="badge badge-blocked">Còn thiếu — chặn nộp</span>': rr.status==='INHERITED'?'<span class="badge badge-conditional">Dùng bản kỳ trước</span>':'<span style="color:var(--ink-300);font-size:11px;">—</span>'}</td>
     <td style="font-size:12px;color:var(--ink-500);">${up?fileOf[d.code]:'—'}</td>
     <td>${readOnly?'':up?'<button class="btn btn-secondary btn-sm">Xem</button> <button class="btn btn-secondary btn-sm">Thay thế</button>': (need||rr.status==='CONDITIONAL')?`<button class="btn ${need?'btn-primary':'btn-secondary'} btn-sm" onclick="uploadDoc('${d.code}')">Tải lên</button>`:''}</td>
    </tr>`;
@@ -1134,16 +1134,16 @@ if(app.submissionState==='NOT_SUBMITTED'){
     d.innerHTML = `<div class="modal2" style="max-width:520px;" onclick="event.stopPropagation()">
       <div class="modal2-head"><b>📤 Gửi khách tự tải / chụp tài liệu</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div>
       <div class="modal2-body">
-        <div style="font-size:12.5px;color:var(--ink-500);margin-bottom:10px;">Gửi liên kết an toàn cho <b>${custNm}</b>${custPh?` (${custPh})`:''} để khách tự chụp/tải lên các tài liệu còn thiếu. File khách nộp sẽ tự đồng bộ về yêu cầu này.</div>
+        <div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">Gửi liên kết an toàn cho <b>${custNm}</b>${custPh?` (${custPh})`:''} để khách tự chụp/tải lên các tài liệu còn thiếu. File khách nộp sẽ tự đồng bộ về yêu cầu này.</div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
           <img src="${qr}" alt="QR" style="width:120px;height:120px;border:1px solid var(--line);border-radius:8px;background:#fff;">
           <div style="flex:1;min-width:200px;">
-            <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:3px;">Liên kết cho khách</div>
+            <div style="font-size:11px;color:var(--ink-500);margin-bottom:2px;">Liên kết cho khách</div>
             <div style="display:flex;gap:6px;">
-              <input id="cust-upl-link" value="${link}" readonly style="flex:1;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:12px;">
+              <input id="cust-upl-link" value="${link}" readonly style="flex:1;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:12px;">
               <button class="btn btn-secondary btn-sm" onclick="var i=document.getElementById('cust-upl-link');i.select();document.execCommand('copy');this.textContent='Đã copy';">Copy</button>
             </div>
-            <div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">Cần khách nộp:</div>
+            <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Cần khách nộp:</div>
             <ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:var(--ink-700);">${list}</ul>
           </div>
         </div>
@@ -1177,7 +1177,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const otherAvailable = otherCandidates.filter(d=> !isUploaded(d.code) && otherAdded.indexOf(d.code)<0);
   const otherBlock = `<div class="section-title"><h2>Tài liệu khác (tùy chọn)</h2><span class="subtitle">Chỉ thêm khi cần — không bắt buộc, không hiển thị mặc định</span></div>`
     + (!readOnly && otherAvailable.length ? `<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-       <select id="add-other-doc" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;">
+       <select id="add-other-doc" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:12px;">
         <option value="">+ Chọn tài liệu để thêm…</option>
         ${otherAvailable.map(d=>`<option value="${d.code}">${d.name}</option>`).join('')}
        </select>
@@ -1192,7 +1192,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
    + `<div class="section-title" ${ocrDocs.length?'':'style="margin-top:0;"'} style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;"><div><h2>Tài liệu bắt buộc cho yêu cầu này</h2><span class="subtitle">Tài liệu đã tải hiển thị nút Xem / Thay thế; dòng còn thiếu ưu tiên xử lý trước khi nộp.</span></div>${readOnly?'':`<button class="btn btn-secondary btn-sm" onclick="docSendToCustomer()" style="white-space:nowrap;">📤 Gửi khách tự tải</button>`}</div>
       <div class="card" style="padding:0;overflow:hidden;">${reqRender.map(d=>BANCA.docItemHtml(app.id, toDef(d))).join('')||'<div class="empty-state" style="padding:20px;">Không có tài liệu bắt buộc.</div>'}</div>`
    + otherBlock
-   + `<div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">Chấp nhận PDF/JPG/PNG ≤ 10MB. OCR là capability của từng tài liệu; trạng thái upload/OCR/duyệt/xác minh tách riêng.${mgDoc.mortgaged?' <b style="color:var(--amber-600);">Xe thế chấp — bên thụ hưởng là bắt buộc.</b>':''}</div>`;
+   + `<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chấp nhận PDF/JPG/PNG ≤ 10MB. OCR là capability của từng tài liệu; trạng thái upload/OCR/duyệt/xác minh tách riêng.${mgDoc.mortgaged?' <b style="color:var(--amber-600);">Xe thế chấp — bên thụ hưởng là bắt buộc.</b>':''}</div>`;
   }
  } else if(cur.id==='REVIEW_AND_SUBMIT'){
   // Guard nộp: quote validity + ma trận tài liệu (rule engine) + NTH khi thế chấp + quyền
@@ -1237,14 +1237,14 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const okData = missing.length===0;
   const blockerBanner = blockers.length
    ? `<div class="card" style="padding:16px;margin-bottom:12px;border:1.5px solid var(--red-600);background:#fdecec;">
-       <div style="font-size:15px;font-weight:800;color:var(--red-600);">🚫 Chưa thể gửi yêu cầu bảo hiểm</div>
-       <div style="font-size:12.5px;color:#8a2a2a;margin-top:2px;">Xử lý các mục dưới đây rồi quay lại bước này để gửi:</div>
+       <div style="font-size:14px;font-weight:800;color:var(--red-600);">🚫 Chưa thể gửi yêu cầu bảo hiểm</div>
+       <div style="font-size:12px;color:#8a2a2a;margin-top:2px;">Xử lý các mục dưới đây rồi quay lại bước này để gửi:</div>
        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-        ${blockers.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #f2c9c9;border-radius:8px;padding:9px 12px;"><div style="font-size:12.5px;color:var(--ink-700);">${b.t}</div>${b.fix?`<a class="btn btn-primary btn-sm" href="${stepLink(b.step)}${b.unit?'&unit='+b.unit:''}">${b.fix} &rarr;</a>`:'<span style="font-size:11px;color:var(--ink-300);">Cần cấp quyền</span>'}</div>`).join('')}
+        ${blockers.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #f2c9c9;border-radius:8px;padding:8px 12px;"><div style="font-size:12px;color:var(--ink-700);">${b.t}</div>${b.fix?`<a class="btn btn-primary btn-sm" href="${stepLink(b.step)}${b.unit?'&unit='+b.unit:''}">${b.fix} &rarr;</a>`:'<span style="font-size:11px;color:var(--ink-300);">Cần cấp quyền</span>'}</div>`).join('')}
        </div></div>`
    : `<div class="card" style="padding:12px 14px;margin-bottom:12px;border:1.5px solid var(--teal-600);background:#eefaf7;font-size:13px;color:var(--teal-600);font-weight:600;">✓ Yêu cầu đủ điều kiện gửi — chỉ cần tick 2 xác nhận bên dưới.</div>`;
   // Review summary REGISTRY-DRIVEN theo journey.reviewSections — không leak field sản phẩm khác.
-  const secRow=(label,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12.5px;">${label}</td><td>${val}</td></tr>`;
+  const secRow=(label,val)=>`<tr><td style="width:220px;color:var(--ink-500);font-size:12px;">${label}</td><td>${val}</td></tr>`;
   const premVal = q?`${BANCA.vnd(q.adjustedPremium||q.premium)}/năm${q.basePremium?` (base ${BANCA.vnd(q.basePremium)})`:''}${q.quoteType?' · '+q.quoteType:''}`:'—';
   const secBuilders = {
     customer:      ()=>secRow('Khách hàng', cust?cust.name+' · '+(cust.cif||'prospect'):(app.customerName||'—')),
@@ -1282,7 +1282,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
         <td>${cell(healthOk,'khai báo',u.insuredUnitId,'RISK_DECLARATION')}</td>
         <td>${cell(docOk,'tài liệu',u.insuredUnitId,'DOCUMENTS')}</td>
         <td>${hasDeath?cell(beneOk,'thụ hưởng',u.insuredUnitId,'PACKAGE_AND_QUOTE'):'<span style="color:var(--ink-300);">N/A</span>'}</td>
-        <td><span style="color:var(--ink-300);font-size:11.5px;">Sau khi nộp (OTP)</span></td>
+        <td><span style="color:var(--ink-300);font-size:11px;">Sau khi nộp (OTP)</span></td>
       </tr>`;
     }).join('');
     return `<div class="card" style="padding:16px;margin-top:12px;">
@@ -1296,8 +1296,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
    <table class="dtable"><tbody>${reviewRows}</tbody></table>
   </div>` + healthMatrix + `
   <div class="card" style="padding:16px;margin-top:12px;">
-   <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;"><input type="checkbox" id="c1" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ.</label>
-   <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin-top:8px;"><input type="checkbox" id="c2" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Tôi (nhân viên tư vấn) xác nhận đã tư vấn đầy đủ quyền lợi, điều khoản loại trừ.</label>
+   <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;"><input type="checkbox" id="c1" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ.</label>
+   <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-top:8px;"><input type="checkbox" id="c2" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Tôi (nhân viên tư vấn) xác nhận đã tư vấn đầy đủ quyền lợi, điều khoản loại trừ.</label>
    ${!readOnly?`<button class="btn btn-primary" id="submit-btn" style="margin-top:14px;opacity:.5;" disabled data-okdata="${okData?'1':'0'}" title="${missing.length?('Chưa thể nộp: '+missing.join(' · ')):'Cần tick đủ 2 xác nhận'}" onclick="submitApp('${app.id}')">Nộp yêu cầu bảo hiểm</button>`:''}
   </div>`;
  }
@@ -1306,10 +1306,10 @@ if(app.submissionState==='NOT_SUBMITTED'){
   <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
    <div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:22px;font-weight:700;color:var(--ink-900);line-height:1.15;">${app.id}</span><span class="badge badge-draft">Chưa nộp</span>${warnBadges(app.warnings)}${app.sourceAdviceId?`<a href="${r}modules/advisory-workspace/index.html?id=${app.sourceAdviceId}&step=result" class="chip" style="text-decoration:none;background:var(--purple-100);color:var(--purple-600);">💡 Từ tư vấn ${app.sourceAdviceId}</a>`:''}</div>
-    <div style="font-size:13.5px;color:var(--ink-500);margin-top:3px;">${BANCA.appIsAnonymous(app)?('🔒 '+(app.externalCustomerRef||app.customerId||app.id)+' · <i>định danh chưa chia sẻ</i>'):(cust?cust.name:(app.customerName||'—'))} · ${app.productName}${app.package?' · '+app.package:''} · Nguồn ${app.source==='ADVICE'?'Tư vấn nhanh':BANCA.label('source',app.source)}</div>
+    <div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${BANCA.appIsAnonymous(app)?('🔒 '+(app.externalCustomerRef||app.customerId||app.id)+' · <i>định danh chưa chia sẻ</i>'):(cust?cust.name:(app.customerName||'—'))} · ${app.productName}${app.package?' · '+app.package:''} · Nguồn ${app.source==='ADVICE'?'Tư vấn nhanh':BANCA.label('source',app.source)}</div>
    </div>
    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-left:auto;">
-    <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Phí tạm tính</div><b style="font-size:22px;color:var(--brand-600);display:block;margin-top:1px;">${app.quote?BANCA.vnd(app.quote.adjustedPremium||app.quote.premium):'—'}</b></div>
+    <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Phí tạm tính</div><b style="font-size:22px;color:var(--brand-600);display:block;margin-top:0px;">${app.quote?BANCA.vnd(app.quote.adjustedPremium||app.quote.premium):'—'}</b></div>
     <div style="display:flex;gap:8px;align-items:center;">
      <span id="save-state" style="font-size:12px;color:var(--teal-600);white-space:nowrap;">✓ Đã lưu ${app.updatedAt}</span>
      ${!readOnly?`<button class="btn btn-secondary btn-sm" onclick="autosave(true)">Lưu</button>`:'<span class="chip">Chỉ xem (manager)</span>'}
@@ -1329,7 +1329,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   </div>` : '';
  const renewalBanner = app.renewalPolicyRef ? `<div class="card" style="padding:14px 16px;border-left:4px solid var(--amber-600);margin-bottom:14px;background:#fdf3e3;border-color:transparent;">
    <div style="font-weight:700;color:var(--amber-600);">♻ Tái tục từ hợp đồng ${app.renewalPolicyRef}</div>
-   <div style="font-size:12.5px;color:var(--ink-700);margin-top:4px;line-height:1.6;">
+   <div style="font-size:12px;color:var(--ink-700);margin-top:4px;line-height:1.6;">
     Đã prefill: <b>${app.productName}${app.package?' · '+app.package:''}</b>${app.vehicle?' · xe '+(app.vehicle.brand||'')+' '+(app.vehicle.model||''):''}${app.renewPrevPremium?' · phí kỳ trước <b>'+BANCA.vnd(app.renewPrevPremium)+'</b>':''}.<br>
     Chỉ cần <b>xác nhận phần thay đổi</b> rồi <b>tính lại phí (re-rate)</b> — không nhập lại toàn bộ thông tin.
    </div>
@@ -1428,14 +1428,14 @@ if(app.submissionState==='NOT_SUBMITTED'){
   if(BANCA.journeyFor(a.productId).underwritingMode==='STP'){
     if(a.productId==='health'){
       const v = BANCA.validateHealth({members:healthMembersOf(a), riskAnswers:a.riskAnswers, buyerIsInsured:a.buyerIsInsured});
-      if(v.eligible && !v.warnings.length) return '<div class="card" style="padding:12px 14px;border:1.5px solid var(--teal-600);background:#eefaf7;font-size:12.5px;color:var(--teal-600);font-weight:600;">✓ Đạt điều kiện phát hành tự động (STP) cho gói sức khỏe.</div>';
+      if(v.eligible && !v.warnings.length) return '<div class="card" style="padding:12px 14px;border:1.5px solid var(--teal-600);background:#eefaf7;font-size:12px;color:var(--teal-600);font-weight:600;">✓ Đạt điều kiện phát hành tự động (STP) cho gói sức khỏe.</div>';
       const items = v.errors.map(e=>'🚫 '+e.msg).concat(v.warnings.map(w=>'⚠ '+w.msg));
-      return '<div class="card" style="padding:12px 14px;border:1.5px solid '+(v.eligible?'var(--amber-600)':'var(--red-600)')+';background:'+(v.eligible?'#fdf3e3':'#fdecec')+';"><div style="font-weight:700;font-size:12.5px;">'+(v.eligible?'Cần thẩm định sức khỏe':'Chưa đủ điều kiện')+'</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12px;">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></div>';
+      return '<div class="card" style="padding:12px 14px;border:1.5px solid '+(v.eligible?'var(--amber-600)':'var(--red-600)')+';background:'+(v.eligible?'#fdf3e3':'#fdecec')+';"><div style="font-weight:700;font-size:12px;">'+(v.eligible?'Cần thẩm định sức khỏe':'Chưa đủ điều kiện')+'</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12px;">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></div>';
     }
     const v = BANCA.validatePA({age:a.insuredAge, occupationClass:a.occupationClass, sumInsured:(a.quote&&a.quote.sumInsured), riskAnswers:a.riskAnswers, buyerIsInsured:a.buyerIsInsured});
-    if(v.eligible && !v.warnings.length) return '<div class="card" style="padding:12px 14px;border:1.5px solid var(--teal-600);background:#eefaf7;font-size:12.5px;color:var(--teal-600);font-weight:600;">✓ Đạt điều kiện phát hành tự động (straight-through).</div>';
+    if(v.eligible && !v.warnings.length) return '<div class="card" style="padding:12px 14px;border:1.5px solid var(--teal-600);background:#eefaf7;font-size:12px;color:var(--teal-600);font-weight:600;">✓ Đạt điều kiện phát hành tự động (straight-through).</div>';
     const items = v.errors.map(e=>'🚫 '+e.msg).concat(v.warnings.map(w=>'⚠ '+w.msg));
-    return '<div class="card" style="padding:12px 14px;border:1.5px solid '+(v.eligible?'var(--amber-600)':'var(--red-600)')+';background:'+(v.eligible?'#fdf3e3':'#fdecec')+';"><div style="font-weight:700;font-size:12.5px;">'+(v.eligible?'Cần lưu ý trước khi phát hành':'Chưa đủ điều kiện')+'</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12px;">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></div>';
+    return '<div class="card" style="padding:12px 14px;border:1.5px solid '+(v.eligible?'var(--amber-600)':'var(--red-600)')+';background:'+(v.eligible?'#fdf3e3':'#fdecec')+';"><div style="font-weight:700;font-size:12px;">'+(v.eligible?'Cần lưu ý trước khi phát hành':'Chưa đủ điều kiện')+'</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12px;">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></div>';
   }
   const q = a.quote;
   if(!q || !q.inputsSnapshot) return '<div class="alert2 info">Chưa có báo giá — hoàn tất bước "Gói & phí dự kiến" trước khi khai báo rủi ro.</div>';
@@ -1447,19 +1447,19 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const d = res.diff, uw = res.underwriting;
   const riskAdj = (d.adjustments||[]).filter(x=>['CLAIM_HIST','COMMERCIAL','FLOOD_ZONE','BIG_LOSS'].includes(x.code));
   const hasAns = a.riskAnswers && Object.keys(a.riskAnswers).length>0;
-  const rows = riskAdj.map(x=>`<tr><td style="padding:3px 14px 3px 0;color:var(--amber-600);">+ ${x.label} (${x.percentage}%)</td><td style="text-align:right;color:var(--amber-600);">+${BANCA.vnd(x.amount)}</td></tr>`).join('');
+  const rows = riskAdj.map(x=>`<tr><td style="padding:2px 14px 2px 0;color:var(--amber-600);">+ ${x.label} (${x.percentage}%)</td><td style="text-align:right;color:var(--amber-600);">+${BANCA.vnd(x.amount)}</td></tr>`).join('');
   const referralNote = uw.flags.referral ? `<div style="margin-top:8px;font-size:12px;color:var(--red-600);font-weight:600;">⚠ Yếu tố rủi ro sẽ kích hoạt THẨM ĐỊNH khi gửi yêu cầu.${uw.flags.requireDoc.length?' Cần bổ sung: '+uw.flags.requireDoc.join(', ')+'.':''}</div>` : '';
   return `<div class="card" style="padding:14px;border:1.5px solid var(--brand-600);">
    <div class="label">Báo giá chính thức (sau khai báo rủi ro) <span class="chip" style="font-size:9px;">FIRM · v${res.quote.quoteVersion}</span></div>
    ${!hasAns?'<div style="font-size:12px;color:var(--ink-300);margin-top:6px;">Chưa có câu trả lời rủi ro — phí chính thức bằng phí dự kiến.</div>':`
-   <table style="margin-top:8px;font-size:12.5px;width:100%;max-width:460px;">
-    <tr><td style="padding:3px 14px 3px 0;color:var(--ink-500);">Phí dự kiến</td><td style="text-align:right;">${BANCA.vnd(d.indicativePremium)}</td></tr>
+   <table style="margin-top:8px;font-size:12px;width:100%;max-width:460px;">
+    <tr><td style="padding:2px 14px 2px 0;color:var(--ink-500);">Phí dự kiến</td><td style="text-align:right;">${BANCA.vnd(d.indicativePremium)}</td></tr>
     ${rows}
-    <tr style="border-top:1px solid var(--line);"><td style="padding:6px 14px 3px 0;font-weight:700;">Phí chính thức</td><td style="text-align:right;font-weight:700;color:var(--brand-600);">${BANCA.vnd(d.firmPremium)}</td></tr>
-    ${d.delta?`<tr><td style="padding:3px 14px 3px 0;color:${d.delta>0?'var(--amber-600)':'var(--teal-600)'};">Chênh lệch</td><td style="text-align:right;color:${d.delta>0?'var(--amber-600)':'var(--teal-600)'};">${d.delta>0?'+':''}${BANCA.vnd(d.delta)} (${d.deltaPct>0?'+':''}${d.deltaPct}%)</td></tr>`:''}
+    <tr style="border-top:1px solid var(--line);"><td style="padding:6px 14px 2px 0;font-weight:700;">Phí chính thức</td><td style="text-align:right;font-weight:700;color:var(--brand-600);">${BANCA.vnd(d.firmPremium)}</td></tr>
+    ${d.delta?`<tr><td style="padding:2px 14px 2px 0;color:${d.delta>0?'var(--amber-600)':'var(--teal-600)'};">Chênh lệch</td><td style="text-align:right;color:${d.delta>0?'var(--amber-600)':'var(--teal-600)'};">${d.delta>0?'+':''}${BANCA.vnd(d.delta)} (${d.deltaPct>0?'+':''}${d.deltaPct}%)</td></tr>`:''}
    </table>`}
    ${referralNote}
-   <div style="font-size:10.5px;color:var(--ink-300);margin-top:8px;">Biểu phí minh họa (DEMO_TARIFF) — không phải phí nghiệp vụ thật.</div>
+   <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Biểu phí minh họa (DEMO_TARIFF) — không phải phí nghiệp vụ thật.</div>
   </div>`;
  };
  // P0.5 — PA field capture + package pick.
@@ -1660,7 +1660,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   d.innerHTML=`<div class="modal2" style="max-width:680px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Quyền lợi chi tiết — ${pk.name||code}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
    <table class="dtable"><tbody>${healthBenefitRows(code).map(([k,v])=>`<tr><td style="color:var(--ink-500);">${k}</td><td><b>${v}</b></td></tr>`).join('')}</tbody></table>
    <div class="label" style="margin:12px 0 6px;">Loại trừ chính</div>
-   ${(pk.exclusions||[]).map(x=>`<div style="font-size:12.5px;padding:4px 0;color:var(--ink-700);">- ${x}</div>`).join('')}
+   ${(pk.exclusions||[]).map(x=>`<div style="font-size:12px;padding:4px 0;color:var(--ink-700);">- ${x}</div>`).join('')}
   </div></div>`;
   root.appendChild(d);
  };
@@ -1680,7 +1680,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   d.innerHTML=`<div class="modal2" style="max-width:620px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Quyền lợi chi tiết — ${pk.name||code}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
    <table class="dtable"><tbody>${paBenefitRows(code).map(([k,v])=>`<tr><td style="color:var(--ink-500);">${k}</td><td><b>${v}</b></td></tr>`).join('')}</tbody></table>
    <div class="label" style="margin:12px 0 6px;">Loại trừ chính</div>
-   ${(pk.exclusions||[]).map(x=>`<div style="font-size:12.5px;padding:4px 0;color:var(--ink-700);">- ${x}</div>`).join('')}
+   ${(pk.exclusions||[]).map(x=>`<div style="font-size:12px;padding:4px 0;color:var(--ink-700);">- ${x}</div>`).join('')}
   </div></div>`;
   root.appendChild(d);
  };
@@ -1929,7 +1929,7 @@ function getSubmittedCaseActions(){
  if(st==='ISSUED' && app.policyId){
   const detailHref=`${r}modules/policies/index.html?view=detail&id=${app.policyId}`;
   return [
-   `<a href="${detailHref}" style="font-size:12.5px;color:var(--brand-600);text-decoration:underline;align-self:center;padding:6px 4px;">Xem hợp đồng</a>`,
+   `<a href="${detailHref}" style="font-size:12px;color:var(--brand-600);text-decoration:underline;align-self:center;padding:6px 4px;">Xem hợp đồng</a>`,
    `<button class="btn btn-primary btn-sm" onclick="alert('Tải hợp đồng PDF (demo)')">Tải hợp đồng</button>`,
    `<button class="btn btn-secondary btn-sm" onclick="this.textContent='Đã gửi';this.disabled=true;">Gửi cho khách</button>`
   ];
@@ -1957,8 +1957,8 @@ const topTabs=[
  ['policy','Hợp đồng','policy'],
  ['history','Lịch sử','history']
 ];
-const topLink=([key,label,target])=>`<a href="?id=${app.id}&tab=${target}" class="tab" style="text-decoration:none;display:inline-block;padding:9px 13px;font-size:13px;${topActive===key?'border-bottom:2px solid var(--brand-600);color:var(--brand-600);font-weight:600;':'color:var(--ink-500);'}">${label}</a>`;
-const subLink=([id,label])=>`<a href="?id=${app.id}&tab=${id}" style="text-decoration:none;padding:6px 11px;border-radius:7px;font-size:12.5px;${activeTab===id?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${label}</a>`;
+const topLink=([key,label,target])=>`<a href="?id=${app.id}&tab=${target}" class="tab" style="text-decoration:none;display:inline-block;padding:8px 12px;font-size:13px;${topActive===key?'border-bottom:2px solid var(--brand-600);color:var(--brand-600);font-weight:600;':'color:var(--ink-500);'}">${label}</a>`;
+const subLink=([id,label])=>`<a href="?id=${app.id}&tab=${id}" style="text-decoration:none;padding:6px 12px;border-radius:6px;font-size:12px;${activeTab===id?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${label}</a>`;
 const subSet = topActive==='snapshot'?SNAP_SUB : null;
 const subNav = subSet ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${subSet.map(subLink).join('')}</div>` : '';
 const viewOnlyBanner = '';
@@ -1993,26 +1993,26 @@ function timeline(){
  const lbl={done:'',wait:' (đang chờ)',auto:' — Không yêu cầu (auto)',na:' — Không áp dụng'};
  return `<div class="card" style="padding:16px;">${items.map(([l,s2,t])=>{
   const [ic,bg,fg]=icon[s2];
-  return `<div style="display:flex;gap:12px;align-items:center;padding:7px 0;"><span style="width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${bg};color:${fg};border:1px solid var(--line);">${ic}</span><b style="font-size:13px;width:210px;${s2==='auto'||s2==='na'?'color:var(--ink-300);font-weight:500;':''}">${l}${lbl[s2]}</b><span style="font-size:12px;color:var(--ink-500);">${t||'—'}</span></div>`;
+  return `<div style="display:flex;gap:12px;align-items:center;padding:6px 0;"><span style="width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${bg};color:${fg};border:1px solid var(--line);">${ic}</span><b style="font-size:13px;width:210px;${s2==='auto'||s2==='na'?'color:var(--ink-300);font-weight:500;':''}">${l}${lbl[s2]}</b><span style="font-size:12px;color:var(--ink-500);">${t||'—'}</span></div>`;
  }).join('')}</div>`;
 }
 
-const row=(k,v)=>`<tr><td style="width:230px;color:var(--ink-500);font-size:12.5px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`;
+const row=(k,v)=>`<tr><td style="width:230px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`;
 const qTrack = app.quote;
 const snapTrack = (qTrack&&qTrack.inputsSnapshot)||{};
 const mgTrack = ((BANCA.overlay.applications&&BANCA.overlay.applications[app.id])||{}).mortgage || app.mortgage || {mortgaged:false};
 const idvTrack = snapTrack.sumInsured || (app.vehicle&&app.vehicle.value) || 0;
 const dedTrack = snapTrack.deductible || 0;
 const addOnsTrack = (snapTrack.addOns||[]).map(c=>(BANCA.motorAddOns[c]||{}).name||c);
-const nthText = mgTrack.mortgaged ? `<b style="color:var(--amber-600);">${mgTrack.bank||'—'}</b>${mgTrack.lenderType?' ('+mgTrack.lenderType+')':''}${mgTrack.branch?' · '+mgTrack.branch:''} · HĐ ${mgTrack.creditContract||'—'} <span style="font-size:10.5px;color:var(--ink-300);">(NTH nhập độc lập, không suy từ Nhân viên tư vấn)</span>` : 'Chủ xe (xe không thế chấp)';
+const nthText = mgTrack.mortgaged ? `<b style="color:var(--amber-600);">${mgTrack.bank||'—'}</b>${mgTrack.lenderType?' ('+mgTrack.lenderType+')':''}${mgTrack.branch?' · '+mgTrack.branch:''} · HĐ ${mgTrack.creditContract||'—'} <span style="font-size:11px;color:var(--ink-300);">(NTH nhập độc lập, không suy từ Nhân viên tư vấn)</span>` : 'Chủ xe (xe không thế chấp)';
 const waterfallHtml = qTrack&&qTrack.subtotal!=null ? `<div class="card" style="padding:14px;margin-top:12px;"><div class="label" style="margin-bottom:6px;">Breakdown phí thác nước</div>
-  <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span>TNDS bắt buộc</span><b>${BANCA.vnd(qTrack.tplPremium)}</b></div>
-  <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-500);"><span>Phí gốc vật chất (IDV ${BANCA.vnd(idvTrack)})</span><span>${BANCA.vnd(qTrack.odBase)}</span></div>
-  ${(qTrack.lines||[]).map(l=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-500);"><span>${l.amount<0?'−':'+'} ${l.label} (${l.pct}%)</span><span>${l.amount<0?'−':'+'}${BANCA.vnd(Math.abs(l.amount))}</span></div>`).join('')}
-  <div style="display:flex;justify-content:space-between;font-size:12.5px;border-top:1px dashed var(--line);margin-top:5px;padding-top:5px;"><span>= Tạm tính (Subtotal)</span><b>${BANCA.vnd(qTrack.subtotal)}</b></div>
-  ${qTrack.ncdAmount?`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--teal-600);"><span>− NCD ${qTrack.ncdPct}%</span><span>−${BANCA.vnd(qTrack.ncdAmount)}</span></div>`:''}
-  <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--amber-600);"><span>+ VAT ${BANCA.VAT_PCT}% (vật chất)</span><span>+${BANCA.vnd(qTrack.vatAmount)}</span></div>
-  ${app.uw&&app.uw.newPremium?`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--amber-600);"><span>Điều chỉnh UW</span><span>${BANCA.vnd(app.uw.newPremium-(qTrack.totalPremium||app.premium))}</span></div>`:''}
+  <div style="display:flex;justify-content:space-between;font-size:12px;"><span>TNDS bắt buộc</span><b>${BANCA.vnd(qTrack.tplPremium)}</b></div>
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-500);"><span>Phí gốc vật chất (IDV ${BANCA.vnd(idvTrack)})</span><span>${BANCA.vnd(qTrack.odBase)}</span></div>
+  ${(qTrack.lines||[]).map(l=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-500);"><span>${l.amount<0?'−':'+'} ${l.label} (${l.pct}%)</span><span>${l.amount<0?'−':'+'}${BANCA.vnd(Math.abs(l.amount))}</span></div>`).join('')}
+  <div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px dashed var(--line);margin-top:4px;padding-top:4px;"><span>= Tạm tính (Subtotal)</span><b>${BANCA.vnd(qTrack.subtotal)}</b></div>
+  ${qTrack.ncdAmount?`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--teal-600);"><span>− NCD ${qTrack.ncdPct}%</span><span>−${BANCA.vnd(qTrack.ncdAmount)}</span></div>`:''}
+  <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--amber-600);"><span>+ VAT ${BANCA.VAT_PCT}% (vật chất)</span><span>+${BANCA.vnd(qTrack.vatAmount)}</span></div>
+  ${app.uw&&app.uw.newPremium?`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--amber-600);"><span>Điều chỉnh UW</span><span>${BANCA.vnd(app.uw.newPremium-(qTrack.totalPremium||app.premium))}</span></div>`:''}
   <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;color:var(--brand-600);"><span>Phí thực</span><span>${BANCA.vnd((app.uw&&app.uw.newPremium)||qTrack.totalPremium||app.premium)}</span></div>
 </div>` : '';
 const benefitsHtml = `<div class="card" style="padding:0;margin-top:12px;"><table class="dtable"><thead><tr><th>Quyền lợi</th><th>Số tiền / giới hạn</th></tr></thead><tbody>
@@ -2046,8 +2046,8 @@ function submittedDocTable(){
   const stv=st(d.code); if(stv==='REJECTED') chips.push('<span class="badge badge-blocked">Bị từ chối</span>'); else if(stv==='CHECKING') chips.push('<span class="badge badge-pending">Đang kiểm tra</span>');
   return `<div class="doc-item">
     <div><span style="display:inline-flex;width:40px;height:40px;border-radius:8px;align-items:center;justify-content:center;font-weight:800;background:${dot[2]};color:${dot[1]};">${dot[0]}</span></div>
-    <div><div style="font-weight:600;font-size:13.5px;">${d.name}</div><div style="font-size:12px;color:var(--ink-500);">${d.sub||''}${rr.note?' · '+rr.note:''}</div><div class="doc-item-statuses">${chips.join(' ')}</div>${up?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">${fileOf[d.code]||''}</div>`:''}</div>
-    <div class="doc-item-actions">${up?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Xem tài liệu (demo)\')">Xem</button>':'<span style="font-size:11.5px;color:var(--ink-300);">Chưa nộp</span>'}</div>
+    <div><div style="font-weight:600;font-size:13px;">${d.name}</div><div style="font-size:12px;color:var(--ink-500);">${d.sub||''}${rr.note?' · '+rr.note:''}</div><div class="doc-item-statuses">${chips.join(' ')}</div>${up?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${fileOf[d.code]||''}</div>`:''}</div>
+    <div class="doc-item-actions">${up?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Xem tài liệu (demo)\')">Xem</button>':'<span style="font-size:11px;color:var(--ink-300);">Chưa nộp</span>'}</div>
   </div>`;
  };
  const ocrDocs = docs.filter(d=>ocrCodes[d.code] && uploaded.includes(d.code));
@@ -2065,13 +2065,13 @@ function submittedDocTable(){
 function statusBanner(tone,title,sub,cta){
  const c={ok:['var(--teal-600)','var(--teal-100)'],wait:['var(--amber-600)','var(--amber-100)'],danger:['var(--red-600)','var(--red-100)'],info:['var(--brand-600)','var(--brand-100)']}[tone]||['var(--brand-600)','var(--brand-100)'];
  return `<div class="card" style="padding:16px 18px;border-left:4px solid ${c[0]};display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
-  <div><div style="font-size:17px;font-weight:700;color:${c[0]};">${title}</div><div style="font-size:13.5px;color:var(--ink-500);margin-top:3px;">${sub}</div></div>
+  <div><div style="font-size:16px;font-weight:700;color:${c[0]};">${title}</div><div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${sub}</div></div>
   ${cta?`<div style="display:flex;gap:8px;flex-wrap:wrap;">${cta}</div>`:''}
  </div>`;
 }
 function srcLabelOverview(){ return app.source==='ADVICE'?'Advisory':(app.leadId?'Bank CRM (Referral)':'Janus Bank CRM'); }
 // Empty-state illustration (Epic 11)
-function emptyIllu(icon,title,sub){ return `<div class="card"><div style="text-align:center;padding:34px 20px;"><div style="font-size:40px;opacity:.7;">${icon}</div><div style="font-size:15px;font-weight:700;margin-top:8px;color:var(--ink-700);">${title}</div>${sub&&sub!=='—'?`<div style="font-size:12.5px;color:var(--ink-500);margin-top:4px;max-width:420px;margin-left:auto;margin-right:auto;">${sub}</div>`:''}</div></div>`; }
+function emptyIllu(icon,title,sub){ return `<div class="card"><div style="text-align:center;padding:34px 20px;"><div style="font-size:40px;opacity:.7;">${icon}</div><div style="font-size:14px;font-weight:700;margin-top:8px;color:var(--ink-700);">${title}</div>${sub&&sub!=='—'?`<div style="font-size:12px;color:var(--ink-500);margin-top:4px;max-width:420px;margin-left:auto;margin-right:auto;">${sub}</div>`:''}</div></div>`; }
 // Communication log (Epic 13)
 function communicationLog(){
  const ev=[];
@@ -2081,7 +2081,7 @@ function communicationLog(){
  if(st==='NEED_MORE_INFO'){ ev.push([app.supplement&&app.supplement.requestedAt||'—','Notification','🔔','Yêu cầu bổ sung yêu cầu','Đã gửi','warn']); }
  if(st==='ISSUED'){ ev.push([app.updatedAt||'—','Email','✉️','Gửi hợp đồng & chứng nhận','Đã gửi','ok']); }
  const tone={ok:'var(--teal-600)',warn:'var(--amber-600)',wait:'var(--brand-600)'};
- return `<div class="card" style="padding:0;overflow:hidden;"><div style="padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;">Nhật ký liên hệ khách hàng</div>${ev.map(e=>`<div style="display:flex;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);align-items:flex-start;font-size:12.5px;"><span style="font-size:16px;">${e[2]}</span><div style="flex:1;"><b>${e[3]}</b> <span class="chip" style="font-size:9px;">${e[1]}</span><div style="font-size:11.5px;color:${tone[e[5]]};margin-top:2px;">${e[4]}</div></div><span style="color:var(--ink-300);white-space:nowrap;">${e[0]}</span></div>`).join('')}</div>`;
+ return `<div class="card" style="padding:0;overflow:hidden;"><div style="padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px;">Nhật ký liên hệ khách hàng</div>${ev.map(e=>`<div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:flex-start;font-size:12px;"><span style="font-size:16px;">${e[2]}</span><div style="flex:1;"><b>${e[3]}</b> <span class="chip" style="font-size:9px;">${e[1]}</span><div style="font-size:11px;color:${tone[e[5]]};margin-top:2px;">${e[4]}</div></div><span style="color:var(--ink-300);white-space:nowrap;">${e[0]}</span></div>`).join('')}</div>`;
 }
 
 // ================================================================
@@ -2095,17 +2095,13 @@ function cpStatusVN(s2){
  return ({METHOD_REQUIRED:'Chưa khởi tạo', PENDING:'Đang chờ thanh toán', PROCESSING:'Đang xử lý',
   SUCCESS:'Thành công', FAILED:'Thất bại', TIMEOUT:'Hết hạn', EXPIRED:'Hết hạn', CANCELLED:'Đã hủy'})[s2]||s2||'—';
 }
-// Cách thanh toán → nhãn tiếng Việt.
-function cpMethodVN(pay){
- if(!pay) return '—';
- return (BANCA.PAYMENT_EXPERIENCES[pay.paymentExperience]||{}).label
-   || (BANCA.PAYMENT_CHANNELS[pay.paymentChannel]||{}).label || pay.paymentChannel || '—';
-}
+// Cách thanh toán → nhãn tiếng Việt (đọc từ payment-method-config, 1 nguồn).
+function cpMethodVN(pay){ return BANCA.paymentMethodLabel(pay); }
 function cpCard(num,title,inner,sub){
  return `<section class="card" style="padding:16px 18px;margin-bottom:14px;">
    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
      <span style="width:22px;height:22px;border-radius:50%;background:var(--brand-600);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${num}</span>
-     <b style="font-size:15px;color:var(--ink-900);">${title}</b>${sub?`<span style="font-size:12px;color:var(--ink-500);">· ${sub}</span>`:''}
+     <b style="font-size:14px;color:var(--ink-900);">${title}</b>${sub?`<span style="font-size:12px;color:var(--ink-500);">· ${sub}</span>`:''}
    </div>
    ${inner}
  </section>`;
@@ -2131,7 +2127,7 @@ function caseStepperStrip(){
   const ic = state==='done'?'✓':(i+1);
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:82px;text-align:center;">
     <span style="width:24px;height:24px;border-radius:50%;background:${bg};color:${fg};border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${ic}</span>
-    <span style="font-size:10.5px;color:${state==='todo'?'var(--ink-300)':'var(--ink-700)'};font-weight:${state==='active'?'700':'500'};line-height:1.2;">${l}</span>
+    <span style="font-size:11px;color:${state==='todo'?'var(--ink-300)':'var(--ink-700)'};font-weight:${state==='active'?'700':'500'};line-height:1.2;">${l}</span>
    </div>`;
  }).join('<div style="height:1px;background:var(--line);flex:0 0 12px;margin-top:12px;"></div>');
  return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px;flex-wrap:nowrap;overflow-x:auto;">${nodes}</div>`;
@@ -2148,9 +2144,9 @@ function cpConfirmSection(){
    const who = u.isChild ? `Người đại diện: <b>${u.guardianName||'(chưa nhập)'}</b> (${u.guardianRelationship||'cha/mẹ'}) · ${u.guardianPhone||'—'}` : `SĐT thành viên: <b>${u.phone||(cust&&u.relationship==='Bản thân'?BANCA.maskPhone(cust.phone):'—')}</b>`;
    return `<div class="card" style="padding:14px;margin-bottom:10px;border-left:3px solid ${cf.status==='CONFIRMED'?'var(--teal-600)':'var(--brand-600)'};">
      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${badge}</div>
-     <div style="font-size:12px;color:var(--ink-500);margin-top:5px;">Gói: ${healthPkgName(u.package)} · vai trò: ${u.relationship||'—'}</div>
-     <div style="font-size:12px;color:var(--ink-500);margin-top:3px;">${who}</div>
-     ${cf.status==='SENT'?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">Gửi lúc ${cf.sentAt||'—'} · OTP ${cf.otp||'PENDING'} · <a href="javascript:alert('Xem evidence phiên xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
+     <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">Gói: ${healthPkgName(u.package)} · vai trò: ${u.relationship||'—'}</div>
+     <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${who}</div>
+     ${cf.status==='SENT'?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Gửi lúc ${cf.sentAt||'—'} · OTP ${cf.otp||'PENDING'} · <a href="javascript:alert('Xem evidence phiên xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
      ${app.owner===me?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">${cf.status==='PENDING'?`<button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi xác nhận</button>`:''}${cf.status==='SENT'?`<button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi lại</button><button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">✓ Khách đã xác nhận (demo)</button>`:''}</div>`:''}
     </div>`;
   }).join('');
@@ -2182,7 +2178,7 @@ function cpConfirmSection(){
     ${row('Trạng thái', cState==='CONFIRMED'?'<span class="badge badge-ready">Đã xác nhận</span>':'<span class="badge badge-pending">Chờ khách xác nhận</span>')}
     ${row('Xác nhận lúc', cState==='CONFIRMED'?(app.confirm.confirmedAt||app.updatedAt):'—')}
    </tbody></table>
-   ${app.confirm.link?`<div style="font-size:11.5px;margin-top:8px;"><a href="javascript:alert('Xem evidence xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
+   ${app.confirm.link?`<div style="font-size:11px;margin-top:8px;"><a href="javascript:alert('Xem evidence xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
    ${app.owner===me&&cState==='SENT'?'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" onclick="alert(\'Đã gửi lại link (demo)\')">Gửi lại</button> <button class="btn btn-primary btn-sm" onclick="simConfirm()">✓ Khách đã xác nhận (demo)</button></div>':''}
   </div>`;
   inner = statusBanner(cLabel[1], cLabel[0], '', '') + cfBody;
@@ -2194,7 +2190,6 @@ function cpFeeSection(){
  const total = cpAmount();
  const pay = app.payment;
  const paid = (pay && pay.status==='SUCCESS') ? (pay.amount||total) : 0;
- const remaining = Math.max(0, total - paid);
  let lines=[], memberHtml='';
  if(app.productId==='health'){
   const q=app.quote||{}; const b=q.premiumBreakdown||{};
@@ -2209,7 +2204,7 @@ function cpFeeSection(){
   try{
    const fr=BANCA.healthFamilyRating(app);
    if(fr && fr.lines && fr.lines.length){
-    memberHtml = `<div style="margin-top:12px;"><div class="label" style="margin-bottom:4px;">Phí theo thành viên (tham khảo)</div>`+fr.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.name||'—'} · ${healthPkgName(l.package)}</span><b>${l.eligible?BANCA.vnd(l.premium):'—'}</b></div>`;}).join('')+`</div>`;
+    memberHtml = `<div style="margin-top:12px;"><div class="label" style="margin-bottom:4px;">Phí theo thành viên (tham khảo)</div>`+fr.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.name||'—'} · ${healthPkgName(l.package)}</span><b>${l.eligible?BANCA.vnd(l.premium):'—'}</b></div>`;}).join('')+`</div>`;
    }
   }catch(e){}
  } else {
@@ -2226,62 +2221,22 @@ function cpFeeSection(){
    if(q.vatAmount) lines.push(['Thuế (VAT)', q.vatAmount, '+']);
   } else lines.push(['Phí bảo hiểm', total, '+']);
  }
- // Reconcile — bảo đảm tổng breakdown KHỚP tổng phí (AC09).
- const sum = lines.reduce(function(a,l){ return a + (l[2]==='−'? -l[1] : l[1]); }, 0);
- if(sum!==total){ const dlt=total-sum; lines.push(['Điều chỉnh', Math.abs(dlt), dlt<0?'−':'+']); }
- const lineHtml = lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;${l[2]==='−'?'color:var(--teal-600);':''}"><span>${l[2]==='−'?'− ':'+ '}${l[0]}</span><span>${BANCA.vnd(l[1])}</span></div>`;}).join('');
- const chip=(k,v,c)=>`<div style="border:1px solid var(--line);border-radius:9px;padding:10px;"><div style="font-size:10.5px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:16px;font-weight:800;margin-top:3px;color:${c||'var(--ink-900)'};">${v}</div></div>`;
- const inner=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-    ${chip('Tổng phí',BANCA.vnd(total),'var(--brand-600)')}
-    ${chip('Đã thanh toán',BANCA.vnd(paid),paid>0?'var(--teal-600)':'var(--ink-900)')}
-    ${chip('Còn phải thanh toán',BANCA.vnd(remaining),remaining>0?'var(--amber-600)':'var(--teal-600)')}
-   </div>
-   <div style="border:1px solid var(--line);border-radius:9px;padding:12px;margin-top:12px;">
-    <div class="label" style="margin-bottom:6px;">Chi tiết phí (breakdown)</div>
-    ${lineHtml}
-    <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;"><span>Tổng phí</span><span>${BANCA.vnd(total)}</span></div>
-    ${memberHtml}
-   </div>`;
+ // FeeDueSummary dùng chung — tự reconcile để breakdown LUÔN khớp tổng phí (AC09).
+ const inner = BANCA.ui.feeDueSummary({total:total, paid:paid, lines:lines, extraHtml:memberHtml});
  return cpCard(2,'Phí cần thanh toán', inner);
 }
-// ---- Section 4: Ba cách thanh toán (hiển thị trực tiếp) ----
+// ---- Section 4: Ba cách thanh toán (hiển thị trực tiếp, KHÔNG modal chọn — §9.3) ----
+// Dùng BANCA.ui.paymentMethodGroup + config payment-method-config.js.
+// Motor/Health cùng component; điều kiện bật đến từ BANCA.paymentEnableRule (§9.2).
 function cpMethodsSection(){
- const cv=caseView; const s=cv.states; const pay=app.payment;
+ const s=caseView.states; const pay=app.payment;
  const payDone = pay && pay.status==='SUCCESS';
  const payActive = pay && ['PENDING','PROCESSING'].includes(pay.status);
  let inner;
  if(payDone) inner=`<div class="alert2" style="margin:0;background:var(--teal-100);color:var(--teal-600);">✓ Đã thanh toán thành công — xem chi tiết ở mục "Trạng thái thanh toán".</div>`;
  else if(payActive) inner=`<div class="alert2 info" style="margin:0;">Đã khởi tạo yêu cầu thanh toán — theo dõi ở mục "Trạng thái thanh toán".</div>`;
  else if(s.policyStatus==='ISSUED') inner=`<div class="alert2 info" style="margin:0;">Yêu cầu đã hoàn tất thanh toán và phát hành.</div>`;
- else {
-  const enabled = cv.canInitiatePayment && app.owner===me;
-  let reason='';
-  if(app.owner!==me) reason='Chỉ nhân viên phụ trách được khởi tạo thanh toán.';
-  else if(!cv.canInitiatePayment){
-   if(!BANCA.confirmationComplete(app)){
-    if(app.productId==='health' && Array.isArray(app.insuredMembers)){
-     const miss=app.insuredMembers.filter(function(m){return m.active!==false && (m.confirmation||{}).status!=='CONFIRMED';}).map(function(m){return m.name||'—';});
-     reason='Chưa thể thanh toán: còn '+miss.length+' thành viên chưa xác nhận'+(miss.length?' ('+miss.join(', ')+')':'')+'.';
-    } else reason='Chưa thể thanh toán: khách chưa xác nhận.';
-   } else reason = cv.nextActionLabel || 'Chưa đủ điều kiện khởi tạo thanh toán.';
-  }
-  const mcard=(exp,icon,title,desc,best)=>{
-   const style = enabled ? 'cursor:pointer;background:#fff;border:1px solid var(--line);' : 'background:var(--paper);border:1px dashed var(--line);opacity:.6;';
-   const btn = enabled ? `<button class="btn btn-primary btn-sm" style="margin-top:4px;" onclick="openPayFlow('${exp}')">Bắt đầu</button>` : `<button class="btn btn-primary btn-sm" style="margin-top:4px;" disabled>Chưa khả dụng</button>`;
-   return `<div style="border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;min-height:158px;${style}">
-     <div style="font-size:22px;">${icon}</div><b style="font-size:13.5px;">${title}</b>
-     <div style="font-size:11.5px;color:var(--ink-500);line-height:1.4;flex:1;">${desc}</div>
-     <div style="font-size:11px;color:var(--ink-300);">Phù hợp: ${best}</div>${btn}
-    </div>`;
-  };
-  inner=`${reason?`<div class="alert2 warn" style="margin:0 0 12px;">${reason}</div>`:''}
-   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-    ${mcard('CUSTOMER_PRESENT_QR','▦','Quét QR tại quầy','Hiển thị mã QR, số tiền, mã tham chiếu, hạn thanh toán.','Khách đang có mặt tại quầy')}
-    ${mcard('CUSTOMER_REMOTE','✉','Gửi yêu cầu thanh toán từ xa','Gửi liên kết thanh toán qua SMS/Email hoặc sao chép liên kết sau khi khách đồng ý.','Khách không có mặt / thanh toán sau')}
-    ${mcard('SELLER_DEVICE_ASSISTED','⌁','Thanh toán trên thiết bị này','Khách tự nhập dữ liệu nhạy cảm và OTP trên cổng thanh toán.','Khách có mặt nhưng không quét QR')}
-   </div>
-   <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chưa tạo yêu cầu thanh toán cho tới khi nhân viên tư vấn xác nhận cấu hình trong từng cách.</div>`;
- }
+ else inner = BANCA.ui.paymentMethodGroup(app, {me:me});
  return cpCard(3,'Cách thanh toán', inner);
 }
 // ---- Section 5: Trạng thái thanh toán hiện tại ----
@@ -2293,13 +2248,13 @@ function cpCurrentSection(){
  const toneColor={ok:'var(--teal-600)',wait:'var(--amber-600)',danger:'var(--red-600)'}[tone];
  const facts=[['Số tiền',BANCA.vnd(pay.amount)],['Cách thanh toán',cpMethodVN(pay)],['Người thanh toán',(pay.payerName||(cust&&cust.name)||'—')+(pay.payerType==='CUSTOMER'?' · Khách hàng':'')],['Thời gian', pay.paidAt||pay.createdAt||'—']];
  if(s2==='PENDING'&&pay.expiresAt) facts.push(['Hết hạn',pay.expiresAt]);
- const factHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">${facts.map(function(f){return `<div style="border:1px solid var(--line);border-radius:9px;padding:9px;"><div style="font-size:10.5px;color:var(--ink-300);text-transform:uppercase;">${f[0]}</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${f[1]}</div></div>`;}).join('')}</div>`;
+ const factHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">${facts.map(function(f){return `<div style="border:1px solid var(--line);border-radius:8px;padding:8px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${f[0]}</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${f[1]}</div></div>`;}).join('')}</div>`;
  // QR / link preview khi đang chờ
  let preview='';
- if(s2==='PENDING'&&pay.paymentChannel==='QR') preview=`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:9px;padding:12px;text-align:center;"><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Khách quét mã QR để thanh toán</div><div style="width:120px;height:120px;margin:0 auto;background:repeating-linear-gradient(45deg,#111,#111 6px,#fff 6px,#fff 12px);border-radius:6px;"></div><div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Hết hạn ${pay.expiresAt||'—'}</div></div>`;
- else if(s2==='PENDING'&&pay.paymentChannel==='PAYMENT_LINK') preview=`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:9px;padding:12px;"><div style="font-size:12.5px;">Liên kết đã gửi: <a href="${pay.paymentUrl}" style="color:var(--brand-600);">${pay.paymentUrl}</a></div><div style="font-size:11.5px;color:var(--ink-500);margin-top:4px;">Người nhận: ${pay.recipientPhone||pay.recipientEmail||'—'} · Đã gửi · Hết hạn ${pay.expiresAt||'—'}</div></div>`;
+ if(s2==='PENDING'&&pay.paymentChannel==='QR') preview=`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center;"><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Khách quét mã QR để thanh toán</div><div style="width:120px;height:120px;margin:0 auto;background:repeating-linear-gradient(45deg,#111,#111 6px,#fff 6px,#fff 12px);border-radius:6px;"></div><div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Hết hạn ${pay.expiresAt||'—'}</div></div>`;
+ else if(s2==='PENDING'&&pay.paymentChannel==='PAYMENT_LINK') preview=`<div style="margin-top:12px;border:1px dashed var(--line);border-radius:8px;padding:12px;"><div style="font-size:12px;">Liên kết đã gửi: <a href="${pay.paymentUrl}" style="color:var(--brand-600);">${pay.paymentUrl}</a></div><div style="font-size:11px;color:var(--ink-500);margin-top:4px;">Người nhận: ${pay.recipientPhone||pay.recipientEmail||'—'} · Đã gửi · Hết hạn ${pay.expiresAt||'—'}</div></div>`;
  // Vùng kỹ thuật thu gọn (English tokens ở đây, KHÔNG ngoài).
- const rowT=(k,v)=>`<tr><td style="color:var(--ink-500);width:180px;font-size:12px;">${k}</td><td style="font-size:12.5px;"><span class="code">${v}</span></td></tr>`;
+ const rowT=(k,v)=>`<tr><td style="color:var(--ink-500);width:180px;font-size:12px;">${k}</td><td style="font-size:12px;"><span class="code">${v}</span></td></tr>`;
  const tech=`<details style="margin-top:12px;"><summary style="cursor:pointer;font-size:12px;color:var(--ink-500);">Chi tiết kỹ thuật</summary><table class="dtable"><tbody>
    ${rowT('Payment ID',pay.paymentId||'—')}${rowT('Experience',pay.paymentExperience||'—')}${rowT('Payment instrument',pay.paymentInstrument||'—')}${rowT('Delivery channel',pay.deliveryChannel||'NONE')}${rowT('Merchant reference',pay.merchantReference||'—')}${rowT('Gateway reference',pay.gatewayReference||'—')}${rowT('Gateway transaction ID',pay.gatewayTransactionId||'—')}${rowT('Status',pay.status)}
   </tbody></table></details>`;
@@ -2312,7 +2267,7 @@ function cpCurrentSection(){
      <button class="btn btn-secondary btn-sm" onclick="settlePayment('FAILED')">Callback: Thất bại</button>
      <button class="btn btn-secondary btn-sm" onclick="settlePayment('EXPIRED')">Callback: Hết hạn</button>
     </div>
-    <div style="font-size:10.5px;color:var(--ink-300);margin-top:6px;">Nhân viên tư vấn KHÔNG tự đánh dấu đã thanh toán — kết quả chỉ đến từ callback cổng thanh toán.</div>
+    <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Nhân viên tư vấn KHÔNG tự đánh dấu đã thanh toán — kết quả chỉ đến từ callback cổng thanh toán.</div>
    </div>`;
  else if(['FAILED','EXPIRED','TIMEOUT'].includes(s2)&&app.owner===me) tools=`<div style="margin-top:12px;"><button class="btn btn-primary btn-sm" onclick="recreatePaymentIntent()">Tạo lại yêu cầu thanh toán</button></div>`;
  const inner=`<div class="card" style="padding:14px;border-left:4px solid ${toneColor};">
@@ -2323,19 +2278,9 @@ function cpCurrentSection(){
 }
 // ---- Section 6: Lịch sử thanh toán (row → chi tiết, KHÔNG lặp key-value dưới bảng) ----
 function cpHistorySection(){
- const pay=app.payment;
- const txns=[];
- if(pay) txns.push(pay);
- let inner;
- if(!txns.length) inner=`<div class="empty-state" style="padding:18px;">Chưa có giao dịch thanh toán.</div>`;
- else {
-  const rows=txns.map(function(t){
-   const id=t.gatewayTransactionId||t.gatewayReference||t.merchantReference||t.paymentId||'—';
-   const ref=t.merchantReference||t.gatewayReference||'—';
-   return `<tr style="cursor:pointer;" onclick="openTxnDetail()"><td style="font-size:12px;">${id}</td><td style="font-size:12.5px;">${cpMethodVN(t)}</td><td style="font-size:12.5px;">${(t.payerName||(cust&&cust.name)||'—')}</td><td style="font-size:12px;color:var(--ink-500);">${t.paidAt||t.createdAt||'—'}</td><td style="font-size:12.5px;">${BANCA.vnd(t.amount)}</td><td>${BANCA.paymentBadge?BANCA.paymentBadge(t.status):cpStatusVN(t.status)}</td><td style="font-size:11.5px;color:var(--ink-500);">${ref}</td></tr>`;
-  }).join('');
-  inner=`<div class="card" style="padding:0;overflow:hidden;"><table class="dtable"><thead><tr><th>Mã giao dịch</th><th>Cách thanh toán</th><th>Người thanh toán</th><th>Thời gian</th><th>Số tiền</th><th>Trạng thái</th><th>Tham chiếu</th></tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Bấm vào dòng giao dịch để xem chi tiết.</div>`;
- }
+ const txns = app.payment ? [app.payment] : [];
+ const inner = BANCA.ui.paymentHistory(txns, {payerFallback: cust&&cust.name, rowClickJs: function(){ return 'openTxnDetail()'; }})
+   + (txns.length?`<div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Bấm vào dòng giao dịch để xem chi tiết.</div>`:'');
  return cpCard(5,'Lịch sử thanh toán', inner);
 }
 function renderConfirmPay(){
@@ -2364,8 +2309,8 @@ function supplementWorkspace(){
  // Phần 1 — Yêu cầu từ đơn vị xử lý
  const part1=`<div class="card" style="padding:16px;border-left:4px solid var(--red-600);margin-bottom:12px;">
    <div style="font-weight:700;margin-bottom:2px;">Yêu cầu từ đơn vị xử lý</div>
-   <div style="font-size:12.5px;color:var(--ink-500);margin-bottom:10px;">Yêu cầu bởi <b>${s.requestedBy||'Thẩm định viên'}</b> · ${s.requestedAt||'—'}${app.deadline?' · hạn '+app.deadline:''}</div>
-   ${reqs.map(rq=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap;">
+   <div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">Yêu cầu bởi <b>${s.requestedBy||'Thẩm định viên'}</b> · ${s.requestedAt||'—'}${app.deadline?' · hạn '+app.deadline:''}</div>
+   ${reqs.map(rq=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap;">
      <div style="font-size:13px;"><b>${rq.id}</b> · ${rq.type==='DOCUMENT'?'Tài liệu':rq.type==='CONFIRMATION'?'Xác nhận KH':'Thông tin'} <span class="badge badge-conditional" style="font-size:9px;">${rq.priority}</span><div style="color:var(--ink-500);margin-top:2px;">${rq.text}</div></div>
      <div><span class="badge badge-blocked">${rq.status}</span></div>
    </div>`).join('')}
@@ -2375,11 +2320,11 @@ function supplementWorkspace(){
   if(rq.type==='DOCUMENT'){
    return `<div style="padding:4px 0;">${BANCA.docItemHtml(app.id,{code:'SUP_'+rq.id, name:rq.text, sub:'Tài liệu được yêu cầu bổ sung', ocr:'optional', required:true, docType:null})}</div>`;
   }
-  return `<div class="field" style="margin-bottom:10px;"><label style="font-size:12px;color:var(--ink-500);">${rq.text} ${owner?'':'<span class="chip">chỉ xem</span>'}</label><input id="sup-${rq.id}" ${owner?'':'readonly'} placeholder="Nhập giá trị bổ sung…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"></div>`;
+  return `<div class="field" style="margin-bottom:10px;"><label style="font-size:12px;color:var(--ink-500);">${rq.text} ${owner?'':'<span class="chip">chỉ xem</span>'}</label><input id="sup-${rq.id}" ${owner?'':'readonly'} placeholder="Nhập giá trị bổ sung…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"></div>`;
  }).join('');
  const part2=`<div class="card" style="padding:16px;margin-bottom:12px;">
    <div class="label" style="margin-bottom:8px;">Nội dung cần bổ sung</div>
-   <div style="font-size:11.5px;color:var(--ink-300);margin-bottom:10px;">Chỉ các mục được yêu cầu mở để chỉnh sửa — phần còn lại của yêu cầu ở chế độ chỉ xem.</div>
+   <div style="font-size:11px;color:var(--ink-300);margin-bottom:10px;">Chỉ các mục được yêu cầu mở để chỉnh sửa — phần còn lại của yêu cầu ở chế độ chỉ xem.</div>
    ${part2Items}
  </div>`;
  // Phần 3 — Xem lại thay đổi (before/after demo)
@@ -2389,7 +2334,7 @@ function supplementWorkspace(){
  const part3=`<div class="card" style="padding:16px;margin-bottom:12px;">
    <div class="label" style="margin-bottom:8px;">Xem lại thay đổi (trước / sau)</div>
    <table class="dtable"><thead><tr><th>Trường / tài liệu</th><th>Bản đã nộp</th><th>Sau bổ sung</th></tr></thead><tbody>${beforeAfter}</tbody></table>
-   <div style="margin-top:10px;font-size:12.5px;">${rc.requires_customer_reconfirmation
+   <div style="margin-top:10px;font-size:12px;">${rc.requires_customer_reconfirmation
      ? '<span class="badge badge-conditional">Cần khách xác nhận lại</span> Thay đổi ảnh hưởng nội dung/phí — sẽ yêu cầu khách xác nhận lại trước khi tiếp tục.'
      : '<span class="badge badge-ready">Không cần khách xác nhận lại</span> Bổ sung mang tính kỹ thuật/tài liệu — không ảnh hưởng nội dung khai báo.'}
      ${rc.requires_rerate?' <span class="badge badge-blocked">Cần tính lại phí</span>':''}</div>
@@ -2416,7 +2361,7 @@ if(activeTab==='overview'){
   : c5('Tóm tắt bảo hiểm', kvO('Số tiền bảo hiểm (SI/IDV)','<b>'+BANCA.vnd(idvTrack)+'</b>')+kvO('Mức khấu trừ',dedTrack?BANCA.vnd(dedTrack)+'/vụ':'—')+kvO('Tổng phí',BANCA.vnd(app.uw&&app.uw.newPremium||app.premium))+kvO('Quyền lợi bổ sung',addOnsTrack.length?addOnsTrack.join(', '):'Không')+kvO('Thời hạn','12 tháng')+kvO('Ngày hiệu lực dự kiến',(app.policyId&&BANCA.policyById(app.policyId)||{}).effectiveFrom||'Sau phát hành'));
  const card4=app.productId==='health'
   ? c5('Người được bảo hiểm ('+BANCA.healthUnitsOf(app).filter(function(u){return u.active!==false;}).length+' người)', BANCA.healthUnitsOf(app).filter(function(u){return u.active!==false;}).map(function(u){const uw=u.underwriting?(' · '+((BANCA.HEALTH_UW_MEMBER[u.underwriting.decision]||{}).label||u.underwriting.decision)):'';return kvO(u.name||'—',(u.relationship||'—')+' · '+(u.age!=null?u.age+' tuổi':'chưa có DOB')+' · '+healthPkgName(u.package)+uw);}).join(''))
-  : c5('Đối tượng bảo hiểm', app.vehicle?(kvO('Biển số',app.vehicle.plate||'—')+kvO('Hãng / dòng',app.vehicle.brand+' '+app.vehicle.model)+kvO('Năm sản xuất',app.vehicle.year||'—')+kvO('Số khung (VIN)',app.vehicle.vin||'—')+kvO('Số máy',app.vehicle.engineNo||'—')+kvO('Giá trị xe',BANCA.vnd(app.vehicle.value||idvTrack))+kvO('Tình trạng thế chấp',mgTrack.mortgaged?'Có':'Không')+kvO('Bên thụ hưởng',mgTrack.mortgaged?(mgTrack.bank||'—'):'Chủ xe')):'<div style="font-size:12.5px;color:var(--ink-500);">—</div>');
+  : c5('Đối tượng bảo hiểm', app.vehicle?(kvO('Biển số',app.vehicle.plate||'—')+kvO('Hãng / dòng',app.vehicle.brand+' '+app.vehicle.model)+kvO('Năm sản xuất',app.vehicle.year||'—')+kvO('Số khung (VIN)',app.vehicle.vin||'—')+kvO('Số máy',app.vehicle.engineNo||'—')+kvO('Giá trị xe',BANCA.vnd(app.vehicle.value||idvTrack))+kvO('Tình trạng thế chấp',mgTrack.mortgaged?'Có':'Không')+kvO('Bên thụ hưởng',mgTrack.mortgaged?(mgTrack.bank||'—'):'Chủ xe')):'<div style="font-size:12px;color:var(--ink-500);">—</div>');
  const _pa = BANCA.participantsOf ? BANCA.participantsOf(app.id, app.owner) : {referrer:app.owner,advisor:app.owner,sellingProducer:app.owner,caseOwner:app.owner};
  const _pRow = (label,uid)=> kvO(label, uid?`${BANCA.pName(uid)} <span style="font-size:11px;color:var(--ink-300);">${BANCA.pLine(uid)}</span>`:'—');
  const card5=c5('Nguồn bán & người tham gia',
@@ -2429,13 +2374,13 @@ if(activeTab==='overview'){
  const intDot=t=>({ok:'var(--teal-600)',wait:'var(--amber-600)',idle:'var(--ink-300)',bad:'var(--red-600)'}[t]||'var(--ink-300)');
  const cardStatus=`<section class="card" style="padding:16px;"><div class="label" style="margin-bottom:10px;">Trạng thái nghiệp vụ & tích hợp</div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-     <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Nghiệp vụ</div>${(function(){const busDone=[caseFlow.uwDecided, caseFlow.confirmDone && caseFlow.uwDecided, caseFlow.paySuccess||caseFlow.issued, caseFlow.issued];return ['Thẩm định','Chờ khách','Thanh toán','Phát hành'].map(function(b,i){return `<div style="font-size:12.5px;padding:3px 0;">${busDone[i]?'✓':'○'} ${b}</div>`;}).join('');})()}</div>
-     <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Tích hợp hệ thống</div>${intg.map(([k,v,t])=>`<div style="font-size:12.5px;padding:3px 0;display:flex;justify-content:space-between;"><span>${k}</span><span style="color:${intDot(t)};font-weight:600;">${v}</span></div>`).join('')}</div>
+     <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Nghiệp vụ</div>${(function(){const busDone=[caseFlow.uwDecided, caseFlow.confirmDone && caseFlow.uwDecided, caseFlow.paySuccess||caseFlow.issued, caseFlow.issued];return ['Thẩm định','Chờ khách','Thanh toán','Phát hành'].map(function(b,i){return `<div style="font-size:12px;padding:2px 0;">${busDone[i]?'✓':'○'} ${b}</div>`;}).join('');})()}</div>
+     <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Tích hợp hệ thống</div>${intg.map(([k,v,t])=>`<div style="font-size:12px;padding:2px 0;display:flex;justify-content:space-between;"><span>${k}</span><span style="color:${intDot(t)};font-weight:600;">${v}</span></div>`).join('')}</div>
    </div></section>`;
  // Epic 9: Sức khỏe yêu cầu widget
  const h=BANCA.caseHealth(app);
  const hColor={ok:'var(--teal-600)',warn:'var(--amber-600)',bad:'var(--red-600)'}[h.overall];
- const cardHealth=`<section class="card" style="padding:16px;border-top:4px solid ${hColor};"><div class="label" style="margin-bottom:8px;">Sức khỏe yêu cầu <span style="color:${hColor};font-weight:800;">${h.overall==='ok'?'Tốt':h.overall==='warn'?'Cần chú ý':'Có vấn đề'}</span></div>${h.items.map(([k,v,t])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><span style="color:${intDot(t)};font-weight:600;">${v}</span></div>`).join('')}</section>`;
+ const cardHealth=`<section class="card" style="padding:16px;border-top:4px solid ${hColor};"><div class="label" style="margin-bottom:8px;">Sức khỏe yêu cầu <span style="color:${hColor};font-weight:800;">${h.overall==='ok'?'Tốt':h.overall==='warn'?'Cần chú ý':'Có vấn đề'}</span></div>${h.items.map(([k,v,t])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><span style="color:${intDot(t)};font-weight:600;">${v}</span></div>`).join('')}</section>`;
  body=`<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start;">
   <div style="display:grid;gap:14px;">${card1}${cardStatus}${card3}${card4}${card5}</div>
   <aside style="position:sticky;top:76px;display:grid;gap:14px;">${cardHealth}${card2}</aside>
@@ -2445,7 +2390,7 @@ if(activeTab==='overview'){
 } else if(activeTab==='customer'){
  const insuredCustomerText = app.productId==='health' ? healthMembersOf(app).map(function(m){return (m.name||'—')+' · '+(m.relationship||'—');}).join('<br>') : (app.productId==='pa' ? (app.insuredName||cust&&cust.name||'—') : 'Chính chủ (Motor cá nhân)');
  body=`<div class="card" style="padding:16px;"><table class="dtable"><tbody>${cust?[row('Họ tên',cust.name),row('CIF',cust.cif||'— (prospect)'),row('CCCD/MST',idCell(cust,'t-cid')),row('Địa chỉ',cust.address||'Chưa có trong mock KYC'),row('Điện thoại',phoneCell(cust,'t1')),row('Email',cust.email),row('Segment',cust.segment),row('Người được BH',insuredCustomerText),...(app.productId==='motor'?[row('Bên thụ hưởng (NTH)',nthText)]:[])].join(''):row('Khách hàng','—')}</tbody></table></div>
- <div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">KYC chỉ đọc từ Bank/CRM snapshot. Nhân viên tư vấn/kênh bán không được dùng để suy ra bên thụ hưởng.</div>`;
+ <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">KYC chỉ đọc từ Bank/CRM snapshot. Nhân viên tư vấn/kênh bán không được dùng để suy ra bên thụ hưởng.</div>`;
 } else if(activeTab==='quote'){
  if(app.productId==='health'){
  const q=qTrack||{};
@@ -2454,17 +2399,17 @@ if(activeTab==='overview'){
  const benefitCards=healthBenefitRows(app.package||q.packageId).map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;"><div style="font-size:12px;color:var(--ink-500);">${k}</div><b style="display:block;margin-top:4px;font-size:13px;">${v}</b></div>`).join('');
  const memberRows=members.map(function(m){return `<tr><td>${m.name||'—'}</td><td>${m.dob||'—'}</td><td>${m.age!=null?m.age:'—'}</td><td>${m.relationship||'—'}</td></tr>`;}).join('');
  const bd=q.premiumBreakdown||{};
- body=`<div class="card" style="padding:16px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><div class="label">Gói sức khỏe đang chọn</div><h2 style="margin:5px 0 2px;font-size:18px;color:var(--ink-900);">${pkg.name||app.package||'—'}</h2><div style="font-size:12px;color:var(--ink-500);">Thời hạn ${(pkg.termMonths||12)} tháng · ${pkg.territory||'Việt Nam'}</div></div><div style="text-align:right;"><div class="label">Tổng phí</div><b style="font-size:22px;color:var(--brand-600);">${BANCA.vnd(q.premium||app.premium||0)}</b></div></div></div>
+ body=`<div class="card" style="padding:16px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div><div class="label">Gói sức khỏe đang chọn</div><h2 style="margin:4px 0 2px;font-size:18px;color:var(--ink-900);">${pkg.name||app.package||'—'}</h2><div style="font-size:12px;color:var(--ink-500);">Thời hạn ${(pkg.termMonths||12)} tháng · ${pkg.territory||'Việt Nam'}</div></div><div style="text-align:right;"><div class="label">Tổng phí</div><b style="font-size:22px;color:var(--brand-600);">${BANCA.vnd(q.premium||app.premium||0)}</b></div></div></div>
  <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start;">
   <main style="display:grid;gap:14px;">
    <section class="card" style="padding:16px;"><div class="label" style="margin-bottom:10px;">Người được bảo hiểm</div><table class="dtable"><thead><tr><th>Họ tên</th><th>DOB</th><th>Tuổi BH</th><th>Quan hệ</th></tr></thead><tbody>${memberRows}</tbody></table></section>
-   <section class="card" style="padding:16px;"><div class="label" style="margin-bottom:10px;">Quyền lợi sức khỏe</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">${benefitCards}</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:10px;">Loại trừ chính: ${(pkg.exclusions||[]).join('; ')||'Theo quy tắc bảo hiểm sức khỏe'}.</div></section>
+   <section class="card" style="padding:16px;"><div class="label" style="margin-bottom:10px;">Quyền lợi sức khỏe</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">${benefitCards}</div><div style="font-size:11px;color:var(--ink-500);margin-top:10px;">Loại trừ chính: ${(pkg.exclusions||[]).join('; ')||'Theo quy tắc bảo hiểm sức khỏe'}.</div></section>
   </main>
   <aside class="card" style="padding:16px;position:sticky;top:84px;"><div class="label" style="margin-bottom:10px;">Breakdown phí</div>
-   <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line);"><span>Phí cơ bản</span><b>${BANCA.vnd(bd.basePremium||0)}</b></div>
-   <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line);"><span>Giảm phí</span><b>${bd.discount?'-'+BANCA.vnd(bd.discount):'—'}</b></div>
-   <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line);"><span>Thuế</span><b>${BANCA.vnd(bd.tax||0)}</b></div>
-   <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:9px 0;color:var(--brand-600);"><span>Tổng phí cuối cùng</span><span>${BANCA.vnd(q.premium||app.premium||0)}</span></div>
+   <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);"><span>Phí cơ bản</span><b>${BANCA.vnd(bd.basePremium||0)}</b></div>
+   <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);"><span>Giảm phí</span><b>${bd.discount?'-'+BANCA.vnd(bd.discount):'—'}</b></div>
+   <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);"><span>Thuế</span><b>${BANCA.vnd(bd.tax||0)}</b></div>
+   <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:8px 0;color:var(--brand-600);"><span>Tổng phí cuối cùng</span><span>${BANCA.vnd(q.premium||app.premium||0)}</span></div>
    <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Snapshot đã nộp — chỉ xem, không đổi gói hoặc tính lại phí tại tracking.</div>
   </aside>
  </div>`;
@@ -2489,8 +2434,8 @@ if(activeTab==='overview'){
   ['VAT','Phần vật chất',BANCA.VAT_PCT+'%','+'+BANCA.vnd(q.vatAmount||0)],
   ['Tổng phí cuối cùng','TNDS + vật chất sau VAT','—',BANCA.vnd(q.totalPremium||app.premium||0)]
  ];
- const addOnCards=Object.values(BANCA.motorAddOns).map(a=>{const on=(snap.addOns||[]).includes(a.code); const line=(q.lines||[]).find(l=>l.code===a.code||l.label===a.name); const amt=line?Math.abs(line.amount):Math.round((q.odBase||0)*(a.ratePct||0)/100); return `<div style="border:1px solid ${on?'var(--brand-600)':'var(--line)'};border-radius:10px;padding:12px 14px;background:${on?'var(--brand-100)':'#fff'};display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;"><div><div style="font-size:13px;font-weight:800;color:var(--ink-900);">${a.name}</div><div style="font-size:11.5px;color:var(--ink-500);margin-top:3px;">Tỷ lệ phí ${a.ratePct}% · phần phí tăng thêm ${BANCA.vnd(amt)}</div></div><div style="text-align:right;">${on?'<span class="badge badge-ready">Đang chọn</span>':'<span class="badge badge-pending">Không chọn</span>'}${canChange?`<div style="margin-top:6px;"><button class="btn btn-secondary btn-sm" onclick="alert('Toggle add-on demo — sau khi đổi sẽ cần tính lại phí')">${on?'Bỏ chọn':'Chọn'}</button></div>`:''}</div></div>`}).join('');
- const benefitGroup=(title,items,open)=>`<details ${open?'open':''} class="card" style="padding:14px 16px;margin:0 0 10px;"><summary style="cursor:pointer;font-weight:800;color:var(--ink-900);">${title}</summary><div style="display:grid;gap:8px;margin-top:10px;">${items.map(([a,b])=>`<div style="display:grid;grid-template-columns:220px 1fr;gap:12px;font-size:12.5px;border-bottom:1px dashed var(--line);padding-bottom:7px;"><span style="color:var(--ink-500);">${a}</span><b>${b}</b></div>`).join('')}</div></details>`;
+ const addOnCards=Object.values(BANCA.motorAddOns).map(a=>{const on=(snap.addOns||[]).includes(a.code); const line=(q.lines||[]).find(l=>l.code===a.code||l.label===a.name); const amt=line?Math.abs(line.amount):Math.round((q.odBase||0)*(a.ratePct||0)/100); return `<div style="border:1px solid ${on?'var(--brand-600)':'var(--line)'};border-radius:10px;padding:12px 14px;background:${on?'var(--brand-100)':'#fff'};display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;"><div><div style="font-size:13px;font-weight:800;color:var(--ink-900);">${a.name}</div><div style="font-size:11px;color:var(--ink-500);margin-top:2px;">Tỷ lệ phí ${a.ratePct}% · phần phí tăng thêm ${BANCA.vnd(amt)}</div></div><div style="text-align:right;">${on?'<span class="badge badge-ready">Đang chọn</span>':'<span class="badge badge-pending">Không chọn</span>'}${canChange?`<div style="margin-top:6px;"><button class="btn btn-secondary btn-sm" onclick="alert('Toggle add-on demo — sau khi đổi sẽ cần tính lại phí')">${on?'Bỏ chọn':'Chọn'}</button></div>`:''}</div></div>`}).join('');
+ const benefitGroup=(title,items,open)=>`<details ${open?'open':''} class="card" style="padding:14px 16px;margin:0 0 10px;"><summary style="cursor:pointer;font-weight:800;color:var(--ink-900);">${title}</summary><div style="display:grid;gap:8px;margin-top:10px;">${items.map(([a,b])=>`<div style="display:grid;grid-template-columns:220px 1fr;gap:12px;font-size:12px;border-bottom:1px dashed var(--line);padding-bottom:6px;"><span style="color:var(--ink-500);">${a}</span><b>${b}</b></div>`).join('')}</div></details>`;
  body=`<style>
   .quote-layout{display:grid;grid-template-columns:minmax(0,68fr) minmax(320px,32fr);gap:16px;align-items:start;}
   .quote-main{display:grid;gap:14px;}
@@ -2500,14 +2445,14 @@ if(activeTab==='overview'){
  </style>
  <div class="quote-layout">
   <main class="quote-main">
-   <section class="quote-card"><div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;"><div><div class="label">Gói đang chọn</div><h2 style="margin:5px 0 2px;font-size:18px;color:var(--ink-900);">${app.productName}</h2><div style="font-size:14px;font-weight:800;color:var(--brand-600);">${pkgName}</div></div><div style="display:flex;gap:8px;">${canChange?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Đổi gói demo\')">Đổi gói</button><button class="btn btn-secondary btn-sm" onclick="alert(\'So sánh gói demo\')">So sánh gói</button>':'<span class="chip">Không có quyền thay đổi</span>'}</div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;">${[['Số tiền BH',BANCA.vnd(idvTrack)],['Giá trị xe tham chiếu',app.vehicle&&app.vehicle.value?BANCA.vnd(app.vehicle.value):'—'],['Mức khấu trừ',dedTrack?BANCA.vnd(dedTrack)+'/vụ':'—'],['Trạng thái phí',needRerate?'<span class="badge badge-blocked">Cần tính lại phí</span>':BANCA.quoteStatusBadge(quoteState)]].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:9px;padding:10px;"><div style="font-size:10.5px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:13px;font-weight:800;margin-top:4px;">${v}</div></div>`).join('')}</div></section>
+   <section class="quote-card"><div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;"><div><div class="label">Gói đang chọn</div><h2 style="margin:4px 0 2px;font-size:18px;color:var(--ink-900);">${app.productName}</h2><div style="font-size:14px;font-weight:800;color:var(--brand-600);">${pkgName}</div></div><div style="display:flex;gap:8px;">${canChange?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Đổi gói demo\')">Đổi gói</button><button class="btn btn-secondary btn-sm" onclick="alert(\'So sánh gói demo\')">So sánh gói</button>':'<span class="chip">Không có quyền thay đổi</span>'}</div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;">${[['Số tiền BH',BANCA.vnd(idvTrack)],['Giá trị xe tham chiếu',app.vehicle&&app.vehicle.value?BANCA.vnd(app.vehicle.value):'—'],['Mức khấu trừ',dedTrack?BANCA.vnd(dedTrack)+'/vụ':'—'],['Trạng thái phí',needRerate?'<span class="badge badge-blocked">Cần tính lại phí</span>':BANCA.quoteStatusBadge(quoteState)]].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:10px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:13px;font-weight:800;margin-top:4px;">${v}</div></div>`).join('')}</div></section>
    <section class="quote-card"><div class="label" style="margin-bottom:10px;">Add-on</div><div style="display:grid;gap:10px;">${addOnCards}</div></section>
    <section><div class="section-title" style="margin-top:0;"><h2>Quyền lợi bảo hiểm</h2><span class="subtitle">Nhóm theo mức độ quan trọng</span></div>${benefitGroup('Bắt buộc',[['TNDS — người','150.000.000 ₫/người/vụ'],['TNDS — tài sản','100.000.000 ₫/vụ']],true)}${benefitGroup('Vật chất xe',[['Số tiền BH (IDV)',BANCA.vnd(idvTrack)],['Khấu trừ',dedTrack?BANCA.vnd(dedTrack)+'/vụ':'—'],['Garage',packageDef.garage||'Theo gói']],true)}${benefitGroup('Quyền lợi bổ sung',addOnsTrack.length?addOnsTrack.map(x=>[x,'Có — theo điều khoản gói '+pkgName]):[['Không có','—']],false)}${benefitGroup('Điều kiện và giới hạn',[['Hiệu lực báo giá',q.validUntil||'—'],['Gói không còn hiệu lực',quoteState==='EXPIRED'?'Có — cần tính lại':'Không'],['Quyền chỉnh sửa',canChange?'Nhân viên tư vấn được đổi gói/add-on':'Chỉ xem / không có quyền thay đổi']],false)}</section>
    <details class="quote-card"><summary style="cursor:pointer;font-weight:800;color:var(--brand-600);">Xem chi tiết cách tính phí</summary><table class="dtable" style="margin-top:12px;"><thead><tr><th>Thành phần</th><th>Cơ sở tính</th><th>Tỷ lệ</th><th>Thành tiền</th></tr></thead><tbody>${detailRows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td style="font-weight:700;">${r[3]}</td></tr>`).join('')}</tbody></table></details>
   </main>
   <aside class="quote-side">
    <section class="quote-card" style="border-top:4px solid ${needRerate?'var(--red-600)':'var(--brand-600)'};"><div class="label">Chi tiết phí</div>${needRerate?'<div class="alert2 warn" style="margin:10px 0;">Dữ liệu đã thay đổi / báo giá không còn hiệu lực. Phí cũ không được coi là phí hiện tại.</div>':''}${feeLine('TNDS bắt buộc',BANCA.vnd(q.tplPremium||0))}${feeLine('Phí vật chất xe',BANCA.vnd(q.odBase||0))}${feeLine('Tổng phí add-on','+'+BANCA.vnd(odAddOnTotal))}${feeLine('Tạm tính',BANCA.vnd(q.subtotal||0))}${feeLine('Giảm phí',discount?'−'+BANCA.vnd(discount):'—')}${feeLine('VAT','+'+BANCA.vnd(q.vatAmount||0))}${feeLine('Tổng phí cuối cùng',BANCA.vnd(q.totalPremium||app.premium||0),true)}<div style="display:grid;gap:8px;margin-top:12px;"><button class="btn btn-secondary" onclick="document.querySelector('details.quote-card') && document.querySelector('details.quote-card').setAttribute('open','')">Xem cách tính phí</button><button class="btn btn-secondary" onclick="alert('Tải bảng minh họa phí (demo)')">Tải bảng minh họa</button></div><div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Bản phí đã nộp — chỉ xem. Không đổi gói/add-on hay tính lại phí trên yêu cầu đã nộp.</div></section>
-   <section class="quote-card"><div class="label">Trạng thái hệ thống</div><div style="display:grid;gap:7px;margin-top:8px;font-size:12px;color:var(--ink-500);"><div>Loading phí: hiển thị khi gọi rating engine</div><div>Tính phí thành công: ${!needRerate?'đang áp dụng':'sau khi re-rate'}</div><div>Tính phí lỗi: hiển thị alert lỗi retry</div><div>Dữ liệu thay đổi cần re-rate: ${needRerate?'đang có':'không'}</div><div>Nhân viên tư vấn không có quyền thay đổi: ${canChange?'không':'có'}</div></div></section>
+   <section class="quote-card"><div class="label">Trạng thái hệ thống</div><div style="display:grid;gap:6px;margin-top:8px;font-size:12px;color:var(--ink-500);"><div>Loading phí: hiển thị khi gọi rating engine</div><div>Tính phí thành công: ${!needRerate?'đang áp dụng':'sau khi re-rate'}</div><div>Tính phí lỗi: hiển thị alert lỗi retry</div><div>Dữ liệu thay đổi cần re-rate: ${needRerate?'đang có':'không'}</div><div>Nhân viên tư vấn không có quyền thay đổi: ${canChange?'không':'có'}</div></div></section>
   </aside>
  </div>`;
  }
@@ -2528,18 +2473,18 @@ if(activeTab==='overview'){
  const rowDecl=d=>`<div style="padding:12px 14px;border-bottom:1px solid var(--line);">
    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div style="font-size:13px;font-weight:600;flex:1;">${d.q}</div>${d.flag?'<span class="badge badge-conditional" style="font-size:9px;">Kích hoạt UW</span>':''}</div>
    <div style="font-size:13px;margin-top:4px;">Trả lời: <b>${d.a}</b></div>
-   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:var(--ink-500);">
+   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--ink-500);">
      <span>Người cung cấp: <b style="color:var(--ink-700);">Khách hàng</b></span>
      <span>Nguồn: <b style="color:var(--ink-700);">Kê khai khi nộp</b></span>
      <span>Thời điểm: ${declTime}</span>
      <span>Khách xác nhận: ${custConfirmed?'<span class="badge badge-ready" style="font-size:9px;">Đã xác nhận</span>':'<span class="badge badge-pending" style="font-size:9px;">Chưa</span>'}</span>
      <span>Ảnh hưởng: ${impactOf(d)}</span>
    </div>
-   ${d.note?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">${d.note}</div>`:''}
+   ${d.note?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${d.note}</div>`:''}
  </div>`;
  body=`<div class="alert2 info" style="margin-bottom:12px;">Nội dung khai báo tại thời điểm nộp — <b>chỉ xem</b>.</div>`
   + Object.keys(groups).map(sec=>`<div class="section-title" style="margin-top:0;"><h2>${sec}</h2></div><div class="card" style="padding:0;overflow:hidden;margin-bottom:12px;">${groups[sec].map(rowDecl).join('')}</div>`).join('')
-  + `<div class="section-title" style="margin-top:0;"><h2>Tình trạng thế chấp (suy ra)</h2></div><div class="card" style="padding:12px 14px;"><div style="font-size:13px;">${mgTrack.mortgaged?`<b>Có</b> — ${mgTrack.bank||'—'}`:'<b>Không</b>'} <span class="chip">Derived</span></div><div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">Suy ra từ tab Đối tượng bảo hiểm/NTH — không nhập hai lần.</div></div>`;
+  + `<div class="section-title" style="margin-top:0;"><h2>Tình trạng thế chấp (suy ra)</h2></div><div class="card" style="padding:12px 14px;"><div style="font-size:13px;">${mgTrack.mortgaged?`<b>Có</b> — ${mgTrack.bank||'—'}`:'<b>Không</b>'} <span class="chip">Derived</span></div><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Suy ra từ tab Đối tượng bảo hiểm/NTH — không nhập hai lần.</div></div>`;
 } else if(activeTab==='documents'){
  body=submittedDocTable();
 } else if(activeTab==='uw' && app.productId==='health' && (app.insuredMembers||[]).some(function(m){return m.underwriting;})){
@@ -2562,7 +2507,7 @@ if(activeTab==='overview'){
  }).join('');
  body = `<div class="card" style="padding:14px 16px;margin-bottom:12px;border-left:4px solid ${oTone[0]};background:${oTone[1]};">
     <b style="color:${oTone[0]};font-size:14px;">Trạng thái tổng (derive): ${overall.label}</b>
-    <div style="font-size:12px;color:var(--ink-500);margin-top:3px;">Trạng thái tổng suy ra từ kết quả từng thành viên — không hiển thị "Đã chấp thuận tự động" cho toàn yêu cầu nếu chỉ một phần thành viên được duyệt.</div>
+    <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">Trạng thái tổng suy ra từ kết quả từng thành viên — không hiển thị "Đã chấp thuận tự động" cho toàn yêu cầu nếu chỉ một phần thành viên được duyệt.</div>
    </div>
    <div class="card" style="padding:16px;">
     <div class="label" style="margin-bottom:8px;">Ma trận thẩm định theo thành viên</div>
@@ -2579,9 +2524,9 @@ if(activeTab==='overview'){
  const _uwDef=BANCA.underwritingDefinitionFor(app.productId);
  const _unitName=_uwDef.error?'—':(_uwDef.manualUnit||'—');
  const _queueName=_uwDef.error?'—':(_uwDef.queueCode||'—');
- const wsCard=(_uwDef.error?`<div class="card" style="padding:14px;margin-bottom:12px;border:1.5px solid var(--red-600);background:#fdecec;"><b style="color:var(--red-600);">⚠ Lỗi cấu hình thẩm định</b><div style="font-size:12.5px;margin-top:4px;">${_uwDef.message}</div></div>`:'')+`<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Trạng thái thẩm định</div>
+ const wsCard=(_uwDef.error?`<div class="card" style="padding:14px;margin-bottom:12px;border:1.5px solid var(--red-600);background:#fdecec;"><b style="color:var(--red-600);">⚠ Lỗi cấu hình thẩm định</b><div style="font-size:12px;margin-top:4px;">${_uwDef.message}</div></div>`:'')+`<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Trạng thái thẩm định</div>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-     ${[['Trạng thái',uwState],['Đơn vị xử lý',_unitName],['Hàng chờ (queue)',_queueName],['Ưu tiên',app.uw?'Bình thường':(app.sla&&new Date(app.sla.replace(' ','T'))<new Date('2026-07-21T15:30:00')?'Cao':'Bình thường')],['Tiếp nhận lúc',received],['Bắt đầu',started],['Dự kiến xong',expected],['SLA còn lại',app.sla?slaHtml(app.sla):'—']].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:9px;"><div style="font-size:10px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">${v}</div></div>`).join('')}
+     ${[['Trạng thái',uwState],['Đơn vị xử lý',_unitName],['Hàng chờ (queue)',_queueName],['Ưu tiên',app.uw?'Bình thường':(app.sla&&new Date(app.sla.replace(' ','T'))<new Date('2026-07-21T15:30:00')?'Cao':'Bình thường')],['Tiếp nhận lúc',received],['Bắt đầu',started],['Dự kiến xong',expected],['SLA còn lại',app.sla?slaHtml(app.sla):'—']].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:8px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12px;font-weight:700;margin-top:2px;">${v}</div></div>`).join('')}
    </div></div>`;
  // Condition detail (chỉ khi duyệt có điều kiện) — không lộ note nội bộ/fraud/risk score
  const condCard = (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))?`<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--amber-600);">
@@ -2617,7 +2562,7 @@ if(activeTab==='overview'){
      <button class="btn btn-primary btn-sm" onclick="simulateUw('APPROVED_WITH_CONDITION')">◐ Duyệt có điều kiện</button>
      <button class="btn btn-secondary btn-sm" style="color:var(--red-600);" onclick="simulateUw('REJECTED')">✕ Từ chối</button>
    </div>
-   ${(app.routing&&app.routing.conditions&&app.routing.conditions.length)?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:8px;">Yếu tố rủi ro khai báo: ${app.routing.conditions.join(' · ')}</div>`:''}
+   ${(app.routing&&app.routing.conditions&&app.routing.conditions.length)?`<div style="font-size:11px;color:var(--ink-500);margin-top:8px;">Yếu tố rủi ro khai báo: ${app.routing.conditions.join(' · ')}</div>`:''}
  </div>` : '';
  // §1 — STP: hiển thị kết quả thẩm định thẳng, KHÔNG queue/officer/SLA thủ công/Motor UW Team.
  if(app.stpDecision){
@@ -2653,7 +2598,7 @@ if(activeTab==='overview'){
 } else if(activeTab==='policy' && caseView.phase==='POLICY_ISSUE_FAILED'){
  // §IX — phát hành lỗi: payment giữ SUCCESS, KHÔNG thu lại tiền, CTA thử lại/hỗ trợ.
  body=`<div class="card" style="padding:18px;border-left:4px solid var(--red-600);background:#fdecec;">
-   <div style="font-size:17px;font-weight:800;color:var(--red-600);">⚠ Phát hành hợp đồng lỗi</div>
+   <div style="font-size:16px;font-weight:800;color:var(--red-600);">⚠ Phát hành hợp đồng lỗi</div>
    <div style="font-size:13px;color:var(--ink-700);margin-top:6px;">Thanh toán đã <b>thành công</b> (${BANCA.vnd((app.payment&&app.payment.amount)||app.premium)}) — <b>không</b> yêu cầu khách thanh toán lại. Core phát hành gặp lỗi, thử phát hành lại hoặc chuyển hỗ trợ.</div>
    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
     ${app.owner===me?`<button class="btn btn-primary btn-sm" onclick="retryIssue()">Thử phát hành lại</button>`:''}
@@ -2668,13 +2613,13 @@ if(activeTab==='overview'){
    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;">
     <div>
      <div class="alert2 info" style="margin:0 0 8px;">Đã nhận thanh toán</div>
-     <div style="font-size:12.5px;color:var(--ink-500);margin-bottom:4px;">Đang phát hành hợp đồng → <b style="color:var(--teal-600);">Hợp đồng đã phát hành</b></div>
-     <div style="font-size:19px;font-weight:700;color:var(--teal-600);">✓ Hợp đồng đã phát hành thành công</div>
+     <div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">Đang phát hành hợp đồng → <b style="color:var(--teal-600);">Hợp đồng đã phát hành</b></div>
+     <div style="font-size:20px;font-weight:700;color:var(--teal-600);">✓ Hợp đồng đã phát hành thành công</div>
      <div style="font-size:14px;color:var(--ink-700);margin-top:4px;">Số HĐ <b>${app.policyId}</b> · Hiệu lực ${effFrom} → ${effTo}</div>
     </div>
     <!-- Nút Tải hợp đồng/Gửi cho khách đã chuyển lên header (getSubmittedCaseActions) -->
    </div>
-   <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:12.5px;color:var(--ink-500);">
+   <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:12px;color:var(--ink-500);">
     <div><b style="color:var(--ink-700);">Ngày hiệu lực</b><br>${effFrom}</div>
     <div><b style="color:var(--ink-700);">Hotline hỗ trợ</b><br>1900 1234 (24/7)</div>
     <div><b style="color:var(--ink-700);">Yêu cầu bồi thường</b><br>Gọi hotline hoặc app trong 5 ngày</div>
@@ -2682,7 +2627,7 @@ if(activeTab==='overview'){
    </div>
   </div>`;
  body = (app.policyId && caseView.states.policyStatus==='ISSUED')? issuedHead + gcnPanel(app)+`
- ${BANCA.commissionVisible('policy')?(()=>{const pol=BANCA.policyById(app.policyId); const cm=pol?BANCA.commissionOfPolicy(pol):null; return cm?`<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--teal-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>${BANCA.vnd(cm.amount)}</b> · trạng thái ${cm.stateLabel} · cơ sở tính HH ${BANCA.vnd(cm.base)} · tỷ lệ ${(cm.rate*100).toFixed(0)}%</div><div style="font-size:11px;color:var(--ink-300);margin-top:3px;">Read-only · cập nhật theo sync ${cm.syncAt}; clawback/đối soát xử lý ở màn admin đối tác.</div></div>`:''})():''}
+ ${BANCA.commissionVisible('policy')?(()=>{const pol=BANCA.policyById(app.policyId); const cm=pol?BANCA.commissionOfPolicy(pol):null; return cm?`<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--teal-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>${BANCA.vnd(cm.amount)}</b> · trạng thái ${cm.stateLabel} · cơ sở tính HH ${BANCA.vnd(cm.base)} · tỷ lệ ${(cm.rate*100).toFixed(0)}%</div><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Read-only · cập nhật theo sync ${cm.syncAt}; clawback/đối soát xử lý ở màn admin đối tác.</div></div>`:''})():''}
  ` : (()=>{
    const ck=(done,label)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${done?'var(--teal-600)':'var(--line)'};color:${done?'#fff':'var(--ink-500)'};">${done?'✓':'○'}</span><span style="${done?'':'color:var(--ink-500);'}">${label}</span></div>`;
    const uwOk = !!app.uw && !['REJECTED'].includes(st);
@@ -2691,7 +2636,7 @@ if(activeTab==='overview'){
    const issued = st==='ISSUED';
    return `<div class="card" style="padding:18px;">
      <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Hợp đồng chưa được phát hành</div>
-     <div style="font-size:12.5px;color:var(--ink-500);margin-bottom:12px;">Cần hoàn tất các điều kiện sau trước khi phát hành:</div>
+     <div style="font-size:12px;color:var(--ink-500);margin-bottom:12px;">Cần hoàn tất các điều kiện sau trước khi phát hành:</div>
      ${ck(uwOk,'Yêu cầu đã duyệt (thẩm định)')}
      ${ck(confirmed,'Khách hàng đã xác nhận')}
      ${ck(paid,'Đã thanh toán')}
@@ -2719,12 +2664,12 @@ if(activeTab==='overview'){
  if(st==='CANCELLED') ev.push([app.updatedAt||'—','Hủy yêu cầu: '+(app.cancelReason||''),'—','STATUS','','CANCELLED']);
  const CATS=[['ALL','Tất cả'],['STATUS','Trạng thái nghiệp vụ'],['DATA','Thay đổi dữ liệu'],['DOCUMENT','Tài liệu'],['INTEGRATION','Tích hợp'],['PAYMENT','Thanh toán']];
  const catBadge={STATUS:['Trạng thái','badge-base'],DATA:['Dữ liệu','badge-conditional'],DOCUMENT:['Tài liệu','badge-version'],INTEGRATION:['Tích hợp','badge-pending'],PAYMENT:['Thanh toán','badge-ready']};
- const chips=CATS.map(([v,l])=>`<a href="?id=${app.id}&tab=history&hcat=${v}" class="tab" style="text-decoration:none;padding:6px 11px;border-radius:20px;font-size:12px;${fCat===v?'background:var(--brand-600);color:#fff;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l}</a>`).join(' ');
+ const chips=CATS.map(([v,l])=>`<a href="?id=${app.id}&tab=history&hcat=${v}" class="tab" style="text-decoration:none;padding:6px 12px;border-radius:20px;font-size:12px;${fCat===v?'background:var(--brand-600);color:#fff;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l}</a>`).join(' ');
  const shown=ev.filter(e=>fCat==='ALL'||e[3]===fCat);
  body=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${chips}</div>
-  <div class="card" style="padding:16px;">${shown.length?shown.map(e=>{const cb=catBadge[e[3]]||['','badge-version'];return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:12.5px;align-items:flex-start;">
+  <div class="card" style="padding:16px;">${shown.length?shown.map(e=>{const cb=catBadge[e[3]]||['','badge-version'];return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:12px;align-items:flex-start;">
    <span style="color:var(--ink-300);width:130px;flex-shrink:0;">${e[0]}</span>
-   <div style="flex:1;"><b>${e[1]}</b> <span class="badge ${cb[1]}" style="font-size:9px;">${cb[0]}</span>${(e[4]||e[5])?`<div style="font-size:11.5px;color:var(--ink-500);margin-top:2px;">${e[4]?e[4]+' → ':''}${e[5]||''}</div>`:''}</div>
+   <div style="flex:1;"><b>${e[1]}</b> <span class="badge ${cb[1]}" style="font-size:9px;">${cb[0]}</span>${(e[4]||e[5])?`<div style="font-size:11px;color:var(--ink-500);margin-top:2px;">${e[4]?e[4]+' → ':''}${e[5]||''}</div>`:''}</div>
    <span style="color:var(--ink-500);white-space:nowrap;">${e[2]}</span>
   </div>`;}).join(''):'<div class="empty-state" style="padding:20px;">Không có sự kiện ở nhóm này.</div>'}</div>
   <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Sự kiện tích hợp hiển thị thân thiện (không lộ log kỹ thuật thô).</div>`;
@@ -2744,7 +2689,7 @@ const roleName=(BANCA.personas[me]||{}).role||'Nhân viên tư vấn';
 const permLabel = readOnly?'Chỉ xem' : (casePh==='NEED_MORE_INFORMATION'?'Được bổ sung':'Chỉ xem (đã nộp)');
 // Version selector
 const verSelect = cmeta.versions.length>1
- ? `<select onchange="viewVersion(this.value)" style="font-size:12px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;">${cmeta.versions.slice().reverse().map(v=>`<option value="${v.v}" ${v.v===caseVer?'selected':''}>V${v.v}${v.v===caseVer?' (Current)':''} · ${v.status}</option>`).join('')}</select>${cmeta.compare.length?` <button class="btn btn-secondary btn-sm" onclick="compareVersions('${app.id}')">Compare V1↔V${caseVer}</button>`:''}`
+ ? `<select onchange="viewVersion(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--line);border-radius:6px;">${cmeta.versions.slice().reverse().map(v=>`<option value="${v.v}" ${v.v===caseVer?'selected':''}>V${v.v}${v.v===caseVer?' (Current)':''} · ${v.status}</option>`).join('')}</select>${cmeta.compare.length?` <button class="btn btn-secondary btn-sm" onclick="compareVersions('${app.id}')">Compare V1↔V${caseVer}</button>`:''}`
  : `<span class="badge badge-version">Phiên bản ${caseVer}</span>`;
 // Notification banner (Epic 12)
 function caseNotification(){
@@ -2756,23 +2701,23 @@ function caseNotification(){
  return null;
 }
 const noti=caseNotification();
-const notiBanner = noti?`<div style="display:flex;gap:10px;align-items:center;background:${noti[1]};border-radius:10px;padding:10px 14px;margin-bottom:12px;"><span style="font-size:16px;">${noti[2]}</span><b style="color:${noti[0]};">${noti[3]}</b>${noti[4]?`<span style="font-size:12.5px;color:var(--ink-500);">· ${noti[4]}</span>`:''}</div>`:'';
+const notiBanner = noti?`<div style="display:flex;gap:10px;align-items:center;background:${noti[1]};border-radius:10px;padding:10px 14px;margin-bottom:12px;"><span style="font-size:16px;">${noti[2]}</span><b style="color:${noti[0]};">${noti[3]}</b>${noti[4]?`<span style="font-size:12px;color:var(--ink-500);">· ${noti[4]}</span>`:''}</div>`:'';
 // Dashboard summary chips (Epic 15)
 const stageLbl={PENDING_INTAKE:'Chờ tiếp nhận',UW_PENDING:'Chờ thẩm định',UW_IN_PROGRESS:'Đang thẩm định',NEED_MORE_INFORMATION:'Cần bổ sung',APPROVED_WITH_CONDITION:'Duyệt có điều kiện',CUSTOMER_RECONFIRMATION:'Chờ khách xác nhận',PAYMENT_PENDING:'Chờ thanh toán',PAID:'Đã thanh toán',PENDING_ISSUE:'Chờ phát hành',ISSUED:'Đã phát hành',REJECTED:'Từ chối',CANCELLED:'Đã hủy'}[casePh]||casePh;
 const caseOwner=casePh==='NEED_MORE_INFORMATION'?'Nhân viên tư vấn':(casePh==='PENDING_INTAKE'?'Chờ tiếp nhận':'Đơn vị bảo hiểm');
-const dashChip=(k,v)=>`<div style="border:1px solid var(--line);border-radius:8px;padding:7px 11px;"><div style="font-size:10px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12.5px;font-weight:700;margin-top:2px;">${v}</div></div>`;
+const dashChip=(k,v)=>`<div style="border:1px solid var(--line);border-radius:8px;padding:6px 12px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12px;font-weight:700;margin-top:2px;">${v}</div></div>`;
 const dashStrip=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">${dashChip('Giai đoạn',stageLbl)}${dashChip('Việc tiếp theo',na[0].length>28?na[0].slice(0,28)+'…':na[0])}${dashChip('SLA',app.sla?slaHtml(app.sla):'—')}${dashChip('Phiên bản','V'+caseVer)}${dashChip('Owner',caseOwner)}</div>`;
 
 const hdr=`<div class="card" style="padding:14px 18px;margin-bottom:14px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(10,25,60,.06);">
  <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
   <div>
    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:22px;font-weight:700;color:var(--ink-900);line-height:1.15;">${app.id}</span>${verSelect}</div>
-   <div style="font-size:13.5px;color:var(--ink-500);margin-top:2px;">${cust?cust.name:'—'} · ${app.productName}${app.package?' · '+app.package:''}</div>
+   <div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${cust?cust.name:'—'} · ${app.productName}${app.package?' · '+app.package:''}</div>
    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">${metaChip('Nộp lúc',(app.submittedAt||'—')+' · '+submittedBy)}${metaChip('Nguồn',srcLabel)}${metaChip('Quote',quoteRef)}${metaChip('Mã xử lý',uwRef)}<span class="chip" style="background:#eef0f4;color:var(--ink-500);">${roleName} · ${permLabel}</span></div>
   </div>
   <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-left:auto;">
-   <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Trạng thái xử lý</div><div style="margin-top:3px;">${BANCA.caseStatusBadge(app)}</div></div>
-   <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Tổng phí</div><b style="font-size:24px;color:var(--brand-600);display:block;margin-top:1px;">${BANCA.vnd((app.uw&&app.uw.newPremium)||app.premium)}</b></div>
+   <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Trạng thái xử lý</div><div style="margin-top:2px;">${BANCA.caseStatusBadge(app)}</div></div>
+   <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Tổng phí</div><b style="font-size:24px;color:var(--brand-600);display:block;margin-top:0px;">${BANCA.vnd((app.uw&&app.uw.newPremium)||app.premium)}</b></div>
   </div>
  </div>
  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">${caseStepperStrip()}</div>
@@ -2789,9 +2734,9 @@ const routedBanner = (qs.get('routed')==='1' && app.routing) ? (function(){
  const nextLabel = {PAYMENT:'Thanh toán phí bảo hiểm', UNDERWRITING:'Theo dõi thẩm định', REVIEW_AND_SUBMIT:'Bổ sung thông tin', null:'Kết thúc'}[R.nextStage]||'Bước tiếp theo';
  return `<div class="card" style="padding:14px 16px;margin-bottom:14px;border:1.5px solid ${tone};background:${bg};">
    <div style="font-weight:800;color:${tone};font-size:14px;">✓ Đã gửi yêu cầu bảo hiểm — kết quả: ${R.label}</div>
-   ${R.reasons&&R.reasons.length?`<div style="font-size:12.5px;color:var(--ink-700);margin-top:4px;">${R.reasons.join(' · ')}</div>`:''}
+   ${R.reasons&&R.reasons.length?`<div style="font-size:12px;color:var(--ink-700);margin-top:4px;">${R.reasons.join(' · ')}</div>`:''}
    ${R.conditions&&R.conditions.length?`<ul style="margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--ink-700);">${R.conditions.map(function(c){return '<li>'+c+'</li>';}).join('')}</ul>`:''}
-   ${R.nextStage?`<div style="font-size:12.5px;color:var(--ink-500);margin-top:6px;">Hành trình tiếp tục ngay tại đây — bước tiếp theo: <b style="color:${tone};">${nextLabel}</b>. Không cần tìm lại yêu cầu trong danh sách.</div>`:''}
+   ${R.nextStage?`<div style="font-size:12px;color:var(--ink-500);margin-top:6px;">Hành trình tiếp tục ngay tại đây — bước tiếp theo: <b style="color:${tone};">${nextLabel}</b>. Không cần tìm lại yêu cầu trong danh sách.</div>`:''}
   </div>`;
 })() : '';
 
@@ -2805,7 +2750,7 @@ window.compareVersions=function(id){
  const d=document.createElement('div'); d.className='modal-overlay2 open'; d.onclick=function(ev){ if(ev.target===d) d.remove(); };
  d.innerHTML=`<div class="modal2" style="max-width:560px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>So sánh phiên bản — ${id}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
    <table class="dtable"><thead><tr><th>Trường</th><th>V1</th><th>V${m.currentVersion}</th></tr></thead><tbody>${m.compare.map(c=>`<tr><td style="color:var(--ink-500);">${c.field}</td><td>${c.v1}</td><td style="color:var(--teal-600);font-weight:600;">${c.v2}</td></tr>`).join('')}</tbody></table>
-   <div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">Bản V1 đã nộp được giữ nguyên; V${m.currentVersion} là bản bổ sung. Thay đổi có version + actor + timestamp.</div>
+   <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Bản V1 đã nộp được giữ nguyên; V${m.currentVersion} là bản bổ sung. Thay đổi có version + actor + timestamp.</div>
  </div></div>`;
  root.appendChild(d);
 };
@@ -2908,11 +2853,11 @@ window.openPayFlow = function(experience){
  const heads={CUSTOMER_PRESENT_QR:'Quét QR tại quầy', CUSTOMER_REMOTE:'Gửi yêu cầu thanh toán từ xa', SELLER_DEVICE_ASSISTED:'Thanh toán trên thiết bị này'};
  let inner;
  if(experience==='CUSTOMER_PRESENT_QR'){
-  inner=`<div class="card" style="padding:14px;"><table class="dtable"><tbody><tr><td>Số tiền</td><td><b>${BANCA.vnd(amount)}</b></td></tr><tr><td>Mã tham chiếu</td><td class="code">MR-${app.id}</td></tr><tr><td>Hết hạn</td><td>2026-07-24 11:30</td></tr></tbody></table><div style="font-size:11.5px;color:var(--ink-500);margin-top:8px;">Sau khi tạo, hệ thống hiển thị mã QR để khách quét. Kết quả thanh toán do cổng thanh toán trả về.</div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'CUSTOMER_PRESENT_QR',instrument:'QR',delivery:'NONE'})">Tạo mã QR thanh toán</button></div>`;
+  inner=`<div class="card" style="padding:14px;"><table class="dtable"><tbody><tr><td>Số tiền</td><td><b>${BANCA.vnd(amount)}</b></td></tr><tr><td>Mã tham chiếu</td><td class="code">MR-${app.id}</td></tr><tr><td>Hết hạn</td><td>2026-07-24 11:30</td></tr></tbody></table><div style="font-size:11px;color:var(--ink-500);margin-top:8px;">Sau khi tạo, hệ thống hiển thị mã QR để khách quét. Kết quả thanh toán do cổng thanh toán trả về.</div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'CUSTOMER_PRESENT_QR',instrument:'QR',delivery:'NONE'})">Tạo mã QR thanh toán</button></div>`;
  } else if(experience==='CUSTOMER_REMOTE'){
-  inner=`<div class="card" style="padding:14px;"><div style="display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-top:2px;"><label>Kênh gửi</label><select id="pay-delivery" onchange="document.getElementById('pay-recipient').value=this.value==='EMAIL'?'${c.email||'khach@email.vn'}':'${c.phone||''}'" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><option value="SMS">SMS</option><option value="EMAIL">Email</option><option value="COPY_LINK">Sao chép liên kết</option></select><label>Người nhận</label><input id="pay-recipient" value="${c.phone||''}" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Đồng ý</label><label style="font-size:12.5px;"><input id="pay-consent" type="checkbox"> Khách đồng ý nhận yêu cầu thanh toán</label><label>Liên kết hết hạn</label><input value="2026-07-24 11:30" readonly style="padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--paper);"><label>Xem trước tin nhắn</label><textarea readonly style="padding:8px;border:1px solid var(--line);border-radius:7px;font-family:inherit;">Janus Bank: Yeu cau ${app.id} can thanh toan ${BANCA.vnd(amount)}. Link het han 2026-07-24 11:30.</textarea></div><button class="btn btn-primary" style="margin-top:12px;" onclick="if(!document.getElementById('pay-consent').checked){document.getElementById('pay-consent').focus();return;}createPaymentIntent({experience:'CUSTOMER_REMOTE',instrument:'BANK_TRANSFER',delivery:document.getElementById('pay-delivery').value,recipient:document.getElementById('pay-recipient').value})">Tạo và gửi yêu cầu thanh toán</button></div>`;
+  inner=`<div class="card" style="padding:14px;"><div style="display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-top:2px;"><label>Kênh gửi</label><select id="pay-delivery" onchange="document.getElementById('pay-recipient').value=this.value==='EMAIL'?'${c.email||'khach@email.vn'}':'${c.phone||''}'" style="padding:8px;border:1px solid var(--line);border-radius:6px;"><option value="SMS">SMS</option><option value="EMAIL">Email</option><option value="COPY_LINK">Sao chép liên kết</option></select><label>Người nhận</label><input id="pay-recipient" value="${c.phone||''}" style="padding:8px;border:1px solid var(--line);border-radius:6px;"><label>Đồng ý</label><label style="font-size:12px;"><input id="pay-consent" type="checkbox"> Khách đồng ý nhận yêu cầu thanh toán</label><label>Liên kết hết hạn</label><input value="2026-07-24 11:30" readonly style="padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);"><label>Xem trước tin nhắn</label><textarea readonly style="padding:8px;border:1px solid var(--line);border-radius:6px;font-family:inherit;">Janus Bank: Yeu cau ${app.id} can thanh toan ${BANCA.vnd(amount)}. Link het han 2026-07-24 11:30.</textarea></div><button class="btn btn-primary" style="margin-top:12px;" onclick="if(!document.getElementById('pay-consent').checked){document.getElementById('pay-consent').focus();return;}createPaymentIntent({experience:'CUSTOMER_REMOTE',instrument:'BANK_TRANSFER',delivery:document.getElementById('pay-delivery').value,recipient:document.getElementById('pay-recipient').value})">Tạo và gửi yêu cầu thanh toán</button></div>`;
  } else {
-  inner=`<div class="card" style="padding:14px;"><div style="display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-top:2px;"><label>Người thanh toán</label><input id="payer-name" value="${c.name||''}" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Quan hệ</label><input id="payer-rel" value="Bên mua bảo hiểm" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><label>Hình thức</label><select id="pay-instrument" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><option value="CARD">Thẻ</option><option value="BANK_ACCOUNT">Tài khoản ngân hàng</option></select><label>Dữ liệu nhạy cảm</label><div class="alert2 warn" style="margin:0;">Khách tự nhập trên cổng thanh toán. Nhân viên tư vấn không nhìn thấy số thẻ/tài khoản và không được tự xác nhận thành công.</div><label>Mã OTP</label><div class="alert2 info" style="margin:0;">Khách xác nhận OTP trên cổng thanh toán.</div></div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'SELLER_DEVICE_ASSISTED',instrument:document.getElementById('pay-instrument').value,delivery:'NONE',payerName:document.getElementById('payer-name').value,payerRelationship:document.getElementById('payer-rel').value})">Tạo phiên thanh toán</button></div>`;
+  inner=`<div class="card" style="padding:14px;"><div style="display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-top:2px;"><label>Người thanh toán</label><input id="payer-name" value="${c.name||''}" style="padding:8px;border:1px solid var(--line);border-radius:6px;"><label>Quan hệ</label><input id="payer-rel" value="Bên mua bảo hiểm" style="padding:8px;border:1px solid var(--line);border-radius:6px;"><label>Hình thức</label><select id="pay-instrument" style="padding:8px;border:1px solid var(--line);border-radius:6px;"><option value="CARD">Thẻ</option><option value="BANK_ACCOUNT">Tài khoản ngân hàng</option></select><label>Dữ liệu nhạy cảm</label><div class="alert2 warn" style="margin:0;">Khách tự nhập trên cổng thanh toán. Nhân viên tư vấn không nhìn thấy số thẻ/tài khoản và không được tự xác nhận thành công.</div><label>Mã OTP</label><div class="alert2 info" style="margin:0;">Khách xác nhận OTP trên cổng thanh toán.</div></div><button class="btn btn-primary" style="margin-top:12px;" onclick="createPaymentIntent({experience:'SELLER_DEVICE_ASSISTED',instrument:document.getElementById('pay-instrument').value,delivery:'NONE',payerName:document.getElementById('payer-name').value,payerRelationship:document.getElementById('payer-rel').value})">Tạo phiên thanh toán</button></div>`;
  }
  d.innerHTML=`<div class="modal2" style="max-width:620px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>${heads[experience]||'Thanh toán'} — ${BANCA.vnd(amount)}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">${inner}<div style="margin-top:10px;text-align:right;"><button class="btn btn-secondary btn-sm" onclick="this.closest('.modal-overlay2').remove()">Hủy</button></div></div></div>`;
  root.appendChild(d);
@@ -2922,7 +2867,7 @@ window.openTxnDetail = function(){
  const pay=app.payment; if(!pay) return;
  const root=document.getElementById('start-sale-root')||document.body;
  const d=document.createElement('div'); d.className='modal-overlay2 open'; d.onclick=function(ev){ if(ev.target===d) d.remove(); };
- const rowT=(k,v)=>`<tr><td style="color:var(--ink-500);width:180px;font-size:12.5px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`;
+ const rowT=(k,v)=>`<tr><td style="color:var(--ink-500);width:180px;font-size:12px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`;
  const techRows=[['Payment ID',pay.paymentId||'—'],['Experience',pay.paymentExperience||'—'],['Payment instrument',pay.paymentInstrument||'—'],['Delivery channel',pay.deliveryChannel||'NONE'],['Merchant reference',pay.merchantReference||'—'],['Gateway reference',pay.gatewayReference||'—'],['Gateway transaction ID',pay.gatewayTransactionId||'—'],['Status',pay.status]].map(function(x){return rowT(x[0],'<span class="code">'+x[1]+'</span>');}).join('');
  d.innerHTML=`<div class="modal2" style="max-width:560px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Chi tiết giao dịch — ${pay.gatewayTransactionId||pay.gatewayReference||pay.merchantReference||pay.paymentId}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
    <table class="dtable"><tbody>
@@ -3047,7 +2992,7 @@ window.withdrawCase = function(id){
  const d=document.createElement('div'); d.className='modal-overlay2 open'; d.onclick=function(ev){ if(ev.target===d) d.remove(); };
  d.innerHTML=`<div class="modal2" style="max-width:480px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>Thu hồi yêu cầu ${id}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
    <div style="font-size:13px;color:var(--ink-700);margin-bottom:8px;">Chỉ thu hồi được khi yêu cầu chưa được đơn vị bảo hiểm tiếp nhận. Yêu cầu sẽ chuyển <b>WITHDRAWN</b>, giữ nguyên lịch sử; có thể tạo bản nháp mới từ snapshot.</div>
-   <div class="field"><label style="font-size:12px;color:var(--ink-500);">Lý do thu hồi *</label><textarea id="wd-reason" style="width:100%;min-height:70px;padding:9px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px;" placeholder="VD: Khách đổi ý / nhập sai thông tin xe…"></textarea></div>
+   <div class="field"><label style="font-size:12px;color:var(--ink-500);">Lý do thu hồi *</label><textarea id="wd-reason" style="width:100%;min-height:70px;padding:8px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px;" placeholder="VD: Khách đổi ý / nhập sai thông tin xe…"></textarea></div>
    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="this.closest('.modal-overlay2').remove()">Hủy</button><button class="btn btn-primary btn-sm" style="background:var(--red-600);" onclick="withdrawConfirm('${id}',this)">Xác nhận thu hồi</button></div>
  </div></div>`;
  root.appendChild(d);
@@ -3057,8 +3002,8 @@ window.withdrawConfirm = function(id, btn){
  if(!reason){ document.getElementById('wd-reason').style.borderColor='var(--red-600)'; return; }
  const modal=btn.closest('.modal-overlay2');
  modal.querySelector('.modal2-body').innerHTML=`<div style="text-align:center;padding:14px;">
-   <div style="font-size:15px;font-weight:700;color:var(--teal-600);">✓ Đã thu hồi hồ sơ</div>
-   <div style="font-size:12.5px;color:var(--ink-500);margin:8px 0;">${id} · Phiên bản 1 → <b>WITHDRAWN</b><br>Lịch sử được giữ nguyên. Có thể tạo bản nháp mới (Phiên bản 2 · DRAFT) từ snapshot cũ.</div>
+   <div style="font-size:14px;font-weight:700;color:var(--teal-600);">✓ Đã thu hồi hồ sơ</div>
+   <div style="font-size:12px;color:var(--ink-500);margin:8px 0;">${id} · Phiên bản 1 → <b>WITHDRAWN</b><br>Lịch sử được giữ nguyên. Có thể tạo bản nháp mới (Phiên bản 2 · DRAFT) từ snapshot cũ.</div>
    <button class="btn btn-secondary btn-sm" onclick="this.closest('.modal-overlay2').remove()">Đóng</button>
    <button class="btn btn-primary btn-sm" onclick="alert('Tạo bản nháp mới từ snapshot (demo)')">Tạo bản nháp mới</button>
  </div>`;

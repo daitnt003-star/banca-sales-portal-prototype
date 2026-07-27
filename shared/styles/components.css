@@ -11,7 +11,7 @@
 .customer-context-card{border:1px solid var(--line);border-radius:12px;background:var(--paper-card);padding:14px 16px;box-shadow:0 1px 2px rgba(16,24,40,.04);}
 .cc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .cc-title{font-weight:600;color:var(--ink-900);}
-.cc-stage{font-size:12px;padding:3px 8px;border-radius:10px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink-700);}
+.cc-stage{font-size:12px;padding:2px 8px;border-radius:10px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink-700);}
 .cc-stage.stage-anonymous_context{background:var(--amber-100);border-color:var(--amber-600);color:var(--amber-600);}
 .cc-stage.stage-identified_context,.cc-stage.stage-verified_customer{background:var(--teal-100);border-color:var(--teal-600);color:var(--teal-600);}
 .cc-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px;}
@@ -28,26 +28,26 @@
 .consent-status.pending{background:var(--paper);color:var(--ink-500);border:1px solid var(--line);}
 .cs-meta{opacity:.8;font-size:12px;}
 .channel-switcher{font-size:13px;color:var(--ink-700);}
-.channel-switcher select{margin-left:4px;padding:3px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--paper-card);}
+.channel-switcher select{margin-left:4px;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--paper-card);}
 
 /* ===== OFFER_CONTEXT step (§2) ===== */
 .offer-context-step{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:820px){.offer-context-step{grid-template-columns:1fr;}}
 .oc-panel{border:1px solid var(--line);border-radius:12px;background:var(--paper-card);padding:14px 16px;}
 .oc-title{font-weight:700;color:var(--ink-900);margin-bottom:10px;font-size:14px;}
-.oc-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13.5px;border-bottom:1px dashed var(--line);}
+.oc-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:13px;border-bottom:1px dashed var(--line);}
 .oc-k{color:var(--ink-500);}
 .oc-v{color:var(--ink-900);text-align:right;}
 .oc-why{margin-top:10px;background:var(--brand-100);color:var(--brand-900);padding:8px 10px;border-radius:8px;font-size:13px;}
 .oc-offer{border:1.5px solid var(--brand-500);border-radius:10px;padding:12px 14px;background:var(--brand-100);}
 .oc-offer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-.oc-badge-primary{background:var(--brand-600);color:#fff;font-size:11px;padding:3px 9px;border-radius:10px;font-weight:600;}
-.oc-prod{font-size:15px;color:var(--ink-900);}
+.oc-badge-primary{background:var(--brand-600);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;}
+.oc-prod{font-size:14px;color:var(--ink-900);}
 .oc-prem{margin-top:6px;color:var(--brand-700);}
 .oc-reason{margin-top:6px;font-size:13px;color:var(--ink-700);}
 .oc-benefits{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--ink-700);}
-.oc-verify{margin-top:8px;font-size:12.5px;color:var(--amber-600);}
-.oc-lock{margin-top:10px;font-size:12.5px;color:var(--ink-500);}
+.oc-verify{margin-top:8px;font-size:12px;color:var(--amber-600);}
+.oc-lock{margin-top:10px;font-size:12px;color:var(--ink-500);}
 .oc-alts{margin-top:10px;font-size:13px;}
 .oc-alts summary{cursor:pointer;color:var(--brand-700);}
 .oc-alt{padding:6px 0;border-bottom:1px dashed var(--line);color:var(--ink-700);}
@@ -57,13 +57,13 @@
 .sales-source-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--brand-100);border:1px solid var(--brand-500);border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;}
 .ssb-main{display:flex;gap:20px;flex-wrap:wrap;}
 .ssb-cell{display:flex;flex-direction:column;}
-.ssb-k{font-size:10.5px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.03em;}
+.ssb-k{font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:.03em;}
 .ssb-v{font-size:13px;color:var(--ink-900);font-weight:600;}
 .ssb-lock{font-size:12px;color:var(--ink-500);}
 .offer-workspace{display:flex;flex-direction:column;gap:12px;}
 .ows-panel{border:1px solid var(--line);border-radius:12px;background:var(--paper-card);padding:14px 16px;}
 .ows-prod{font-size:16px;font-weight:700;color:var(--ink-900);}
-.ows-meta{font-size:12.5px;color:var(--ink-500);margin-top:6px;}
+.ows-meta{font-size:12px;color:var(--ink-500);margin-top:6px;}
 .ows-alt{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;}
 .alt-prod{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;}
 .pkg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
@@ -72,23 +72,23 @@
 .pkg-card.recommended{border-color:var(--teal-600);}
 .pkg-head{display:flex;align-items:center;gap:6px;}
 .pkg-name{font-weight:700;color:var(--ink-900);}
-.pkg-rec{margin-left:auto;background:var(--teal-600);color:#fff;font-size:10px;padding:2px 7px;border-radius:9px;}
+.pkg-rec{margin-left:auto;background:var(--teal-600);color:#fff;font-size:11px;padding:2px 6px;border-radius:8px;}
 .pkg-prem{color:var(--brand-700);font-weight:700;margin:6px 0;}
-.pkg-ben{margin:0 0 8px;padding-left:16px;font-size:12.5px;color:var(--ink-700);}
-.pkg-ded{font-size:11.5px;color:var(--ink-500);}
-.pkg-cmp{display:flex;gap:5px;align-items:center;font-size:11.5px;color:var(--ink-500);margin-top:8px;}
+.pkg-ben{margin:0 0 8px;padding-left:16px;font-size:12px;color:var(--ink-700);}
+.pkg-ded{font-size:11px;color:var(--ink-500);}
+.pkg-cmp{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--ink-500);margin-top:8px;}
 .cmp-panel{margin-top:12px;}
 .cmp-title{font-weight:700;margin-bottom:6px;}
-.cmp-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px;}
 .cmp-table th,.cmp-table td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;}
-.addon-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+.addon-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;}
 .addon-item.disabled{opacity:.5;}
 .addon-prem{margin-left:auto;color:var(--brand-700);}
 .addon-note{font-size:11px;color:var(--amber-600);}
 .selected-offer-summary{background:var(--paper);}
 .sos-line{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--ink-700);}
-.sos-total{display:flex;justify-content:space-between;border-top:1px solid var(--line-strong);margin-top:8px;padding-top:8px;font-size:15px;color:var(--brand-700);}
-.sos-note{font-size:11.5px;color:var(--ink-500);margin-top:6px;}
+.sos-total{display:flex;justify-content:space-between;border-top:1px solid var(--line-strong);margin-top:8px;padding-top:8px;font-size:14px;color:var(--brand-700);}
+.sos-note{font-size:11px;color:var(--ink-500);margin-top:6px;}
 @media(max-width:640px){.sales-source-bar{flex-direction:column;align-items:flex-start;}}
 
 /* ============================================================
@@ -103,24 +103,24 @@
 
 /* Lifecycle tabs (underline, KHÔNG nền đặc — tránh chữ đè nền) */
 .offer-group-bar{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--line);}
-.ogb-tab{text-decoration:none;padding:9px 14px;font-size:13px;color:var(--ink-500);background:transparent;border:0;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:7px;margin-bottom:-1px;}
+.ogb-tab{text-decoration:none;padding:8px 14px;font-size:13px;color:var(--ink-500);background:transparent;border:0;border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:6px;margin-bottom:0px;}
 .ogb-tab:hover{color:var(--ink-900);}
 .ogb-tab.on{color:var(--brand-700);border-bottom-color:var(--brand-600);font-weight:600;}
-.ogb-n{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:0 7px;font-size:11px;color:var(--ink-500);min-width:20px;text-align:center;}
+.ogb-n{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:0 6px;font-size:11px;color:var(--ink-500);min-width:20px;text-align:center;}
 .ogb-tab.on .ogb-n{background:var(--brand-600);border-color:var(--brand-600);color:#fff;}
 
 /* Toolbar: scope + search + advanced + count (một hàng, cùng vị trí mọi lifecycle) */
 .qls-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .qls-toolbar .spacer{flex:1;}
 .qls-searchform{display:inline;}
-.otb-search{padding:7px 12px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;width:220px;}
+.otb-search{padding:6px 12px;border:1px solid var(--line-strong);border-radius:6px;font-size:12px;width:220px;}
 .qls-count{font-size:12px;color:var(--ink-500);white-space:nowrap;}
 
 /* DataScopeSelector (dropdown, label không wrap) */
 .data-scope-selector{display:inline-flex;align-items:center;gap:14px;flex-wrap:nowrap;}
-.dss-field{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap;}
+.dss-field{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;}
 .dss-label{color:var(--ink-500);font-weight:600;white-space:nowrap;}
-.dss-select{padding:6px 10px;border:1px solid var(--line-strong);border-radius:7px;font-size:12.5px;background:var(--paper-card);min-width:130px;}
+.dss-select{padding:6px 10px;border:1px solid var(--line-strong);border-radius:6px;font-size:12px;background:var(--paper-card);min-width:130px;}
 
 /* Quick filters (1 hàng/lifecycle) */
 .qls-quick{margin-bottom:12px;}
@@ -128,18 +128,18 @@
 .offer-quick-filters{display:flex;flex-direction:column;gap:8px;}
 .oqf-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .oqf-label{font-size:12px;color:var(--ink-500);min-width:110px;}
-.oqf-chip{text-decoration:none;padding:5px 12px;border-radius:16px;font-size:12px;color:var(--ink-700);background:var(--paper-card);border:1px solid var(--line-strong);}
+.oqf-chip{text-decoration:none;padding:4px 12px;border-radius:16px;font-size:12px;color:var(--ink-700);background:var(--paper-card);border:1px solid var(--line-strong);}
 .oqf-chip:hover{border-color:var(--brand-500);color:var(--brand-700);}
 .oqf-chip.on{background:var(--brand-600);color:#fff;border-color:var(--brand-600);font-weight:600;}
 
 /* QuoteDataTable */
 table.offer-table{width:100%;border-collapse:collapse;min-width:940px;}
-table.offer-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-500);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap;}
+table.offer-table th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-500);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap;}
 table.offer-table td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;}
 table.offer-table tr:hover td{background:var(--paper);}
 table.offer-table th[style*="right"]{text-align:right;}
 .col-id .q-id{font-weight:600;color:var(--brand-600);font-size:13px;}
-.col-id .q-cust{font-size:12px;color:var(--ink-700);margin-top:1px;}
+.col-id .q-cust{font-size:12px;color:var(--ink-700);margin-top:0px;}
 .col-prod{max-width:220px;}
 .col-task{min-width:220px;}
 .task-cell{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
@@ -168,15 +168,15 @@ table.offer-table tr:hover td:last-child{background:var(--paper);}
 .stat-card{border:1px solid var(--line);border-radius:12px;background:var(--paper-card);padding:14px 16px;}
 .stat-label{font-size:12px;color:var(--ink-500);}
 .stat-value{font-size:22px;font-weight:800;line-height:1.1;margin-top:4px;}
-.stat-delta{font-size:11.5px;margin-top:4px;}
-.stat-hint{font-size:11px;color:var(--ink-500);margin-top:3px;}
+.stat-delta{font-size:11px;margin-top:4px;}
+.stat-hint{font-size:11px;color:var(--ink-500);margin-top:2px;}
 
 /* ===== tabBar (shared, 1 ngôn ngữ) ===== */
 .tabbar{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:14px;}
-.tabbar-tab{text-decoration:none;padding:9px 14px;font-size:13px;color:var(--ink-500);border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;align-items:center;gap:6px;}
+.tabbar-tab{text-decoration:none;padding:8px 14px;font-size:13px;color:var(--ink-500);border-bottom:2px solid transparent;margin-bottom:0px;display:inline-flex;align-items:center;gap:6px;}
 .tabbar-tab:hover{color:var(--ink-900);}
 .tabbar-tab.on{color:var(--brand-700);border-bottom-color:var(--brand-600);font-weight:600;}
-.tabbar-n{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:0 7px;font-size:11px;color:var(--ink-500);}
+.tabbar-n{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:0 6px;font-size:11px;color:var(--ink-500);}
 .tabbar-tab.on .tabbar-n{background:var(--brand-600);border-color:var(--brand-600);color:#fff;}
 .tabbar-pill{border-bottom:0;gap:6px;}
 .tabbar-pill .tabbar-tab{border:1px solid var(--line);border-radius:16px;padding:6px 14px;margin:0;}
@@ -184,6 +184,84 @@ table.offer-table tr:hover td:last-child{background:var(--paper);}
 
 /* ===== unify data tables: .dtable == .offer-table (một ngôn ngữ) ===== */
 table.dtable{width:100%;border-collapse:collapse;}
-table.dtable th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-500);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600;}
+table.dtable th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-500);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);font-weight:600;}
 table.dtable td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;}
 table.dtable tr:hover td{background:var(--paper);}
+
+/* ============================================================
+   §9 Xác nhận & thanh toán — style DÙNG CHUNG Motor/Health.
+   Chỉ dùng token; không màu/padding tự đặt theo từng page (§3.3).
+   ============================================================ */
+
+/* --- lý do CTA bị khoá (§15.3) --- */
+.blocked-reasons ul{margin:var(--space-xs) 0 0;padding-left:18px;}
+.blocked-reasons li{font-size:12px;line-height:1.5;}
+
+/* --- PaymentMethodCard / Group (§9.3) --- */
+.pay-method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--space-md);}
+.pay-method{border:1px solid var(--line);border-radius:var(--radius-lg,10px);background:var(--paper-card);
+  padding:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-xs);min-height:172px;}
+.pay-method.is-disabled{background:var(--paper);border-style:dashed;}
+.pay-method.is-disabled .pm-icon,.pay-method.is-disabled .pm-title,.pay-method.is-disabled .pm-desc{opacity:.65;}
+.pm-icon{font-size:22px;line-height:1;}
+.pm-title{font-size:13px;color:var(--ink-900);}
+.pm-desc{font-size:11px;color:var(--ink-500);line-height:1.45;flex:1;}
+.pm-best{font-size:11px;color:var(--ink-300);}
+.pm-blocked{font-size:11px;color:var(--amber-600);line-height:1.4;}
+.pm-note{font-size:11px;color:var(--ink-300);margin-top:var(--space-sm);}
+
+/* --- FeeDueSummary --- */
+.fee-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-sm);}
+.fee-chip{border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-md);}
+.fee-chip-k{font-size:11px;color:var(--ink-300);text-transform:uppercase;letter-spacing:.03em;}
+.fee-chip-v{font-size:16px;font-weight:800;margin-top:var(--space-3xs);}
+.fee-breakdown{border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-md);margin-top:var(--space-md);}
+.fee-line{display:flex;justify-content:space-between;font-size:12px;padding:var(--space-2xs) 0;}
+.fee-line.is-credit{color:var(--teal-600);}
+.fee-total{display:flex;justify-content:space-between;font-size:13px;font-weight:800;
+  border-top:1px solid var(--line);margin-top:var(--space-xs);padding-top:var(--space-xs);}
+
+/* --- OtpVerificationPanel (§9.4) — 1 component, 2 mode --- */
+.otp-panel{border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-lg);background:var(--paper-card);}
+.otp-head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-md);}
+.otp-row{display:flex;justify-content:space-between;gap:var(--space-md);padding:var(--space-2xs) 0;
+  border-bottom:1px dashed var(--line);font-size:13px;}
+.otp-k{color:var(--ink-500);}
+.otp-v{font-weight:600;}
+.otp-entry{display:flex;gap:var(--space-sm);align-items:flex-end;flex-wrap:wrap;margin-top:var(--space-md);}
+.otp-label{display:block;font-size:12px;color:var(--ink-500);margin-bottom:var(--space-2xs);}
+.otp-input{padding:var(--space-sm);border:1px solid var(--line);border-radius:var(--radius-sm);
+  font-size:16px;letter-spacing:.4em;width:150px;font-family:inherit;}
+.otp-input:focus{outline:2px solid var(--brand-600);outline-offset:1px;}
+.otp-meta{display:flex;gap:var(--space-md);align-items:center;flex-wrap:wrap;
+  font-size:11px;color:var(--ink-500);margin-top:var(--space-sm);}
+.otp-note{font-size:11px;color:var(--ink-300);margin-top:var(--space-sm);}
+.otp-link{font-size:12px;margin-top:var(--space-sm);word-break:break-all;}
+
+/* --- Underwriting (§9.1) --- */
+.uw-panel{display:flex;flex-direction:column;gap:var(--space-md);}
+.uw-head{padding:var(--space-md) var(--space-lg);border:1px solid var(--line);border-radius:var(--radius-md);
+  background:var(--paper-card);}
+.uw-mode{font-size:11px;color:var(--ink-500);margin-top:var(--space-3xs);}
+.uw-reason{font-size:12px;color:var(--ink-700);}
+.uw-block .label{margin-bottom:var(--space-xs);}
+.req-list{list-style:none;margin:0;padding:0;}
+.req-item{border-left:3px solid var(--line);padding:var(--space-xs) var(--space-md);margin-bottom:var(--space-xs);
+  background:var(--paper);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:12px;
+  display:flex;gap:var(--space-sm);align-items:baseline;flex-wrap:wrap;}
+.req-item.ok{border-left-color:var(--teal-600);}
+.req-item.wait{border-left-color:var(--amber-600);}
+.req-item.danger{border-left-color:var(--red-600);}
+.req-due{font-size:11px;color:var(--ink-500);}
+.req-note{flex-basis:100%;font-size:11px;color:var(--ink-500);}
+.cond-accept{border:1px solid var(--amber-600);border-radius:var(--radius-md);padding:var(--space-md) var(--space-lg);
+  background:var(--paper-card);}
+.cond-accept.is-accepted{border-color:var(--teal-600);}
+.cond-head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-sm);}
+.cond-list{margin:0 0 var(--space-md);padding-left:18px;font-size:12px;line-height:1.6;}
+
+/* tablet: 3 phương thức xuống 1 cột, không ép ngang (§15.6) */
+@media (max-width:820px){
+  .pay-method-grid{grid-template-columns:1fr;}
+  .pay-method{min-height:0;}
+}

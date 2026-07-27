@@ -11,6 +11,7 @@ BANCA.T = {
   support: 'HỖ TRỢ',
   management: 'QUẢN LÝ',
   quickAdvisory: 'Tư vấn nhanh',
+  adviseAndSell: 'Tư vấn và bán bảo hiểm', // §6.1 — CTA primary duy nhất trên dashboard
   help: 'Trợ giúp',
   insuranceRequest: 'Yêu cầu bảo hiểm',
   offers: 'Bản chào',

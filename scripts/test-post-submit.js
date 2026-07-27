@@ -9,6 +9,9 @@ require('../shared/mock/seed/status-model.js');
 require('../shared/mock/seed/journey-registry.js');
 require('../shared/mock/seed/vehicle-master.js');
 require('../shared/mock/seed/product-schemas.js');
+// case-state-resolver dùng chung gate thanh toán ở status-mappings (§9.2) → phải nạp trước.
+require('../shared/mock/seed/status-mappings.js');
+require('../shared/mock/seed/quote-version.js');
 require('../shared/mock/seed/case-state-resolver.js');
 const B = global.BANCA;
 B.current = function(){return 'RM-01';};

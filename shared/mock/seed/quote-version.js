@@ -41,6 +41,9 @@ BANCA.quoteVersion = {
       nv.reRateReason = reason || 'Thay đổi dữ liệu ảnh hưởng phí';
       app.quoteVersions.push(nv);
       app.activeQuoteVersionId = nv.id;
+      // Version mới là DRAFT → phải duyệt lại trước khi thu tiền (§8.3 + §9.2).
+      // Nếu không reset, quote đã SUPERSEDED vẫn cho thanh toán.
+      app.activeQuoteApproved = false;
     } else if (cur) {
       // draft chưa duyệt → cập nhật tại chỗ (chưa immutable)
       cur.premium = newPremium; cur.ratedAt = new Date().toISOString();

@@ -518,10 +518,10 @@ BANCA.demoMetaTooltip = function(app){
   const body = [m.currentPoint?('Hiện tại: '+m.currentPoint):'', m.expectedFlow?('Tiếp theo: '+m.expectedFlow):''].filter(Boolean).join('<br>');
   const tip = '<b>'+(m.title||'Kịch bản demo')+'</b>'+(body?'<br>'+body:'');
   return '<span class="demo-info" tabindex="0" role="button" aria-label="'+((m.title||'Kịch bản demo').replace(/"/g,''))+'" '+
-    'style="display:inline-flex;width:15px;height:15px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font-size:10px;align-items:center;justify-content:center;cursor:help;margin-left:5px;position:relative;" '+
+    'style="display:inline-flex;width:15px;height:15px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font-size:11px;align-items:center;justify-content:center;cursor:help;margin-left:4px;position:relative;" '+
     'onmouseover="this.querySelector(\'.demo-tip\').style.display=\'block\'" onmouseout="this.querySelector(\'.demo-tip\').style.display=\'none\'" '+
     'onfocus="this.querySelector(\'.demo-tip\').style.display=\'block\'" onblur="this.querySelector(\'.demo-tip\').style.display=\'none\'">ⓘ'+
-    '<span class="demo-tip" style="display:none;position:absolute;bottom:130%;left:0;width:300px;background:var(--ink-900);color:#fff;padding:9px 11px;border-radius:8px;font-size:11.5px;line-height:1.5;font-weight:400;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.25);">'+tip+'</span></span>';
+    '<span class="demo-tip" style="display:none;position:absolute;bottom:130%;left:0;width:300px;background:var(--ink-900);color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;font-weight:400;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.25);">'+tip+'</span></span>';
 };
 
 BANCA.demoMode = function(){

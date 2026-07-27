@@ -130,7 +130,7 @@ BANCA.docItemHtml = function(appId, def){
   let actions;
   if(def.locked){
     // Section "Tài liệu được OCR" — chỉ đọc, không cho thay thế
-    actions = hasFile ? `<button class="btn btn-secondary btn-sm" onclick="docPreview('${appId}','${def.code}')">Xem</button>` : '<span style="font-size:11.5px;color:var(--ink-300);">Chưa có</span>';
+    actions = hasFile ? `<button class="btn btn-secondary btn-sm" onclick="docPreview('${appId}','${def.code}')">Xem</button>` : '<span style="font-size:11px;color:var(--ink-300);">Chưa có</span>';
   } else if(!hasFile){
     actions = `<input type="file" id="${fid}" accept="image/*" style="display:none" onchange="docUpload('${appId}','${def.code}','${def.docType||''}',this)">`
       +`<button class="btn ${def.required?'btn-primary':'btn-secondary'} btn-sm" onclick="document.getElementById('${fid}').click()">Tải lên</button>`
@@ -142,7 +142,7 @@ BANCA.docItemHtml = function(appId, def){
   }
   return `<div class="doc-item" id="docitem-${def.code}">
     <div>${thumb}</div>
-    <div><div style="font-weight:600;font-size:13.5px;">${def.name}</div><div style="font-size:12px;color:var(--ink-500);">${def.sub||''}</div><div class="doc-item-statuses">${chips.join(' ')}</div>${rec.fileName?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:3px;">${rec.fileName}</div>`:''}</div>
+    <div><div style="font-weight:600;font-size:13px;">${def.name}</div><div style="font-size:12px;color:var(--ink-500);">${def.sub||''}</div><div class="doc-item-statuses">${chips.join(' ')}</div>${rec.fileName?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${rec.fileName}</div>`:''}</div>
     <div class="doc-item-actions">${actions}</div>
   </div>`;
 };
@@ -179,5 +179,5 @@ window.docPreview = function(appId, code){ const rec=BANCA.docGet(appId,code); i
  const ex=rec.extracted;
  const ocrBlock = ex? `<div style="margin-top:10px;"><div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">Kết quả OCR · tin cậy ${BANCA.pctConf(ex.overall)}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;">${ex.fields.slice(0,6).map(f=>`<div><span style="color:var(--ink-500);">${f.label}:</span> <b>${f.value}</b></div>`).join('')}</div></div>`:'';
  const verHist = `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);"><div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">Lịch sử phiên bản</div><div style="font-size:12px;">V1 <span class="badge badge-blocked" style="font-size:9px;">Bị từ chối</span> → V2 <span class="badge badge-ready" style="font-size:9px;">Đã chấp nhận</span></div></div>`;
- const meta=`<div style="margin-top:10px;font-size:11.5px;color:var(--ink-300);">Tải bởi: Nhân viên tư vấn · ${rec.fileName||'—'} · Nguồn: ${ex?'OCR':'Upload'} · Trạng thái: ${(BANCA.OCR_STATE.verify[rec.verificationStatus]||'Chưa xác minh')}</div>`;
+ const meta=`<div style="margin-top:10px;font-size:11px;color:var(--ink-300);">Tải bởi: Nhân viên tư vấn · ${rec.fileName||'—'} · Nguồn: ${ex?'OCR':'Upload'} · Trạng thái: ${(BANCA.OCR_STATE.verify[rec.verificationStatus]||'Chưa xác minh')}</div>`;
  d.innerHTML=`<div class="modal2" style="max-width:600px;" onclick="event.stopPropagation()"><div class="modal2-head"><b>${(BANCA.__docDefs[code]||{}).name||'Tài liệu'}</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body"><img src="${rec.dataUrl}" style="width:100%;border-radius:8px;">${ocrBlock}${verHist}${meta}</div></div>`; root.appendChild(d); };

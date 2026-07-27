@@ -117,19 +117,19 @@ function headerBar(ctxLabel){
   // Chrome kỹ thuật (Nhúng/Cổng trực tiếp/nguồn tổ chức) là thông tin vận hành hệ thống, không thuộc luồng nghiệp vụ → chỉ hiện ở debug.
   const modeChip = DEBUG ? (EMBED?`<span class="badge" style="background:#eaf1ff;color:#2b5cff;" title="EMBED · mirror read-only">Nhúng</span>`:`<span class="badge badge-ready" title="PORTAL · case sống">Cổng trực tiếp</span>`) : '';
   const orgChip = DEBUG ? `<span class="badge badge-version" title="${P.orgSource}">${P.orgSource==='SYNCED'?'Tổ chức đồng bộ':P.orgSource==='HYBRID'?'Tổ chức hỗn hợp':'Tổ chức thủ công'}</span>` : '';
-  const sync = P.syncedAt?`<span style="font-size:11.5px;color:var(--ink-300);">Cập nhật ${fmtVNDate(P.syncedAt)}</span>`:'';
-  const chipRow = (modeChip||orgChip)?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;">${modeChip} ${orgChip} ${sync}</div>`:(sync?`<div style="margin-top:4px;">${sync}</div>`:'');
+  const sync = P.syncedAt?`<span style="font-size:11px;color:var(--ink-300);">Cập nhật ${fmtVNDate(P.syncedAt)}</span>`:'';
+  const chipRow = (modeChip||orgChip)?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">${modeChip} ${orgChip} ${sync}</div>`:(sync?`<div style="margin-top:4px;">${sync}</div>`:'');
   return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-    <div><div style="font-size:12.5px;color:var(--ink-500);">${ctxLabel||('Tổng quan khu vực · <b style="color:var(--ink-700);">'+BANCA.scopeLabel(me)+'</b>')}</div>${chipRow}</div>
-    <select id="tf" onchange="setFilter('tf',this.value)" style="padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;height:fit-content;"><option>Tháng 07/2026</option><option>Hôm nay</option><option>7 ngày qua</option><option>Quý III/2026</option><option>Tùy chọn…</option></select>
+    <div><div style="font-size:12px;color:var(--ink-500);">${ctxLabel||('Tổng quan khu vực · <b style="color:var(--ink-700);">'+BANCA.scopeLabel(me)+'</b>')}</div>${chipRow}</div>
+    <select id="tf" onchange="setFilter('tf',this.value)" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;height:fit-content;"><option>Tháng 07/2026</option><option>Hôm nay</option><option>7 ngày qua</option><option>Quý III/2026</option><option>Tùy chọn…</option></select>
   </div>`;
 }
-function embedBanner(){ return EMBED?`<div class="card" style="padding:10px 14px;background:#eaf1ff;border-color:#c7d8ff;font-size:12.5px;color:#274690;margin-bottom:14px;">ℹ️ Yêu cầu được quản lý trên hệ thống ngân hàng. Dữ liệu tại đây là <b>bản mirror chỉ để theo dõi</b> — không chỉnh sửa case sống.</div>`:''; }
+function embedBanner(){ return EMBED?`<div class="card" style="padding:10px 14px;background:#eaf1ff;border-color:#c7d8ff;font-size:12px;color:#274690;margin-bottom:14px;">ℹ️ Yêu cầu được quản lý trên hệ thống ngân hàng. Dữ liệu tại đây là <b>bản mirror chỉ để theo dõi</b> — không chỉnh sửa case sống.</div>`:''; }
 
 /* ============================ HOME (scope tabs) ============================ */
 function scopeTabs(){
   if(SCOPES.length<=1) return '';
-  const tabCss=on=>`text-decoration:none;padding:8px 18px;border-radius:9px;font-size:13.5px;${on?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}`;
+  const tabCss=on=>`text-decoration:none;padding:8px 18px;border-radius:8px;font-size:13px;${on?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}`;
   // Nút "Xem toàn bộ <scope>" ngang cấp với chọn phạm vi quản lý (đẩy sang phải).
   const viewAllBtn = homeMode==='MANAGE'
     ? `<a class="btn btn-secondary btn-sm" href="?view=team&scope=${manageScope}" style="margin-left:auto;">Xem toàn bộ ${BANCA.scopeTabLabel(manageScope).toLowerCase()} →</a>`
@@ -141,8 +141,8 @@ function scopeTabs(){
   const selfTab = SCOPES.includes('SELF')?`<a href="${homeHref('SELF')}" class="tab" style="${tabCss(false)}">Cá nhân</a>`:'';
   const mgmtTab = `<a href="?seg=MANAGE&mscope=${manageScope}" class="tab" style="${tabCss(homeMode==='MANAGE')}">Quản lý</a>`;
   const pill = homeMode==='MANAGE'
-    ? `<div style="display:flex;align-items:center;gap:6px;margin-left:6px;"><span style="font-size:12.5px;color:var(--ink-500);">Phạm vi quản lý:</span>
-        <select onchange="setManageScope(this.value)" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--brand-600);background:var(--paper-card);cursor:pointer;">${MGMT.map(s=>`<option value="${s}" ${s===manageScope?'selected':''}>${mgmtOrgLabel(s)}</option>`).join('')}</select></div>`
+    ? `<div style="display:flex;align-items:center;gap:6px;margin-left:6px;"><span style="font-size:12px;color:var(--ink-500);">Phạm vi quản lý:</span>
+        <select onchange="setManageScope(this.value)" style="padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--brand-600);background:var(--paper-card);cursor:pointer;">${MGMT.map(s=>`<option value="${s}" ${s===manageScope?'selected':''}>${mgmtOrgLabel(s)}</option>`).join('')}</select></div>`
     : '';
   return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">${selfTab}${mgmtTab}${pill}${viewAllBtn}</div>`;
 }
@@ -219,7 +219,7 @@ function actionCenter(scope, items){
   const sevBadge=sev=>{const s=SEV[sev];return `<span class="badge" style="background:${s[2]};color:${s[1]};">${s[0]}</span>`;};
   const rows=list.map(it=>`<tr>
      <td>${sevBadge(it.sev)}</td>
-     <td style="font-size:12.5px;"><b>${it.type}</b>${it.subLabel?`<div style="font-size:11px;color:var(--ink-300);">${it.subLabel}</div>`:''}</td>
+     <td style="font-size:12px;"><b>${it.type}</b>${it.subLabel?`<div style="font-size:11px;color:var(--ink-300);">${it.subLabel}</div>`:''}</td>
      <td>${it.id&&it._kind!=='assign'&&it.filter!=='integration'?`<a href="${appUrl(it.id)}" style="font-weight:600;color:var(--brand-600);">${it.id}</a>`:`<b style="color:var(--ink-700);">${it.custLabel||it.id||'—'}</b>`}${it.custLabel&&it._kind!=='assign'?`<div style="font-size:11px;color:var(--ink-300);">${it.custLabel}</div>`:''}</td>
      <td style="font-size:12px;">${it.ownerName}</td>
      <td style="font-size:12px;color:${it.rt.tone};" title="${it.rt.abs||''}"><b>${it.rt.label}</b>${it.reason?`<div style="font-size:11px;color:var(--amber-600);">${it.reason}</div>`:''}</td>
@@ -228,7 +228,7 @@ function actionCenter(scope, items){
   const total=items.filter(active).length;
   return `<div class="section-title"><h2>Trung tâm hành động</h2><span class="subtitle">Mọi việc khẩn trong ${scopeWord} — bàn giao chờ phân công, quyền bán, SLA & yêu cầu trả lại, gộp một nơi</span></div>
     ${tabs}
-    ${list.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Mức</th><th>Vấn đề</th><th>Yêu cầu · Khách</th><th>Phụ trách</th><th>Hạn / SLA</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>${total>8?`<a href="${r}modules/submitted-applications/index.html?scope=${scope}" style="font-size:12.5px;color:var(--brand-600);display:inline-block;margin-top:8px;">Xem tất cả ${total} việc →</a>`:''}`:`<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--teal-600);">✓ Không có việc cần xử lý trong bộ lọc này.</div>`}`;
+    ${list.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Mức</th><th>Vấn đề</th><th>Yêu cầu · Khách</th><th>Phụ trách</th><th>Hạn / SLA</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>${total>8?`<a href="${r}modules/submitted-applications/index.html?scope=${scope}" style="font-size:12px;color:var(--brand-600);display:inline-block;margin-top:8px;">Xem tất cả ${total} việc →</a>`:''}`:`<div class="card" style="padding:12px 14px;font-size:12px;color:var(--teal-600);">✓ Không có việc cần xử lý trong bộ lọc này.</div>`}`;
 }
 window.setAC=(v)=>{ qs.set('ac',v); history.replaceState(null,'','?'+qs.toString()); location.reload(); };
 function cockpitSummary(scope){
@@ -261,8 +261,8 @@ function cockpitSummary(scope){
   const worst=bottleneck.filter(b=>b.stuck>0).sort((a,b)=>b.stuck-a.stuck)[0];
   const pipeCells=[{l:'Chưa nộp',n:drafts.length,f:'unsub',stuck:drafts.filter(a=>(a.warnings||[]).includes('QUOTE_EXPIRING')).length}].concat(bottleneck);
   const pipeBlock=`<div class="section-title" style="margin-top:18px;"><h2>Pipeline & điểm nghẽn</h2><span class="subtitle">Hành trình bảo hiểm trong ${scopeWord} · badge = yêu cầu tồn >3 ngày hoặc quá SLA</span></div>
-    ${worst?`<div class="card" style="padding:10px 14px;background:#fff6e6;border-color:#ffe0a3;font-size:12.5px;color:#8a5a00;margin-bottom:10px;">🚧 Điểm nghẽn: <b>${worst.stuck} hồ sơ</b> đang kẹt ở bước <b>${worst.l}</b> (tồn >3 ngày/quá SLA). <a href="${r}modules/submitted-applications/index.html?scope=${scope}&group=${worst.f}" style="color:#8a5a00;text-decoration:underline;">Xử lý ngay →</a></div>`:''}
-    <div class="kpi-row" style="grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px;">${pipeCells.map(c=>`<div class="card" style="margin:0;cursor:pointer;text-align:center;padding:12px 6px;position:relative;" onclick="location.href='${c.f==='unsub'?r+'modules/unsubmitted-applications/index.html?scope='+scope:r+'modules/submitted-applications/index.html?scope='+scope+'&group='+c.f}'">${c.stuck?`<span title="${c.stuck} yêu cầu tồn lâu/quá SLA" style="position:absolute;top:4px;right:4px;background:var(--red-600);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;">${c.stuck}⚠</span>`:''}<div style="font-size:20px;font-weight:700;color:var(--brand-600);">${c.n}</div><div style="font-size:10.5px;color:var(--ink-500);margin-top:3px;line-height:1.3;">${c.l}</div></div>`).join('')}</div>`;
+    ${worst?`<div class="card" style="padding:10px 14px;background:#fff6e6;border-color:#ffe0a3;font-size:12px;color:#8a5a00;margin-bottom:10px;">🚧 Điểm nghẽn: <b>${worst.stuck} hồ sơ</b> đang kẹt ở bước <b>${worst.l}</b> (tồn >3 ngày/quá SLA). <a href="${r}modules/submitted-applications/index.html?scope=${scope}&group=${worst.f}" style="color:#8a5a00;text-decoration:underline;">Xử lý ngay →</a></div>`:''}
+    <div class="kpi-row" style="grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px;">${pipeCells.map(c=>`<div class="card" style="margin:0;cursor:pointer;text-align:center;padding:12px 6px;position:relative;" onclick="location.href='${c.f==='unsub'?r+'modules/unsubmitted-applications/index.html?scope='+scope:r+'modules/submitted-applications/index.html?scope='+scope+'&group='+c.f}'">${c.stuck?`<span title="${c.stuck} yêu cầu tồn lâu/quá SLA" style="position:absolute;top:4px;right:4px;background:var(--red-600);color:#fff;font-size:9px;font-weight:700;padding:0px 4px;border-radius:8px;">${c.stuck}⚠</span>`:''}<div style="font-size:20px;font-weight:700;color:var(--brand-600);">${c.n}</div><div style="font-size:11px;color:var(--ink-500);margin-top:2px;line-height:1.3;">${c.l}</div></div>`).join('')}</div>`;
   // ---- Hiệu suất đội ngũ: gộp "cần chú ý" + "toàn bộ" thành 1 module có mode ----
   const perfMode=qs.get('pm')||'attn';
   const riskMap={}; members.forEach(s=>{ const rr=sellerRisk(s); riskMap[s.id]=rr; });
@@ -270,10 +270,10 @@ function cockpitSummary(scope){
   if(perfMode==='attn') perfList=members.filter(s=>riskMap[s.id].score>0).sort((a,b)=>riskMap[b.id].score-riskMap[a.id].score);
   else perfList=members.slice(0,10);
   const attnN=members.filter(s=>riskMap[s.id].score>0).length;
-  const modeTab=(k,l,c)=>`<a href="#" onclick="setPM('${k}');return false;" style="text-decoration:none;padding:5px 12px;border-radius:8px;font-size:12px;${perfMode===k?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l}${c!=null?' ('+c+')':''}</a>`;
+  const modeTab=(k,l,c)=>`<a href="#" onclick="setPM('${k}');return false;" style="text-decoration:none;padding:4px 12px;border-radius:8px;font-size:12px;${perfMode===k?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${l}${c!=null?' ('+c+')':''}</a>`;
   const perfRows=perfList.slice(0,10).map(s=>{ const sApps=BANCA.applications.filter(a=>a.owner===s.id); const prem=sApps.filter(a=>a.status==='ISSUED').reduce((x,a)=>x+appPremium(a),0); const issued=sApps.filter(a=>a.status==='ISSUED').length; const kk=BANCA.kpi[s.id]||{}; const ovd=sApps.filter(a=>a.status==='NEED_MORE_INFO').length; const wait=(BANCA.handoffsForSeller?BANCA.handoffsForSeller(s.id):[]).length; const rr=riskMap[s.id];
     const flag = rr.score>0?`<div style="font-size:11px;color:var(--amber-600);margin-top:2px;">${rr.reasons.slice(0,2).join(' · ')}</div>`:'';
-    return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'"><td><b style="font-size:12.5px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}${flag}</td><td style="font-size:12px;">${BANCA.vnd(prem)}</td><td>${issued}</td><td>${kk.conversion||'Chưa có dữ liệu'}</td><td>${kk.target||'Chưa đặt'}</td><td>${sApps.length}</td><td style="${ovd?'color:var(--red-600);':''}">${ovd||'Không phát sinh'}</td><td style="${wait?'color:var(--amber-600);':''}">${wait||'Không phát sinh'}</td><td onclick="event.stopPropagation();">${rr.score>0&&BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-secondary btn-sm" onclick="openTask('${s.id}')">Giao việc</button>`:''}</td></tr>`; }).join('');
+    return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'"><td><b style="font-size:12px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}${flag}</td><td style="font-size:12px;">${BANCA.vnd(prem)}</td><td>${issued}</td><td>${kk.conversion||'Chưa có dữ liệu'}</td><td>${kk.target||'Chưa đặt'}</td><td>${sApps.length}</td><td style="${ovd?'color:var(--red-600);':''}">${ovd||'Không phát sinh'}</td><td style="${wait?'color:var(--amber-600);':''}">${wait||'Không phát sinh'}</td><td onclick="event.stopPropagation();">${rr.score>0&&BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-secondary btn-sm" onclick="openTask('${s.id}')">Giao việc</button>`:''}</td></tr>`; }).join('');
   const perfBlock=`<div class="section-title" style="margin-top:18px;"><h2>Hiệu suất đội ngũ</h2><span class="subtitle">${perfMode==='attn'?'Ưu tiên thành viên có rủi ro/cơ hội can thiệp':'Toàn bộ thành viên trong '+scopeWord}</span></div>
     <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">${modeTab('attn','Cần chú ý',attnN)}${modeTab('all','Toàn bộ',members.length)}</div>
     <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên</th><th>Premium</th><th>Hợp đồng</th><th>Chuyển đổi</th><th>Chỉ tiêu</th><th>Khối lượng</th><th>Quá hạn</th><th>Chờ nhận</th><th></th></tr></thead><tbody>${perfRows||`<tr><td colspan="9"><div class="empty-state">${perfMode==='attn'?'Không có thành viên cần chú ý. 👍':'Không có thành viên.'}</div></td></tr>`}</tbody></table></div>`;
@@ -320,14 +320,14 @@ function renderHome(){
 }
 function managerFootnote(){
   // Nội dung người dùng cuối: chỉ 1 link nhật ký kiểm toán. Chi tiết render/scope/actions → debug.
-  const dbg = DEBUG?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:6px;">Render theo <b>${P.label}</b> · scopes: ${SCOPES.join(', ')} · actions: ${(P.supervisoryActions||[]).join(', ')||'—'}. Không có quyền: sửa hierarchy, gán license, bật/tắt sản phẩm, đổi authorization/rating/UW rule (Distribution/Core).</div>`:'';
-  return `<div style="margin-top:16px;"><a href="#" onclick="openAudit();return false;" style="font-size:11.5px;color:var(--brand-600);">Nhật ký kiểm toán</a>${dbg}</div>`;
+  const dbg = DEBUG?`<div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Render theo <b>${P.label}</b> · scopes: ${SCOPES.join(', ')} · actions: ${(P.supervisoryActions||[]).join(', ')||'—'}. Không có quyền: sửa hierarchy, gán license, bật/tắt sản phẩm, đổi authorization/rating/UW rule (Distribution/Core).</div>`:'';
+  return `<div style="margin-top:16px;"><a href="#" onclick="openAudit();return false;" style="font-size:11px;color:var(--brand-600);">Nhật ký kiểm toán</a>${dbg}</div>`;
 }
 window.openAudit=()=>{
   const log=(BANCA.auditLog||[]).slice().reverse().slice(0,40);
   const lbl={CREATE_HANDOFF:'Tạo bàn giao',ASSIGN_HANDOFF:'Phân công',ACCEPT_HANDOFF:'Tiếp nhận',DECLINE_HANDOFF:'Từ chối',HANDOFF_NEED_MORE_INFO:'Yêu cầu bổ sung',RE_ATTRIBUTION:'Điều chỉnh ghi nhận',ASSIGN_TASK:'Giao việc',COACH:'Coaching',RETRY_SYNC:'Đồng bộ lại',UNMASK_PII:'Mở PII',UNMASK_HEALTH:'Mở health'};
-  showModal(`<h3 style="margin:0 0 4px;">Nhật ký kiểm toán</h3><div style="font-size:11.5px;color:var(--ink-300);margin-bottom:8px;">Mọi assign/reassign/participant/customer change đều lưu: actor · action · previous → new · reason · thời điểm · scope.</div>
-   ${log.length?`<div class="card" style="padding:0;max-height:50vh;overflow:auto;"><table class="dtable"><thead><tr><th>Thời điểm</th><th>Hành động</th><th>Bởi</th><th>Chi tiết</th></tr></thead><tbody>${log.map(e=>`<tr><td style="font-size:11px;color:var(--ink-500);white-space:nowrap;">${(e.at||'').replace('T',' ').slice(0,19)}</td><td style="font-size:12px;"><b>${lbl[e.action]||e.action}</b></td><td style="font-size:12px;">${(BANCA.personas[e.by||e.actor]||{}).name||e.by||e.actor||'—'}</td><td style="font-size:11.5px;color:var(--ink-500);">${[e.handoff||e.case||e.seller||'',e.previous?('từ '+e.previous+'→'+(e.new||'')):'',e.reason||e.note||''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty-state" style="padding:16px;">Chưa có bản ghi kiểm toán trong phiên này.</div>'}
+  showModal(`<h3 style="margin:0 0 4px;">Nhật ký kiểm toán</h3><div style="font-size:11px;color:var(--ink-300);margin-bottom:8px;">Mọi assign/reassign/participant/customer change đều lưu: actor · action · previous → new · reason · thời điểm · scope.</div>
+   ${log.length?`<div class="card" style="padding:0;max-height:50vh;overflow:auto;"><table class="dtable"><thead><tr><th>Thời điểm</th><th>Hành động</th><th>Bởi</th><th>Chi tiết</th></tr></thead><tbody>${log.map(e=>`<tr><td style="font-size:11px;color:var(--ink-500);white-space:nowrap;">${(e.at||'').replace('T',' ').slice(0,19)}</td><td style="font-size:12px;"><b>${lbl[e.action]||e.action}</b></td><td style="font-size:12px;">${(BANCA.personas[e.by||e.actor]||{}).name||e.by||e.actor||'—'}</td><td style="font-size:11px;color:var(--ink-500);">${[e.handoff||e.case||e.seller||'',e.previous?('từ '+e.previous+'→'+(e.new||'')):'',e.reason||e.note||''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty-state" style="padding:16px;">Chưa có bản ghi kiểm toán trong phiên này.</div>'}
    <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`);
 };
 
@@ -337,12 +337,12 @@ window.openScopeTree=(rootId,scope)=>{
     const cnt=mem.length;
     const appCnt=(BANCA.applications||[]).filter(a=>mem.some(m=>m.id===a.owner)).length;
     const sel=fUnit===u.id;
-    return `<div style="padding:6px 0;padding-left:${8+depth*18}px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px dashed var(--line);${sel?'background:#eefaf7;':''}"><div style="font-size:12.5px;">${depth?'› ':''}<span style="color:var(--ink-400);">${BANCA.orgUnitLabelType(u.type)}</span> <b>${u.name}</b> <span style="font-size:10.5px;color:var(--ink-300);">${cnt} người · ${appCnt} hồ sơ</span></div><button class="btn btn-secondary btn-sm" onclick="selectUnit('${u.id}','${scope}')">${sel?'Đang xem':'Chọn'}</button></div>`
+    return `<div style="padding:6px 0;padding-left:${8+depth*18}px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px dashed var(--line);${sel?'background:#eefaf7;':''}"><div style="font-size:12px;">${depth?'› ':''}<span style="color:var(--ink-400);">${BANCA.orgUnitLabelType(u.type)}</span> <b>${u.name}</b> <span style="font-size:11px;color:var(--ink-300);">${cnt} người · ${appCnt} hồ sơ</span></div><button class="btn btn-secondary btn-sm" onclick="selectUnit('${u.id}','${scope}')">${sel?'Đang xem':'Chọn'}</button></div>`
       + st.children.map(c=>render(c.unit.id,depth+1)).join(''); }
   const allMem=membersOf(scope).filter(p=>p.role!=='Support Nhân viên tư vấn'&&!p.serviceError);
   const allApps=(BANCA.applications||[]).filter(a=>allMem.some(m=>m.id===a.owner)).length;
   showModal(`<h3 style="margin:0 0 4px;">Sơ đồ tổ chức / Phạm vi dữ liệu</h3><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Bạn đang xem dữ liệu trong phạm vi <b>${BANCA.scopeTabLabel(scope).toLowerCase()}</b>. Chọn chi nhánh/đội để thu hẹp. Chỉ hiển thị đơn vị trong quyền của bạn.</div>
-   <div class="card" style="padding:0;max-height:52vh;overflow:auto;"><div style="padding:8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);${!fUnit?'background:#eefaf7;':''}"><b style="font-size:12.5px;">Toàn bộ ${BANCA.scopeTabLabel(scope)} <span style="font-size:10.5px;color:var(--ink-300);font-weight:400;">${allMem.length} người · ${allApps} hồ sơ</span></b><button class="btn btn-secondary btn-sm" onclick="selectUnit('','${scope}')">${!fUnit?'Đang xem':'Chọn'}</button></div>${render(rootId,0)}</div>
+   <div class="card" style="padding:0;max-height:52vh;overflow:auto;"><div style="padding:8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);${!fUnit?'background:#eefaf7;':''}"><b style="font-size:12px;">Toàn bộ ${BANCA.scopeTabLabel(scope)} <span style="font-size:11px;color:var(--ink-300);font-weight:400;">${allMem.length} người · ${allApps} hồ sơ</span></b><button class="btn btn-secondary btn-sm" onclick="selectUnit('','${scope}')">${!fUnit?'Đang xem':'Chọn'}</button></div>${render(rootId,0)}</div>
    <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`);
 };
 window.selectUnit=(id,scope)=>{ const o=new URLSearchParams(location.search); o.set('view','team'); o.set('scope',scope); if(id)o.set('unit',id); else o.delete('unit'); o.delete('sub'); o.delete('team2'); location.search=o.toString(); };
@@ -367,7 +367,7 @@ function renderTeam(){
   const header = teamHeader(scope,members);
   // Title chỉ 'Đội nhóm' — đơn vị cụ thể hiển thị trong header card, tránh mâu thuẫn 'Khu vực · TEAM-A'.
   // Header 1 lớp: title 'Đội nhóm', subtitle nhỏ 'Điều phối & rủi ro' — không lặp tên màn.
-  shell('Đội nhóm','Đội nhóm', headerBar('Điều phối & rủi ro')+`<a href="${homeHref(scope)}" style="font-size:12.5px;color:var(--brand-600);">← Về Trang chủ</a>`+header+nav+body+modalHost(), {startSale:false});
+  shell('Đội nhóm','Đội nhóm', headerBar('Điều phối & rủi ro')+`<a href="${homeHref(scope)}" style="font-size:12px;color:var(--brand-600);">← Về Trang chủ</a>`+header+nav+body+modalHost(), {startSale:false});
 }
 // Header tổ chức (hierarchy-aware) — tên đơn vị đúng + breadcrumb + Cơ cấu / Vận hành.
 function teamHeader(scope,members){
@@ -407,7 +407,7 @@ function teamHeader(scope,members){
   // Nhân viên tư vấn có vấn đề quyền bán (bị chặn ≥1 sản phẩm)
   const authRisk=members.filter(s=>s.role!=='Support Nhân viên tư vấn'&&!s.serviceError&&readiness(s.id).B>0).length;
   // Summary strip: 1 hàng số liệu, số đáng chú ý mới tô màu.
-  const cell=(v,l,sub,tone)=>`<div style="flex:1;min-width:105px;padding:10px 12px;border-right:1px solid var(--line);"><div style="font-size:19px;font-weight:800;color:${tone||'var(--ink-700)'};line-height:1;">${v}</div><div style="font-size:11px;color:var(--ink-500);margin-top:3px;">${l}</div>${sub?`<div style="font-size:10.5px;color:var(--ink-300);">${sub}</div>`:''}</div>`;
+  const cell=(v,l,sub,tone)=>`<div style="flex:1;min-width:105px;padding:10px 12px;border-right:1px solid var(--line);"><div style="font-size:20px;font-weight:800;color:${tone||'var(--ink-700)'};line-height:1;">${v}</div><div style="font-size:11px;color:var(--ink-500);margin-top:2px;">${l}</div>${sub?`<div style="font-size:11px;color:var(--ink-300);">${sub}</div>`:''}</div>`;
   const summary=`<div style="display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper-card);margin-top:12px;">
     ${cell(members.length,'thành viên',active+' đang hoạt động')}
     ${cell(apps.length,'yêu cầu đang xử lý')}
@@ -418,16 +418,16 @@ function teamHeader(scope,members){
   </div>`;
   // Mini action center: chỉ hiện dòng có việc + CTA.
   const acRows=[];
-  if(pend) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);"><span style="font-size:12.5px;"><b style="color:var(--amber-600);">${pend}</b> cơ hội chờ phân công</span><a class="btn btn-primary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=assign">Phân công →</a></div>`);
-  if(authRisk) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);"><span style="font-size:12.5px;"><b style="color:var(--red-600);">${authRisk}</b> nhân viên tư vấn có vấn đề quyền bán</span><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=auth">Xem quyền bán →</a></div>`);
-  if(waiting) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;"><span style="font-size:12.5px;"><b style="color:var(--amber-600);">${waiting}</b> bàn giao chờ nhân viên tư vấn tiếp nhận</span><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=accept">Xem & nhắc →</a></div>`);
+  if(pend) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);"><span style="font-size:12px;"><b style="color:var(--amber-600);">${pend}</b> cơ hội chờ phân công</span><a class="btn btn-primary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=assign">Phân công →</a></div>`);
+  if(authRisk) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);"><span style="font-size:12px;"><b style="color:var(--red-600);">${authRisk}</b> nhân viên tư vấn có vấn đề quyền bán</span><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=auth">Xem quyền bán →</a></div>`);
+  if(waiting) acRows.push(`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;"><span style="font-size:12px;"><b style="color:var(--amber-600);">${waiting}</b> bàn giao chờ nhân viên tư vấn tiếp nhận</span><a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=tasks&sub=accept">Xem & nhắc →</a></div>`);
   const actionCenter = acRows.length?`<div style="margin-top:10px;border:1px solid #ffe0a3;background:#fffdf5;border-radius:10px;padding:6px 14px;">${acRows.join('')}</div>`:'';
   return `${embedBanner()}<div class="card" style="padding:16px 18px;margin-bottom:14px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-      <div><div style="font-size:17px;font-weight:800;">${unitName}</div>
+      <div><div style="font-size:16px;font-weight:800;">${unitName}</div>
         <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${crumbs}</div>
-        <div style="font-size:11.5px;color:var(--ink-400);margin-top:4px;">Quản lý trực tiếp: <b>${directMgr?directMgr.name:'Chưa gán quản lý'}</b> · Cấp trên: ${upperMgr?upperMgr.name:'Chưa gán quản lý'} · Thuộc: ${parentUnit}</div></div>
-      <div style="text-align:right;">${picker}${DEBUG?`<div style="font-size:11.5px;color:var(--ink-300);margin-top:4px;">${P.channelMode==='EMBED'?'Embed':'Cổng trực tiếp'} · ${orgSrc}</div>`:''}</div>
+        <div style="font-size:11px;color:var(--ink-400);margin-top:4px;">Quản lý trực tiếp: <b>${directMgr?directMgr.name:'Chưa gán quản lý'}</b> · Cấp trên: ${upperMgr?upperMgr.name:'Chưa gán quản lý'} · Thuộc: ${parentUnit}</div></div>
+      <div style="text-align:right;">${picker}${DEBUG?`<div style="font-size:11px;color:var(--ink-300);margin-top:4px;">${P.channelMode==='EMBED'?'Embed':'Cổng trực tiếp'} · ${orgSrc}</div>`:''}</div>
     </div>
     ${selUnit?`<div style="font-size:12px;color:var(--brand-600);margin-top:6px;">Đang lọc theo <b>${selUnit.name}</b> · <a href="?view=team&scope=${scope}" style="color:var(--brand-600);">xem toàn bộ ${BANCA.scopeTabLabel(scope).toLowerCase()}</a></div>`:''}
     ${summary}
@@ -478,7 +478,7 @@ function teamMembers(scope,members){
   const riskChip=(v,l)=>{const on=fRisk===v; return `<a href="#" onclick="setFilter('risk','${on?'':v}');return false;" class="chip" style="cursor:pointer;text-decoration:none;padding:6px 12px;font-size:12px;${on?'background:var(--brand-600);color:#fff;':''}">${l}</a>`;};
   return `${flt?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Lọc: <b>Readiness có rủi ro</b> · <a href="?view=team&scope=${scope}&t=members" style="color:var(--brand-600);">bỏ lọc</a></div>`:''}
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${riskChip('attn','Cần chú ý')}${riskChip('blocked','Bị chặn quyền bán')}${riskChip('overload','Tải công việc cao')}${riskChip('inactive','Không hoạt động')}</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">${BANCA.ui.searchBar({mode:'live',placeholder:'Tìm nhân viên',oninput:"filterRows('mbr',this.value)"})}<select onchange="setFilter('st',this.value)" style="padding:7px;border:1px solid var(--line);border-radius:7px;font-size:12px;"><option value="">Mọi trạng thái</option><option ${fStatus==='ACTIVE'?'selected':''} value="ACTIVE">Đang hoạt động</option><option ${fStatus==='INACTIVE'?'selected':''} value="INACTIVE">Ngừng hoạt động</option></select>${showTeamFilter&&teamsInScope.length>1?`<select onchange="setFilter('team2',this.value)" style="padding:7px;border:1px solid var(--line);border-radius:7px;font-size:12px;"><option value="">Mọi đội</option>${teamsInScope.map(tm=>`<option value="${tm}" ${fTeam===tm?'selected':''}>${tm}</option>`).join('')}</select>`:''}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">${BANCA.ui.searchBar({mode:'live',placeholder:'Tìm nhân viên',oninput:"filterRows('mbr',this.value)"})}<select onchange="setFilter('st',this.value)" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12px;"><option value="">Mọi trạng thái</option><option ${fStatus==='ACTIVE'?'selected':''} value="ACTIVE">Đang hoạt động</option><option ${fStatus==='INACTIVE'?'selected':''} value="INACTIVE">Ngừng hoạt động</option></select>${showTeamFilter&&teamsInScope.length>1?`<select onchange="setFilter('team2',this.value)" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12px;"><option value="">Mọi đội</option>${teamsInScope.map(tm=>`<option value="${tm}" ${fTeam===tm?'selected':''}>${tm}</option>`).join('')}</select>`:''}</div>
   <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên &amp; đơn vị</th><th>Vấn đề chính</th><th>Quyền bán</th><th>Công việc</th><th>Hiệu suất kỳ này</th><th>Hoạt động</th><th>Hành động</th></tr></thead><tbody id="mbr-body">${list.length?list.map(s=>memberRow(s,scope)).join(''):'<tr><td colspan="7"><div class="empty-state">Không có thành viên khớp bộ lọc.</div></td></tr>'}</tbody></table></div>`;
 }
 function memberRow(s,scope){
@@ -520,10 +520,10 @@ function teamAuth(scope,members){
     const cells=prods.map(pr=>{
       if(!pr.visible||!pr.visible.includes(s.id)) return '<td style="font-size:11px;color:var(--ink-300);">Không áp dụng</td>';
       const st=pr.state[s.id]; const reason=(pr.reason||{})[s.id]||'';
-      return `<td title="${reason}">${stBadge(st)}${reason?`<div style="font-size:10.5px;color:var(--amber-600);max-width:180px;">${reason}</div>`:''}</td>`;
+      return `<td title="${reason}">${stBadge(st)}${reason?`<div style="font-size:11px;color:var(--amber-600);max-width:180px;">${reason}</div>`:''}</td>`;
     }).join('');
     const rd=readiness(s.id);
-    return `<tr${rd.B>0?' style="background:#fff8f8;"':''}><td><b style="font-size:12.5px;">${s.name}</b><div style="font-size:11px;color:var(--ink-300);">${s.role}</div></td>${cells}<td>${rd.B>0?`<a class="btn btn-secondary btn-sm" href="?view=seller&seller=${s.id}&scope=${scope}">Xem rủi ro</a>`:''}</td></tr>`;
+    return `<tr${rd.B>0?' style="background:#fff8f8;"':''}><td><b style="font-size:12px;">${s.name}</b><div style="font-size:11px;color:var(--ink-300);">${s.role}</div></td>${cells}<td>${rd.B>0?`<a class="btn btn-secondary btn-sm" href="?view=seller&seller=${s.id}&scope=${scope}">Xem rủi ro</a>`:''}</td></tr>`;
   }).join('');
   return `<div class="section-title"><h2>Quyền bán theo sản phẩm</h2><span class="subtitle">Trạng thái license/training/authorization từng nhân viên tư vấn · dòng đỏ = có sản phẩm bị chặn</span></div>
   <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên</th>${prods.map(p=>`<th>${p.name}</th>`).join('')}<th></th></tr></thead><tbody>${rows||'<tr><td colspan="9"><div class="empty-state">Không có thành viên.</div></td></tr>'}</tbody></table></div>
@@ -542,7 +542,7 @@ function teamPerf(scope,members){
       ? `<div style="font-size:12px;font-weight:600;color:${issue.tone};">${issue.label}</div><a class="btn btn-secondary btn-sm" style="margin-top:4px;" href="?view=seller&seller=${s.id}&scope=${scope}" onclick="event.stopPropagation()">Xem chi tiết</a>`
       : `<div style="font-size:12px;color:var(--teal-600);">Ổn định</div>`;
     return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'">
-     <td><b style="font-size:12.5px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}</td>
+     <td><b style="font-size:12px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}</td>
      <td style="font-size:12px;">${BANCA.vnd(prem)}</td><td>${issued}</td><td>${subm}</td>
      <td>${k.conversion||'Chưa có dữ liệu'}</td><td>${k.target||'Chưa đặt'}</td>
      <td style="${ovd?'color:var(--red-600);':''}">${ovd||'Không phát sinh'}</td>
@@ -564,7 +564,7 @@ function teamCases(scope){
   const banner=flt||stage?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Lọc: <b>${flt==='support'?'Cần hỗ trợ':stage?('Stage '+stage):''}</b> · <a href="?view=team&scope=${scope}&t=cases" style="color:var(--brand-600);">bỏ lọc</a></div>`:'';
   const statuses=[...new Set(apps.map(a=>a.status))];
   return `${banner}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-    <select onchange="setFilter('cst',this.value)" style="padding:7px;border:1px solid var(--line);border-radius:7px;font-size:12px;"><option value="">Mọi trạng thái</option>${statuses.map(s=>`<option ${fSt===s?'selected':''} value="${s}">${s}</option>`).join('')}</select>
+    <select onchange="setFilter('cst',this.value)" style="padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12px;"><option value="">Mọi trạng thái</option>${statuses.map(s=>`<option ${fSt===s?'selected':''} value="${s}">${s}</option>`).join('')}</select>
     ${BANCA.ui.searchBar({mode:'live',placeholder:'Tìm hồ sơ/khách',oninput:"filterRows('cs',this.value)"})}
   </div>
   <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Yêu cầu</th><th>Khách</th><th>Nhân viên tư vấn</th><th>Trạng thái</th><th>Cập nhật</th><th></th></tr></thead><tbody id="cs-body">${list.length?list.map(a=>`<tr><td><a href="${appUrl(a.id)}" style="color:var(--brand-600);font-weight:600;">${a.id}</a></td><td style="font-size:12px;">${custName(a.customerId)}</td><td style="font-size:12px;">${(BANCA.personas[a.owner]||{}).name||a.owner}</td><td style="font-size:12px;">${BANCA.appStatusBadge?BANCA.appStatusBadge(a.status):a.status}</td><td style="font-size:12px;color:var(--ink-300);">${a.updatedAt||'—'}</td><td>${RO?`<button class="btn btn-secondary btn-sm" onclick="openMirrorCase('${a.id}','${a.source||'JANUS_CRM'}')">Xem mirror</button>`:`<a class="btn btn-secondary btn-sm" href="${appUrl(a.id)}">Xem</a>`}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state">Không có yêu cầu khớp bộ lọc.</div></td></tr>`}</tbody></table></div>`;
@@ -593,9 +593,9 @@ function teamTasks(scope,members){
   const catBadge=c=>({assign:['Phân công bán hàng','#fff6e6','var(--amber-600)'],accept:['Bàn giao','#eefaf7','var(--teal-600)'],task:['Hồ sơ','#eef4ff','var(--brand-600)'],overdue:['Quá hạn','#fdecec','var(--red-600)']}[c]||[c,'#eef0f4','var(--ink-500)']);
   return `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;"><div class="section-title" style="margin:0;"><h2>Công việc</h2><span class="subtitle">Task, bàn giao & việc quá hạn liên quan bán hàng — không có coaching</span></div>${BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-secondary btn-sm" onclick="pickSeller()">+ Giao việc</button>`:''}</div>
   ${subBar}
-  ${rows.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Loại</th><th>Người thực hiện</th><th>Yêu cầu/Khách</th><th>Nội dung</th><th>Hạn</th><th></th></tr></thead><tbody>${rows.map(x=>{const b=catBadge(x.cat);const due=(x.due&&x.due!=='—')?x.due:'Chưa có hạn';const note=x.note||'Chưa có dữ liệu';const who=x.who||'Chưa phân công';return `<tr><td><span class="badge" style="background:${b[1]};color:${b[2]};font-size:9px;">${b[0]}</span></td><td style="font-size:12px;">${who}</td><td style="font-size:12px;">${x.cust||'Chưa có dữ liệu'}</td><td style="font-size:12px;color:var(--ink-600);">${note}</td><td style="font-size:11.5px;color:var(--ink-500);">${due}</td><td>${x.cta}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--teal-600);">✓ Không có công việc nào trong bộ lọc.</div>`}`;
+  ${rows.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Loại</th><th>Người thực hiện</th><th>Yêu cầu/Khách</th><th>Nội dung</th><th>Hạn</th><th></th></tr></thead><tbody>${rows.map(x=>{const b=catBadge(x.cat);const due=(x.due&&x.due!=='—')?x.due:'Chưa có hạn';const note=x.note||'Chưa có dữ liệu';const who=x.who||'Chưa phân công';return `<tr><td><span class="badge" style="background:${b[1]};color:${b[2]};font-size:9px;">${b[0]}</span></td><td style="font-size:12px;">${who}</td><td style="font-size:12px;">${x.cust||'Chưa có dữ liệu'}</td><td style="font-size:12px;color:var(--ink-600);">${note}</td><td style="font-size:11px;color:var(--ink-500);">${due}</td><td>${x.cta}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="card" style="padding:12px 14px;font-size:12px;color:var(--teal-600);">✓ Không có công việc nào trong bộ lọc.</div>`}`;
 }
-window.pickSeller=()=>{ const scope=qs.get('scope')||BANCA.defaultScope(me); const members=membersOf(scope); showModal(`<h3 style="margin:0 0 8px;">Chọn nhân viên để giao việc</h3>${members.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);"><span style="font-size:13px;">${s.name}</span><button class="btn btn-secondary btn-sm" onclick="closeModal();openTask('${s.id}')">Chọn</button></div>`).join('')}<div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`); };
+window.pickSeller=()=>{ const scope=qs.get('scope')||BANCA.defaultScope(me); const members=membersOf(scope); showModal(`<h3 style="margin:0 0 8px;">Chọn nhân viên để giao việc</h3>${members.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);"><span style="font-size:13px;">${s.name}</span><button class="btn btn-secondary btn-sm" onclick="closeModal();openTask('${s.id}')">Chọn</button></div>`).join('')}<div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Đóng</button></div>`); };
 
 /* ============================ CHI TIẾT NHÂN VIÊN (1 trang tổng hợp) ============================ */
 function renderSeller(){
@@ -630,8 +630,8 @@ function renderSeller(){
   const header=`<div class="card" style="padding:16px 18px;margin-bottom:14px;">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
       <div>
-        <div style="font-size:17px;font-weight:800;">${s.name}</div>
-        <div style="font-size:12.5px;color:var(--ink-500);margin-top:2px;">${s.title||s.role} · ${s.rm||''} · ${s.team||'Chưa gán đội'} · ${s.branch}</div>
+        <div style="font-size:16px;font-weight:800;">${s.name}</div>
+        <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${s.title||s.role} · ${s.rm||''} · ${s.team||'Chưa gán đội'} · ${s.branch}</div>
         <div style="font-size:12px;color:var(--ink-300);margin-top:2px;">Quản lý: ${(BANCA.personas[s.manager]||{}).name||'Chưa gán'} · Hoạt động gần nhất: ${fmtVNDate((sApps[0]||{}).updatedAt)||'Không phát sinh'}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${statusBadges.join(' ')}</div>
       </div>
@@ -654,31 +654,31 @@ function renderSeller(){
     <div style="font-size:14px;font-weight:800;color:${rd.B>0?'var(--red-600)':'var(--amber-600)'};">⚠ Rủi ro cần chú ý</div>
     <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
       ${riskItems.map((it,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid ${it.state==='BLOCKED'?'#f2c9c9':'#ffe0a3'};border-radius:8px;padding:10px 12px;">
-        <div><b style="font-size:13px;">${i+1}. ${it.name}:</b> <span style="color:${stTone[it.state]};font-weight:600;font-size:12.5px;">${stVN[it.state]}</span>
+        <div><b style="font-size:13px;">${i+1}. ${it.name}:</b> <span style="color:${stTone[it.state]};font-weight:600;font-size:12px;">${stVN[it.state]}</span>
           <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">Lý do: ${it.reason||'Chưa có dữ liệu'}</div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">${riskCta(it)}</div>
       </div>`).join('')}
     </div></div>` : '';
   // ---------- CỘT TRÁI: tình trạng bán (bảng đầy đủ, THU GỌN mặc định khi đã có Risk block để tránh trùng) ----------
   const sellRows = rd.items.map(it=>`<tr>
-      <td style="font-size:12.5px;"><b>${it.name}</b></td>
+      <td style="font-size:12px;"><b>${it.name}</b></td>
       <td><span class="badge ${it.state==='READY'?'badge-ready':it.state==='CONDITIONAL'?'badge-conditional':'badge-blocked'}">${stVN[it.state]||it.state}</span></td>
       <td style="font-size:12px;color:${it.state==='READY'?'var(--ink-300)':'var(--amber-600)'};">${it.reason||'Không có hạn chế'}</td>
     </tr>`).join('');
   const sellTable = rd.items.length
     ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Sản phẩm</th><th>Trạng thái</th><th>Hạn chế</th></tr></thead><tbody>${sellRows}</tbody></table></div>`
-    : `<div class="card" style="padding:12px 14px;font-size:12.5px;color:var(--ink-500);">Chưa gán sản phẩm cho nhân viên này. <a href="${r}modules/employee-profile/index.html" style="color:var(--brand-600);">Xem yêu cầu nhân viên →</a></div>`;
+    : `<div class="card" style="padding:12px 14px;font-size:12px;color:var(--ink-500);">Chưa gán sản phẩm cho nhân viên này. <a href="${r}modules/employee-profile/index.html" style="color:var(--brand-600);">Xem yêu cầu nhân viên →</a></div>`;
   // Nếu đã có Risk block phía trên → bảng đầy đủ thu gọn trong <details>; không có risk → hiện luôn.
   const selling = riskItems.length
-    ? `<details style="margin-bottom:4px;"><summary style="cursor:pointer;font-size:13.5px;font-weight:700;padding:6px 0;color:var(--ink-700);">Tình trạng bán hàng theo sản phẩm <span style="font-weight:400;font-size:12px;color:var(--ink-500);">(${rd.R} bán được · ${rd.C} có điều kiện · ${rd.B} bị chặn — bấm để xem đầy đủ)</span></summary>${sellTable}<div style="font-size:11px;color:var(--ink-300);margin:4px 0 0;">Chi tiết license/training tại Hồ sơ nhân viên.</div></details>`
+    ? `<details style="margin-bottom:4px;"><summary style="cursor:pointer;font-size:13px;font-weight:700;padding:6px 0;color:var(--ink-700);">Tình trạng bán hàng theo sản phẩm <span style="font-weight:400;font-size:12px;color:var(--ink-500);">(${rd.R} bán được · ${rd.C} có điều kiện · ${rd.B} bị chặn — bấm để xem đầy đủ)</span></summary>${sellTable}<div style="font-size:11px;color:var(--ink-300);margin:4px 0 0;">Chi tiết license/training tại Hồ sơ nhân viên.</div></details>`
     : `<div class="section-title"><h2>Tình trạng bán hàng theo sản phẩm</h2><span class="subtitle">${rd.R} bán được · ${rd.C} có điều kiện · ${rd.B} bị chặn</span></div>${sellTable}
     <div style="font-size:11px;color:var(--ink-300);margin:4px 0 0;">Chi tiết license/training tại Hồ sơ nhân viên.</div>`;
   // Workload → danh sách cần can thiệp
   const wlLines=[];
   wlLines.push(`<div style="font-size:13px;"><b>${sApps.length} yêu cầu đang xử lý</b> — ${draftN} chưa nộp · ${subN} đã nộp</div>`);
-  wlLines.push(needMore?`<div style="font-size:12.5px;color:var(--red-600);margin-top:4px;">⚠ ${needMore} yêu cầu cần bổ sung trước hạn</div>`:`<div style="font-size:12.5px;color:var(--ink-500);margin-top:4px;">Không có yêu cầu cần bổ sung</div>`);
-  wlLines.push(waiting?`<div style="font-size:12.5px;color:var(--amber-600);">⏳ ${waiting} bàn giao chờ tiếp nhận</div>`:`<div style="font-size:12.5px;color:var(--ink-500);">Không có bàn giao chờ tiếp nhận</div>`);
-  if(rd.C>0&&draftN>0) wlLines.push(`<div style="font-size:12.5px;color:var(--amber-600);margin-top:2px;">💡 Có yêu cầu thuộc sản phẩm bán có điều kiện — có thể cần hỗ trợ khi chốt</div>`);
+  wlLines.push(needMore?`<div style="font-size:12px;color:var(--red-600);margin-top:4px;">⚠ ${needMore} yêu cầu cần bổ sung trước hạn</div>`:`<div style="font-size:12px;color:var(--ink-500);margin-top:4px;">Không có yêu cầu cần bổ sung</div>`);
+  wlLines.push(waiting?`<div style="font-size:12px;color:var(--amber-600);">⏳ ${waiting} bàn giao chờ tiếp nhận</div>`:`<div style="font-size:12px;color:var(--ink-500);">Không có bàn giao chờ tiếp nhận</div>`);
+  if(rd.C>0&&draftN>0) wlLines.push(`<div style="font-size:12px;color:var(--amber-600);margin-top:2px;">💡 Có yêu cầu thuộc sản phẩm bán có điều kiện — có thể cần hỗ trợ khi chốt</div>`);
   const workload=`<div class="section-title" style="margin-top:16px;"><h2>Khối lượng công việc</h2></div>
     <div class="card" style="padding:14px 16px;">${wlLines.join('')}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
@@ -689,13 +689,13 @@ function renderSeller(){
       </div></div>`;
   // Công việc đang mở — empty state có CTA + nêu kỳ cụ thể
   const openTasks=`<div class="section-title" style="margin-top:16px;"><h2>Công việc đang mở</h2></div>
-    ${tasks.length?tasks.slice(0,5).map(tk=>`<div class="card" style="padding:10px 14px;margin-bottom:8px;"><div style="font-size:12.5px;color:var(--ink-700);">${tk.text}</div><div style="font-size:11px;color:var(--ink-300);">${tk.case?'Yêu cầu '+tk.case+' · ':''}Hạn ${tk.due||'Chưa có hạn'} · ${tk.at}</div></div>`).join('')+`<a href="?view=team&scope=${scope}&t=tasks" style="font-size:12.5px;color:var(--brand-600);">Xem tất cả công việc →</a>`
-    :`<div class="card" style="padding:14px 16px;"><div style="font-size:12.5px;color:var(--ink-500);">Không có task đang mở trong Tháng 07/2026.</div>
+    ${tasks.length?tasks.slice(0,5).map(tk=>`<div class="card" style="padding:10px 14px;margin-bottom:8px;"><div style="font-size:12px;color:var(--ink-700);">${tk.text}</div><div style="font-size:11px;color:var(--ink-300);">${tk.case?'Yêu cầu '+tk.case+' · ':''}Hạn ${tk.due||'Chưa có hạn'} · ${tk.at}</div></div>`).join('')+`<a href="?view=team&scope=${scope}&t=tasks" style="font-size:12px;color:var(--brand-600);">Xem tất cả công việc →</a>`
+    :`<div class="card" style="padding:14px 16px;"><div style="font-size:12px;color:var(--ink-500);">Không có task đang mở trong Tháng 07/2026.</div>
        <div style="display:flex;gap:8px;margin-top:10px;">${BANCA.canDo('ASSIGN_TASK')?`<button class="btn btn-primary btn-sm" onclick="openTask('${id}')">Giao việc mới</button>`:''}<a class="btn btn-secondary btn-sm" href="?view=team&scope=${scope}&t=tasks">Xem lịch sử công việc</a></div></div>`}`;
   // ---------- CỘT PHẢI: KPI 2 nhóm — gom metric thiếu dữ liệu thành 1 câu ----------
   const noData='<span style="font-size:11px;color:var(--ink-300);">Chưa có dữ liệu kỳ này</span>';
-  const convCtx = (k.policies!=null&&subN) ? `<div style="font-size:10.5px;color:var(--ink-300);">${k.policies||0} phát hành / ${subN} đã nộp</div>` : '';
-  const kpiCell=(l,v,sub)=>`<div class="kpi"><span>${l}</span><b style="font-size:13.5px;">${v}</b>${sub||''}</div>`;
+  const convCtx = (k.policies!=null&&subN) ? `<div style="font-size:11px;color:var(--ink-300);">${k.policies||0} phát hành / ${subN} đã nộp</div>` : '';
+  const kpiCell=(l,v,sub)=>`<div class="kpi"><span>${l}</span><b style="font-size:13px;">${v}</b>${sub||''}</div>`;
   // Chất lượng xử lý: chỉ hiện metric CÓ dữ liệu; metric thiếu gom vào 1 câu.
   const qualityDefs=[['Tuân thủ SLA',k.sla],['Yêu cầu bị trả lại',k.rejectRate],['Báo giá→Nộp',k.q2s],['Nộp→Phát hành',k.s2i]];
   const qHave=qualityDefs.filter(([,v])=>v);
@@ -724,7 +724,7 @@ function renderSeller(){
       <div>${perf}${auditCard}</div>
     </div>
     <style>@media(max-width:900px){.seller-2col{grid-template-columns:1fr!important;}}</style>`;
-  shell('Đội nhóm', s.name+' — chi tiết nhân viên', headerBar('Chi tiết nhân viên')+`<a href="?view=team&scope=${scope}&t=members" style="font-size:12.5px;color:var(--brand-600);">← Thành viên</a>`+body+modalHost(), {startSale:false});
+  shell('Đội nhóm', s.name+' — chi tiết nhân viên', headerBar('Chi tiết nhân viên')+`<a href="?view=team&scope=${scope}&t=members" style="font-size:12px;color:var(--brand-600);">← Thành viên</a>`+body+modalHost(), {startSale:false});
 }
 
 /* ============================ MODALS ============================ */
@@ -735,14 +735,14 @@ function toast(msg){ const t=document.createElement('div'); t.textContent=msg; t
 function addTask(sellerId,text,caseId,due){ BANCA.tasks=BANCA.tasks||{}; BANCA.tasks[sellerId]=BANCA.tasks[sellerId]||[]; BANCA.tasks[sellerId].unshift({text,case:caseId||null,due:due||null,at:new Date().toLocaleString('vi-VN'),status:'OPEN'}); }
 // Giao việc — bắt buộc gắn hồ sơ/khách/handoff/readiness (không phải task đánh giá nhân sự).
 window.openTask=(sellerId,caseId)=>{ if(!BANCA.canDo('ASSIGN_TASK'))return toast('Chưa được cấp quyền giao việc.'); const s=BANCA.personas[sellerId]||{}; showModal(`<h3 style="margin:0 0 8px;">Giao việc cho ${s.name||sellerId}</h3>${caseId?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Gắn yêu cầu ${caseId}</div>`:''}
-   <div class="label" style="margin-bottom:4px;">Loại công việc</div><select id="tk-type" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;"><option>Yêu cầu</option><option>Tài liệu</option><option>Thanh toán</option><option>Tái tục</option><option>Readiness</option><option>Hỗ trợ</option></select>
-   <textarea id="tk-text" placeholder="Nội dung việc (gắn hồ sơ/khách/handoff)…" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;"></textarea>
-   <div style="display:flex;gap:8px;margin-top:8px;"><input id="tk-case" placeholder="Mã yêu cầu/khách" value="${caseId||''}" style="flex:1;padding:7px;border:1px solid var(--line);border-radius:7px;"><input type="date" id="tk-due" style="padding:7px;border:1px solid var(--line);border-radius:7px;"></div>
+   <div class="label" style="margin-bottom:4px;">Loại công việc</div><select id="tk-type" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-bottom:8px;"><option>Yêu cầu</option><option>Tài liệu</option><option>Thanh toán</option><option>Tái tục</option><option>Readiness</option><option>Hỗ trợ</option></select>
+   <textarea id="tk-text" placeholder="Nội dung việc (gắn hồ sơ/khách/handoff)…" style="width:100%;min-height:60px;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:13px;"></textarea>
+   <div style="display:flex;gap:8px;margin-top:8px;"><input id="tk-case" placeholder="Mã yêu cầu/khách" value="${caseId||''}" style="flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;"><input type="date" id="tk-due" style="padding:6px;border:1px solid var(--line);border-radius:6px;"></div>
    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doTask('${sellerId}')">Giao việc</button></div>`); };
 window.doTask=(sellerId)=>{ const text=(document.getElementById('tk-text').value||'').trim(); if(!text)return toast('Nhập nội dung.'); const cs=(document.getElementById('tk-case')||{}).value||''; const due=(document.getElementById('tk-due')||{}).value||''; const type=(document.getElementById('tk-type')||{}).value||''; if(!cs)return toast('Task phải gắn hồ sơ/khách/handoff.'); BANCA.audit({action:'ASSIGN_TASK',seller:sellerId,case:cs,text:type+': '+text}); addTask(sellerId,type+': '+text,cs,due); closeModal(); toast('Đã giao việc (demo).'); };
-window.openReassign=(caseId,fromSeller)=>{ if(!(BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS')))return toast('Chưa được cấp quyền chuyển.'); const title=BANCA.reassignActionLabel(me); const warn=EMBED?`<div class="card" style="padding:10px;background:#eaf1ff;border-color:#c7d8ff;font-size:12px;color:#274690;margin-bottom:10px;">⚠️ Embed: chỉ <b>điều chỉnh ghi nhận (attribution)</b> cho KPI/hoa hồng. <b>Không</b> đổi owner thật trong hệ thống ngân hàng.</div>`:`<div class="card" style="padding:10px;background:#fff6e6;border-color:#ffe0a3;font-size:12px;color:#8a5a00;margin-bottom:10px;">Đổi <b>owner thực tế</b>, cập nhật task & notification, kiểm tra readiness người nhận, ghi audit.</div>`; const cands=membersOf(BANCA.defaultScope(me)).filter(s=>s.id!==fromSeller&&s.status==='ACTIVE'); showModal(`<h3 style="margin:0 0 8px;">${title}${caseId?' · '+caseId:''}</h3>${warn}<div class="label" style="margin-bottom:6px;">Người nhận</div><select id="ra-to" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;">${cands.map(s=>`<option value="${s.id}">${s.name} · ${s.role}</option>`).join('')}</select><div class="label" style="margin-bottom:6px;">Lý do (bắt buộc — ghi audit)</div><input id="ra-reason" placeholder="Lý do" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doReassign('${caseId||''}','${fromSeller||''}')">${title}</button></div>`); };
+window.openReassign=(caseId,fromSeller)=>{ if(!(BANCA.canDo('REASSIGN_IN')||BANCA.canDo('REASSIGN_CROSS')))return toast('Chưa được cấp quyền chuyển.'); const title=BANCA.reassignActionLabel(me); const warn=EMBED?`<div class="card" style="padding:10px;background:#eaf1ff;border-color:#c7d8ff;font-size:12px;color:#274690;margin-bottom:10px;">⚠️ Embed: chỉ <b>điều chỉnh ghi nhận (attribution)</b> cho KPI/hoa hồng. <b>Không</b> đổi owner thật trong hệ thống ngân hàng.</div>`:`<div class="card" style="padding:10px;background:#fff6e6;border-color:#ffe0a3;font-size:12px;color:#8a5a00;margin-bottom:10px;">Đổi <b>owner thực tế</b>, cập nhật task & notification, kiểm tra readiness người nhận, ghi audit.</div>`; const cands=membersOf(BANCA.defaultScope(me)).filter(s=>s.id!==fromSeller&&s.status==='ACTIVE'); showModal(`<h3 style="margin:0 0 8px;">${title}${caseId?' · '+caseId:''}</h3>${warn}<div class="label" style="margin-bottom:6px;">Người nhận</div><select id="ra-to" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;margin-bottom:8px;">${cands.map(s=>`<option value="${s.id}">${s.name} · ${s.role}</option>`).join('')}</select><div class="label" style="margin-bottom:6px;">Lý do (bắt buộc — ghi audit)</div><input id="ra-reason" placeholder="Lý do" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doReassign('${caseId||''}','${fromSeller||''}')">${title}</button></div>`); };
 window.doReassign=(caseId,fromSeller)=>{ const reason=(document.getElementById('ra-reason').value||'').trim(); if(!reason)return toast('Nhập lý do.'); const to=document.getElementById('ra-to').value; BANCA.audit({action:EMBED?'RE_ATTRIBUTION':'REASSIGN',case:caseId,from:fromSeller,to,reason,mode:EMBED?'EMBED':'PORTAL'}); closeModal(); toast(EMBED?'Đã điều chỉnh ghi nhận (không đổi owner bank).':'Đã chuyển người phụ trách (demo).'); };
-window.openUnmask=(sellerId,kind)=>{ showModal(`<h3 style="margin:0 0 8px;">Yêu cầu xem dữ liệu ${kind}</h3><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Manager không tự động xem PII/health. Mở dữ liệu cần lý do và sẽ ghi audit (user, thời điểm).</div><input id="um-reason" placeholder="Lý do" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doUnmask('${sellerId}','${kind}')">Xác nhận & ghi audit</button></div>`); };
+window.openUnmask=(sellerId,kind)=>{ showModal(`<h3 style="margin:0 0 8px;">Yêu cầu xem dữ liệu ${kind}</h3><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Manager không tự động xem PII/health. Mở dữ liệu cần lý do và sẽ ghi audit (user, thời điểm).</div><input id="um-reason" placeholder="Lý do" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Huỷ</button><button class="btn btn-primary btn-sm" onclick="doUnmask('${sellerId}','${kind}')">Xác nhận & ghi audit</button></div>`); };
 window.doUnmask=(sellerId,kind)=>{ const reason=(document.getElementById('um-reason').value||'').trim(); if(!reason)return toast('Nhập lý do.'); BANCA.audit({action:'UNMASK_'+kind,seller:sellerId,reason}); closeModal(); toast('Đã ghi audit mở '+kind+' (demo).'); };
 window.openAssign=(id,scope)=>{
   const h=BANCA.handoffById(id); if(!h) return;
@@ -764,7 +764,7 @@ window.openAssign=(id,scope)=>{
 window.doAssign=(id,sellerId)=>{ BANCA.assignHandoff(id,sellerId,me); closeModal(); toast('Đã phân công cho '+((BANCA.personas[sellerId]||{}).name||sellerId)+' — chờ tiếp nhận.'); setTimeout(()=>location.reload(),700); };
 window.openMirrorCase=(id,src)=>{ const app=BANCA.applications.find(a=>a.id===id)||{}; showModal(`<h3 style="margin:0 0 4px;">Yêu cầu mirror · chỉ đọc</h3>
    <div class="card" style="padding:10px;background:#eaf1ff;border-color:#c7d8ff;font-size:12px;color:#274690;margin:8px 0 12px;">Bản sao dữ liệu từ hệ thống ngân hàng. Không thể chỉnh sửa, nộp, bind hay chuyển owner tại đây.</div>
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:12.5px;">
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:12px;">
      <div><span style="color:var(--ink-500);">Hệ thống nguồn:</span> <b>${src||'JANUS_CRM'}</b></div>
      <div><span style="color:var(--ink-500);">Mã yêu cầu ngoài:</span> <b>${id}</b></div>
      <div><span style="color:var(--ink-500);">Khách (mask):</span> ${app.customerId?custName(app.customerId):'••• ẩn'}</div>
@@ -788,7 +788,7 @@ else renderHome();
 .ovf{position:relative;display:inline-block;}
 .ovf-menu{display:none;position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:50;min-width:160px;padding:4px;}
 .ovf-menu.open{display:block;}
-.ovf-menu a{display:block;padding:7px 10px;font-size:12.5px;color:var(--ink-700);text-decoration:none;border-radius:6px;}
+.ovf-menu a{display:block;padding:6px 10px;font-size:12px;color:var(--ink-700);text-decoration:none;border-radius:6px;}
 .ovf-menu a:hover{background:var(--paper);}
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;}
 .modal-bx{background:#fff;border-radius:12px;padding:20px;width:min(440px,92vw);max-height:88vh;overflow:auto;}

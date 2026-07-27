@@ -79,7 +79,7 @@ BANCA.LABELS = {
 };
 BANCA.label = (group,key) => (BANCA.LABELS[group]||{})[key] || key;
 BANCA.appStatusBadge = s => {const m=BANCA.APP_STATUS[s]||{label:s,cls:'badge-pending'};return `<span class="badge ${m.cls}">${m.label}</span>`;};
-BANCA.warnBadge = f => {const m=BANCA.WARNING_FLAGS[f]||{label:f,cls:'badge-pending'};return `<span class="badge ${m.cls}" style="font-size:10.5px;">${m.label}</span>`;};
+BANCA.warnBadge = f => {const m=BANCA.WARNING_FLAGS[f]||{label:f,cls:'badge-pending'};return `<span class="badge ${m.cls}" style="font-size:11px;">${m.label}</span>`;};
 BANCA.uwBadge = d => {const m=BANCA.UW_DECISIONS[d]||{label:d,cls:'badge-pending'};return `<span class="badge ${m.cls}">${m.label}</span>`;};
 BANCA.policyBadge = s => {const m=BANCA.POLICY_STATUS[s]||{label:s,cls:'badge-pending'};return `<span class="badge ${m.cls}">${m.label}</span>`;};
 BANCA.vnd = n => (n||0).toLocaleString('vi-VN') + ' ₫';

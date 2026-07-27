@@ -31,27 +31,9 @@ const FPT_LOGO_SVG = `<svg viewBox="0 0 50.3 25" xmlns="http://www.w3.org/2000/s
   </g>
 </svg>`;
 
-// Menu chính theo Spec v1 mục 3.1 — [label, url, icon, group, permission]
-function navItems(){
- const T=BANCA.t;
- const GRP={sales:T('sales'),after:T('afterSale'),support:T('support'),manage:T('management')};
- // IA theo glossary: Bán hàng → Sau bán → Hỗ trợ → Quản lý.
- const items=[
-  [T('home'),'modules/seller-workspace/index.html','home',null,'VIEW_WORKSPACE'],
-  [T('quickAdvisory'),'modules/quick-advisory/index.html','advise',GRP.sales,'VIEW_WORKSPACE'],
-  [T('insuranceRequest'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE', true],
-  // §8.1 — "Bản chào" là 1 object nghiệp vụ (không tách "chưa nộp/đã nộp" thành 2 mục menu).
-  [T('offers'),'modules/unsubmitted-applications/index.html','draft',GRP.sales,'VIEW_WORKSPACE'],
-  [T('policy'),'modules/policies/index.html','doc',GRP.after,'VIEW_WORKSPACE'],
-  [T('help'),'modules/help/index.html','help',GRP.support,'VIEW_WORKSPACE'],
-  [T('management'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE', true],
-  [T('Đội nhóm'),'modules/team-workspace/index.html','team',GRP.manage,'VIEW_TEAM_WORKSPACE'],
- ];
- // Nhóm BÁN HÀNG (tư vấn/tạo yêu cầu) là hoạt động bán cá nhân → ẩn với persona không bán (quản lý thuần).
- const _mp = BANCA.resolveManagerProfile ? BANCA.resolveManagerProfile(BANCA.current()) : {sellingEnabled:true};
- const canSell = _mp.sellingEnabled!==false;
- return items.filter(i=>BANCA.can(i[4]) && !(i[3]===GRP.sales && !canSell) && !i[5]);
-}
+// §8.1 + §16 — menu chính đọc TỪ CONFIG TẬP TRUNG (shared/js/navigation-config.js).
+// Shell chỉ render; không tự khai báo item ở đây (tránh 2 nguồn sự thật cho nav).
+function navItems(){ return BANCA.navResolved(); }
 
 function navIcon(k){
  const icons={
@@ -71,21 +53,19 @@ function shell(active,title,body,opts){
  opts=opts||{};
  const r=rel();
  const personas=Object.keys(BANCA.personas).map(p=>`<option ${BANCA.current()===p?'selected':''}>${p}</option>`).join('');
- let nav='',lastGroup=null;
- navItems().forEach(([n,u,icon,group])=>{
-  if(group!==lastGroup){ if(group) nav+=`<div class="sb1-group-label" style="padding:14px 18px 4px;font-size:10px;letter-spacing:.08em;color:#7f97c4;">${group}</div>`; lastGroup=group; }
-  nav+=`<div class="sb1-overview-item${active===n?' active':''}" onclick="window.location.assign('${r}${u}')">${navIcon(icon)}<span class="txt">${n}</span></div>`;
- });
+ // Nav phẳng 5 mục (§8.1) — không còn group label.
+ const nav=navItems().map(it=>
+  `<div class="sb1-overview-item${BANCA.navIsActive(it,active)?' active':''}" onclick="window.location.assign('${r}${it.route}')">${navIcon(it.icon)}<span class="txt">${it.label}</span></div>`
+ ).join('');
  const p=BANCA.persona();
  const initials=(p&&p.name)?p.name.split(' ').map(w=>w[0]).slice(-2).join('').toUpperCase():BANCA.current().slice(0,2);
  const _mp = BANCA.resolveManagerProfile ? BANCA.resolveManagerProfile(BANCA.current()) : {sellingEnabled:true};
  const canSell = p.status==='ACTIVE' && !p.serviceError && _mp.sellingEnabled!==false;
- // CTA header phân cấp rõ nghĩa (bản đánh giá P0-3):
- //  · "Tư vấn nhanh" = khi khách CHƯA chắc nhu cầu/gói.
- //  · "Tạo yêu cầu bảo hiểm" = khi đã biết khách + sản phẩm (mở modal chọn ngữ cảnh).
- //  · "Tiếp tục yêu cầu gần nhất" = nếu đang có nháp dang dở (giảm thao tác).
- const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ ${BANCA.t('createInsuranceRequest')}</button>` : '';
- const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('quickAdvisory')}</button>` : '';
+ // §6.1 + §15.1 — MỘT CTA primary duy nhất: "Tư vấn và bán bảo hiểm".
+ // CTA tự xác định ngữ cảnh bên trong (banking context → vào thẳng; chưa có → tư vấn nhanh),
+ // KHÔNG dẫn seller vào danh sách khách hàng trước. "Tiếp tục yêu cầu gần nhất" là secondary.
+ const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">${BANCA.t('adviseAndSell')}</button>` : '';
+ const adviseBtn = ''; // gộp vào CTA primary — tránh 2 nút cùng độ nổi bật (§15.1)
  let resumeBtn='';
  if(canSell){
    try{ const _me=BANCA.current();
@@ -125,16 +105,16 @@ function shell(active,title,body,opts){
       ${resumeBtn}
       ${adviseBtn}
       ${startBtn}
-      <button onclick="BANCA.setLang('${BANCA.lang==='en'?'vi':'en'}')" title="${BANCA.t('Chuyển sang tiếng Anh','Switch to Vietnamese')}" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">🌐 ${BANCA.lang==='en'?'EN':'VI'}</button>
+      <button onclick="BANCA.setLang('${BANCA.lang==='en'?'vi':'en'}')" title="${BANCA.t('Chuyển sang tiếng Anh','Switch to Vietnamese')}" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;">🌐 ${BANCA.lang==='en'?'EN':'VI'}</button>
       <div style="position:relative;">
-        <button onclick="var p=document.getElementById('demo-persona-pop');p.style.display=p.style.display==='none'?'block':'none';" title="Công cụ demo — đổi persona" style="background:rgba(255,255,255,.08);color:#a9bdde;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 9px;font-size:13px;cursor:pointer;">🧪</button>
+        <button onclick="var p=document.getElementById('demo-persona-pop');p.style.display=p.style.display==='none'?'block':'none';" title="Công cụ demo — đổi persona" style="background:rgba(255,255,255,.08);color:#a9bdde;border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer;">🧪</button>
         <div id="demo-persona-pop" style="display:none;position:absolute;right:0;top:110%;background:#1c2b4a;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.35);min-width:170px;">
-          <div style="font-size:10.5px;color:#a9bdde;margin-bottom:6px;letter-spacing:.05em;">CÔNG CỤ THỬ NGHIỆM</div>
-          <div style="font-size:10px;color:#8ea3c8;margin-bottom:3px;">Persona</div>
+          <div style="font-size:11px;color:#a9bdde;margin-bottom:6px;letter-spacing:.05em;">CÔNG CỤ THỬ NGHIỆM</div>
+          <div style="font-size:11px;color:#8ea3c8;margin-bottom:2px;">Persona</div>
           <select onchange="BANCA.setPersona(this.value)" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.25);font-size:12px;padding:4px 6px;width:100%;">${personas}</select>
-          <div style="font-size:10px;color:#8ea3c8;margin:8px 0 3px;">Channel (§4.1)</div>
+          <div style="font-size:11px;color:#8ea3c8;margin:8px 0 2px;">Channel (§4.1)</div>
           <select onchange="BANCA.setChannel(this.value)" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.25);font-size:12px;padding:4px 6px;width:100%;">${(BANCA.CHANNEL_ENUM||[]).map(id=>`<option value="${id}" ${BANCA.channel()===id?'selected':''}>${BANCA.CHANNEL_PROFILES[id].short}</option>`).join('')}</select>
-          <div style="font-size:9.5px;color:#8ea3c8;margin-top:5px;line-height:1.4;">${BANCA.channelShowsCustomerList()?'Có list KH':'Ẩn list KH'} · ${BANCA.channelProfile().defaultEntryMode}</div>
+          <div style="font-size:9.5px;color:#8ea3c8;margin-top:4px;line-height:1.4;">${BANCA.channelShowsCustomerList()?'Có list KH':'Ẩn list KH'} · ${BANCA.channelProfile().defaultEntryMode}</div>
         </div>
       </div>
     </div>
@@ -180,6 +160,11 @@ function openStartSale(){
  }
  const root=document.getElementById('start-sale-root');
  const groups=[
+  // §6.1 — Tư vấn nhanh là lựa chọn DẪN ĐẦU (khách chưa chốt nhu cầu/sản phẩm),
+  // không phải link phụ cuối modal.
+  {label:'KHÁCH CHƯA CHỐT NHU CẦU / SẢN PHẨM', items:[
+    {id:'ADVICE', icon:'💡', t:'Tư vấn nhanh', d:'Hỏi nhu cầu → đề xuất sản phẩm & gói phù hợp', badge:'ADVICE'}
+  ]},
   {label:'CÓ SẴN NGỮ CẢNH', items:[
     {id:'BANK_CUSTOMER', icon:'🏦', t:'Khách hàng ngân hàng', d:'Xem ngữ cảnh & đề xuất trước khi tạo yêu cầu', badge:'CRM'},
     {id:'REFERRAL',      icon:'📨', t:'Lead / Referral được giao', d:'Bắt đầu từ lead — có thể kèm sản phẩm hoặc nhu cầu', badge:'REFERRAL'},
@@ -194,15 +179,15 @@ function openStartSale(){
  ];
  root.innerHTML=`<div class="modal-overlay2 open" onclick="closeStartSale(event)">
   <div class="modal2" style="max-width:560px;" onclick="event.stopPropagation()">
-    <div class="modal2-head"><b>Tạo yêu cầu bảo hiểm — chọn ngữ cảnh</b><span class="modal2-close" onclick="closeStartSale()">&times;</span></div>
+    <div class="modal2-head"><b>Tư vấn và bán bảo hiểm — chọn ngữ cảnh</b><span class="modal2-close" onclick="closeStartSale()">&times;</span></div>
     <div class="modal2-body" id="ss-body">
       ${groups.map(g=>`<div class="label" style="margin:6px 0 8px;">${g.label}</div>${g.items.map(m=>`<div class="card" style="display:flex;gap:12px;align-items:center;cursor:pointer;margin-bottom:10px;padding:14px;" onclick="startSaleMode('${m.id}')">
         <div style="font-size:22px;">${m.icon}</div>
-        <div style="flex:1;"><div style="font-weight:600;font-size:13.5px;color:var(--ink-900);">${m.t} ${BANCA.sourceBadge(m.badge)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${m.d}</div></div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:13px;color:var(--ink-900);">${m.t} ${BANCA.sourceBadge(m.badge)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${m.d}</div></div>
         <span style="color:var(--ink-300);">›</span>
       </div>`).join('')}`).join('')}
-      <div style="border-top:1px dashed var(--line);margin-top:6px;padding-top:12px;font-size:12.5px;color:var(--ink-500);">
-        Khách chưa xác định được sản phẩm phù hợp? <a href="javascript:closeStartSale();location.href=rel()+'modules/advisory-workspace/index.html?new=1'" style="color:var(--brand-600);font-weight:600;">Mở Tư vấn nhanh →</a>
+      <div style="border-top:1px dashed var(--line);margin-top:6px;padding-top:12px;font-size:12px;color:var(--ink-500);">
+        Chưa lấy thông tin định danh khách hàng ở bước này — chỉ lấy sau khi khách đồng ý chia sẻ dữ liệu.
       </div>
     </div>
   </div></div>`;
@@ -213,7 +198,7 @@ function readinessLine(productId){
  const rd=BANCA.readinessFor(productId);
  return rd.ready
   ? `<span class="badge badge-ready">Đủ điều kiện bán (READY)</span>`
-  : `<span class="badge badge-conditional">Readiness: ${rd.state}</span>${rd.reason?` <span style="font-size:11.5px;color:var(--ink-500);">${rd.reason}</span>`:''}`;
+  : `<span class="badge badge-conditional">Readiness: ${rd.state}</span>${rd.reason?` <span style="font-size:11px;color:var(--ink-500);">${rd.reason}</span>`:''}`;
 }
 function kv(k,v){ return `<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="color:var(--ink-500);">${k}</span><span style="text-align:right;font-weight:600;">${v}</span></div>`; }
 function closeStartSale(e){ if(e&&e.target!==e.currentTarget)return; document.getElementById('start-sale-root').innerHTML=''; }
@@ -221,11 +206,13 @@ function closeStartSale(e){ if(e&&e.target!==e.currentTarget)return; document.ge
 function startSaleMode(mode){
  const body=document.getElementById('ss-body'); const me=BANCA.current();
  __ssCtx = {mode};
+ // §6.1 — Tư vấn nhanh: đi thẳng vào advisory workspace, không qua chọn khách hàng.
+ if(mode==='ADVICE'){ closeStartSale(); location.href=rel()+'modules/advisory-workspace/index.html?new=1'; return; }
  if(mode==='BANK_CUSTOMER'){
   const list=BANCA.myCustomers().filter(c=>c.scope[me]!=='PROSPECT');
   body.innerHTML=ssBack("openStartSale()")+`<div class="label" style="margin-bottom:8px;">Khách hàng trong phạm vi của bạn (không tìm toàn hàng)</div>`+
    (list.length? list.map(c=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:12px 14px;">
-     <div><b style="font-size:13px;">${c.name}</b> <span class="chip">${c.scope[me]}</span><div style="font-size:11.5px;color:var(--ink-500);">CIF ${c.cif||'—'} · ${c.segment}${c.loanRef?' · '+c.loanRef:''}</div></div>
+     <div><b style="font-size:13px;">${c.name}</b> <span class="chip">${c.scope[me]}</span><div style="font-size:11px;color:var(--ink-500);">CIF ${c.cif||'—'} · ${c.segment}${c.loanRef?' · '+c.loanRef:''}</div></div>
      <button class="btn btn-primary btn-sm" onclick="ssBankContext('${c.id}')">Xem ngữ cảnh</button></div>`).join('')
    : `<div class="empty-state">Không có khách hàng trong scope.</div>`);
  } else if(mode==='PRODUCT_FIRST'){
@@ -233,8 +220,8 @@ function startSaleMode(mode){
  } else if(mode==='NEW_PROSPECT'){
   body.innerHTML=ssBack("openStartSale()")+`<div class="label" style="margin-bottom:8px;">Khách hàng mới — định danh tối thiểu + consent (chưa tạo yêu cầu)</div>
    <div class="card" style="padding:14px;">
-    <div class="field"><label style="font-size:12px;">Họ tên *</label><input id="np-name" placeholder="VD: Nguyễn Văn A" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"></div>
-    <div class="field" style="margin-top:8px;"><label style="font-size:12px;">Số điện thoại / Email *</label><input id="np-phone" placeholder="09xx xxx xxx" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;"></div>
+    <div class="field"><label style="font-size:12px;">Họ tên *</label><input id="np-name" placeholder="VD: Nguyễn Văn A" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"></div>
+    <div class="field" style="margin-top:8px;"><label style="font-size:12px;">Số điện thoại / Email *</label><input id="np-phone" placeholder="09xx xxx xxx" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ink-700);margin-top:10px;"><input type="checkbox" id="np-consent"> Khách hàng đồng ý cung cấp & xử lý dữ liệu cá nhân cho mục đích bảo hiểm.</label>
     <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="prospectNext()">Tiếp tục chọn sản phẩm →</button>
     <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Kiểm tra trùng (dedup) khi lưu; nếu trùng khách có sẵn sẽ dùng record đó, không tạo CIF giả. OCR định danh đầy đủ nằm trong bước Thông tin khách hàng.</div>
@@ -245,7 +232,7 @@ function startSaleMode(mode){
    (refs.length? refs.map(x=>{
      const kind = x.productInterest? 'LEAD_WITH_PRODUCT' : (x.need? 'LEAD_WITH_NEED' : 'LEAD_NONE');
      return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:12px 14px;">
-     <div><b style="font-size:13px;">${x.customerName}</b> ${BANCA.sourceBadge(/Campaign/i.test(x.source)?'CAMPAIGN':'REFERRAL')}<div style="font-size:11.5px;color:var(--ink-500);">${x.id} · ${x.source} · ${x.productInterest||x.need||'chưa có sản phẩm/nhu cầu'} · SLA ${x.sla}</div></div>
+     <div><b style="font-size:13px;">${x.customerName}</b> ${BANCA.sourceBadge(/Campaign/i.test(x.source)?'CAMPAIGN':'REFERRAL')}<div style="font-size:11px;color:var(--ink-500);">${x.id} · ${x.source} · ${x.productInterest||x.need||'chưa có sản phẩm/nhu cầu'} · SLA ${x.sla}</div></div>
      ${x.draftId?`<a class="btn btn-secondary btn-sm" href="${rel()}modules/application-workspace/index.html?id=${x.draftId}">Tiếp tục</a>`:`<button class="btn btn-primary btn-sm" onclick="ssLeadContext('${x.id}')">Xem ngữ cảnh</button>`}</div>`;
    }).join('')
    : `<div class="empty-state">Chưa có lead nào được giao.</div>`);
@@ -253,7 +240,7 @@ function startSaleMode(mode){
   const soon=BANCA.myPolicies().filter(p=>p.renewalStatus==='RENEWAL_DUE');
   body.innerHTML=ssBack("openStartSale()")+`<div class="label" style="margin-bottom:8px;">Hợp đồng sắp hết hạn (renewal window)</div>`+
    (soon.length? soon.map(p=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:12px 14px;">
-     <div><b style="font-size:13px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}<div style="font-size:11.5px;color:var(--ink-500);">${(BANCA.customerById(p.customerId)||{}).name} · ${p.vehicle?(p.vehicle.brand+' '+p.vehicle.model+' '+p.vehicle.plate):(p.productName||p.package||'')} · hết hạn ${p.effectiveTo}</div></div>
+     <div><b style="font-size:13px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}<div style="font-size:11px;color:var(--ink-500);">${(BANCA.customerById(p.customerId)||{}).name} · ${p.vehicle?(p.vehicle.brand+' '+p.vehicle.model+' '+p.vehicle.plate):(p.productName||p.package||'')} · hết hạn ${p.effectiveTo}</div></div>
      ${p.renewalDraftId?`<a class="btn btn-secondary btn-sm" href="${rel()}modules/application-workspace/index.html?id=${p.renewalDraftId}">Mở yêu cầu tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="ssRenewalContext('${p.id}')">Xem ngữ cảnh</button>`}</div>`).join('')
    : `<div class="empty-state">Không có hợp đồng trong renewal window.</div>`);
  }
@@ -278,7 +265,7 @@ function ssProductList(mode, customerId){
   (sellable.length? sellable.map(p=>{
     const st=(p.state||{})[me]; const cond=st!=='READY';
     return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:12px 14px;">
-     <div><b style="font-size:13px;">${p.name}</b> ${cond?`<span class="chip" style="background:var(--amber-100);color:var(--amber-600);">${st}</span>`:'<span class="chip" style="background:var(--teal-100);color:var(--teal-600);">READY</span>'}<div style="font-size:11.5px;color:var(--ink-500);">${p.line} · ${p.branding}${p.reason&&p.reason[me]?' · '+p.reason[me]:''}</div></div>
+     <div><b style="font-size:13px;">${p.name}</b> ${cond?`<span class="chip" style="background:var(--amber-100);color:var(--amber-600);">${st}</span>`:'<span class="chip" style="background:var(--teal-100);color:var(--teal-600);">READY</span>'}<div style="font-size:11px;color:var(--ink-500);">${p.line} · ${p.branding}${p.reason&&p.reason[me]?' · '+p.reason[me]:''}</div></div>
      ${mode==='PRODUCT_FIRST'?`<button class="btn btn-primary btn-sm" onclick="ssProductSummary('${p.id}')">Xem</button>`:`<button class="btn btn-primary btn-sm" onclick="ssPickProduct('${mode}','${customerId||''}','${p.id}')">Chọn</button>`}</div>`;
   }).join('')
   : `<div class="empty-state">Bạn chưa được cấp quyền bán sản phẩm nào. Liên hệ quản trị Distribution.</div>`);
@@ -291,13 +278,13 @@ function ssBankContext(custId){
  __ssCtx={mode:'BANK_CUSTOMER', customerId:custId, product: rec?rec.productId:null, source:'CRM', reason: rec?rec.reason:null};
  body.innerHTML=ssBack("startSaleMode('BANK_CUSTOMER')")+`
   <div class="card" style="padding:16px;">
-   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:15px;">${c.name}</b> ${BANCA.sourceBadge('CRM')}</div>
+   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">${c.name}</b> ${BANCA.sourceBadge('CRM')}</div>
    ${kv('CIF', c.cif||'—')}${kv('Segment', c.segment)}${kv('Chi nhánh', c.branch||'—')}${kv('RM phụ trách', c.ownerRM)}
    ${kv('Khoản vay / tài sản', c.loanRef||'—')}${kv('Bảo hiểm hiện có', (c.existingInsurance||[]).join(', ')||'Không')}
   </div>
   ${rec? `<div class="card" style="padding:16px;margin-top:10px;border-left:4px solid var(--brand-600);">
     <div style="font-size:12px;color:var(--ink-500);">Sản phẩm đề xuất ${BANCA.sourceBadge(rec.source)}</div>
-    <div style="font-weight:700;font-size:15px;margin:2px 0;">${recProd?recProd.name:rec.productId}</div>
+    <div style="font-weight:700;font-size:14px;margin:2px 0;">${recProd?recProd.name:rec.productId}</div>
     <div style="font-size:13px;color:var(--ink-700);"><b>Lý do:</b> ${rec.reason}</div>
     <div style="margin-top:8px;">${readinessLine(rec.productId)}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
@@ -322,7 +309,7 @@ function ssLeadContext(refId){
  __ssCtx={mode:'REFERRAL', refId:refId, customerId:x.customerId, customerName:x.customerName, product:prodId, source:'REFERRAL', reason:'Lead từ '+x.source};
  body.innerHTML=ssBack("startSaleMode('REFERRAL')")+`
   <div class="card" style="padding:16px;">
-   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:15px;">${x.customerName}</b> ${BANCA.sourceBadge(/Campaign/i.test(x.source)?'CAMPAIGN':'REFERRAL')}</div>
+   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">${x.customerName}</b> ${BANCA.sourceBadge(/Campaign/i.test(x.source)?'CAMPAIGN':'REFERRAL')}</div>
    ${kv('Lead', x.id)}${kv('Nguồn', x.source)}${kv('Sản phẩm quan tâm', x.productInterest||'—')}${kv('Nhu cầu', x.need||'—')}${kv('SLA', x.sla)}${kv('Khách hàng', x.customerId?(BANCA.customerById(x.customerId)||{}).cif||x.customerId:'Chưa gắn CIF (prospect)')}
   </div>
   ${kind==='LEAD_WITH_PRODUCT'? `<div class="card" style="padding:16px;margin-top:10px;border-left:4px solid var(--brand-600);">
@@ -348,13 +335,13 @@ function ssProductSummary(prodId){
  const docs={motor:'Đăng ký xe, đăng kiểm, ảnh xe, CCCD', health:'CCCD, kê khai sức khỏe', pa:'CCCD'}[prodId]||'—';
  body.innerHTML=ssBack("startSaleMode('PRODUCT_FIRST')")+`
   <div class="card" style="padding:16px;">
-   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:15px;">${p.name}</b> ${BANCA.sourceBadge('PORTAL')}</div>
+   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">${p.name}</b> ${BANCA.sourceBadge('PORTAL')}</div>
    ${kv('Khách hàng mục tiêu', p.line==='Motor'?'Chủ xe ô tô':'Cá nhân')}${kv('Quyền lợi chính', cover)}${kv('Phí minh họa', prem)}${kv('Tài liệu cần', docs)}${kv('Kênh phân phối', p.branding)}
    <div style="margin-top:8px;">${readinessLine(prodId)}</div>
   </div>
   <div class="card" style="padding:16px;margin-top:10px;">
    <div class="label" style="margin-bottom:8px;">Chọn khách hàng cho sản phẩm này</div>
-   ${BANCA.myCustomers().filter(c=>c.scope[BANCA.current()]!=='PROSPECT').slice(0,6).map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);"><div style="font-size:13px;">${c.name} <span style="font-size:11.5px;color:var(--ink-500);">· CIF ${c.cif||'—'}</span></div><button class="btn btn-secondary btn-sm" onclick="ssPickProduct('PRODUCT_FIRST','${c.id}','${prodId}')">Chọn</button></div>`).join('')}
+   ${BANCA.myCustomers().filter(c=>c.scope[BANCA.current()]!=='PROSPECT').slice(0,6).map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);"><div style="font-size:13px;">${c.name} <span style="font-size:11px;color:var(--ink-500);">· CIF ${c.cif||'—'}</span></div><button class="btn btn-secondary btn-sm" onclick="ssPickProduct('PRODUCT_FIRST','${c.id}','${prodId}')">Chọn</button></div>`).join('')}
    <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="startSaleMode('NEW_PROSPECT')">+ Khách hàng mới</button>
   </div>`;
 }
@@ -364,9 +351,9 @@ function ssRenewalContext(polId){
  __ssCtx={mode:'RENEWAL', customerId:p.customerId, product:'motor', source:'RENEWAL', reason:'Tái tục hợp đồng '+p.id, policyId:p.id};
  body.innerHTML=ssBack("startSaleMode('RENEWAL')")+`
   <div class="card" style="padding:16px;">
-   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:15px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}</div>
+   <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">${p.id}</b> ${BANCA.sourceBadge('RENEWAL')}</div>
    ${kv('Khách hàng', c.name||'—')}${p.vehicle?kv('Xe', p.vehicle.brand+' '+p.vehicle.model+' · '+p.vehicle.plate):kv('Đối tượng', p.productName||p.package||'—')}${kv('Gói hiện tại', p.package||'—')}${kv('Phí kỳ trước', p.premium?BANCA.vnd(p.premium):'—')}${kv('Hết hạn', p.effectiveTo)}
-   <div style="font-size:12.5px;color:var(--ink-500);margin-top:8px;">Đề xuất tái tục cùng gói; kiểm tra thay đổi dữ liệu KH/rủi ro (khoản vay, giá trị xe) ở bước Thông tin & Đối tượng.</div>
+   <div style="font-size:12px;color:var(--ink-500);margin-top:8px;">Đề xuất tái tục cùng gói; kiểm tra thay đổi dữ liệu KH/rủi ro (khoản vay, giá trị xe) ở bước Thông tin & Đối tượng.</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
    <button class="btn btn-primary btn-sm" onclick="ssPickProduct('RENEWAL','${p.customerId}','motor')">Tái tục cùng gói</button>
@@ -438,22 +425,22 @@ function filterDrawer(fields, hidden){
  const tags = active.map(f=>{
   const lbl = f.type==='select' ? ((f.options.find(o=>String(o[0])===String(f.value))||[])[1]||f.value) : f.value;
   const qs2=new URLSearchParams(location.search); qs2.delete(f.name);
-  return `<a href="?${qs2.toString()}" class="chip" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;background:var(--brand-100);color:var(--brand-700);padding:5px 10px;font-size:12px;" title="Bỏ lọc ${f.label}">${f.label}: <b>${lbl}</b> <span style="font-weight:800;">×</span></a>`;
+  return `<a href="?${qs2.toString()}" class="chip" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:var(--brand-100);color:var(--brand-700);padding:4px 10px;font-size:12px;" title="Bỏ lọc ${f.label}">${f.label}: <b>${lbl}</b> <span style="font-weight:800;">×</span></a>`;
  }).join(' ');
  const drawerFields = fields.map(f=>{
-  if(f.type==='select') return `<div style="margin-bottom:14px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:4px;">${f.label}</label>
-   <select name="${f.name}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;">${f.options.map(([v,l])=>`<option value="${v}" ${String(f.value)===String(v)?'selected':''}>${l}</option>`).join('')}</select></div>`;
-  return `<div style="margin-bottom:14px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:4px;">${f.label}</label>
-   <input type="date" name="${f.name}" value="${f.value||''}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;"></div>`;
+  if(f.type==='select') return `<div style="margin-bottom:14px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:4px;">${f.label}</label>
+   <select name="${f.name}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:12px;">${f.options.map(([v,l])=>`<option value="${v}" ${String(f.value)===String(v)?'selected':''}>${l}</option>`).join('')}</select></div>`;
+  return `<div style="margin-bottom:14px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:4px;">${f.label}</label>
+   <input type="date" name="${f.name}" value="${f.value||''}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:12px;"></div>`;
  }).join('');
  const hiddenInputs = Object.entries(hidden||{}).filter(([k,v])=>v&&v!=='ALL').map(([k,v])=>`<input type="hidden" name="${k}" value="${v}">`).join('');
  return {
-  button: `<button class="btn btn-secondary btn-sm" onclick="document.getElementById('filter-drawer').style.display='flex'" style="position:relative;">⚙ Bộ lọc${active.length?` <span style="background:var(--brand-600);color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;margin-left:3px;">${active.length}</span>`:''}</button>`,
-  tags: active.length? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;"><span style="font-size:11.5px;color:var(--ink-300);">Đang lọc:</span>${tags}<a href="?${Object.entries(hidden||{}).filter(([k,v])=>v&&v!=='ALL').map(([k,v])=>k+'='+v).join('&')}" style="font-size:11.5px;color:var(--red-600);margin-left:4px;">Bỏ tất cả</a></div>` : '',
+  button: `<button class="btn btn-secondary btn-sm" onclick="document.getElementById('filter-drawer').style.display='flex'" style="position:relative;">⚙ Bộ lọc${active.length?` <span style="background:var(--brand-600);color:#fff;border-radius:8px;padding:0 6px;font-size:11px;margin-left:2px;">${active.length}</span>`:''}</button>`,
+  tags: active.length? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;"><span style="font-size:11px;color:var(--ink-300);">Đang lọc:</span>${tags}<a href="?${Object.entries(hidden||{}).filter(([k,v])=>v&&v!=='ALL').map(([k,v])=>k+'='+v).join('&')}" style="font-size:11px;color:var(--red-600);margin-left:4px;">Bỏ tất cả</a></div>` : '',
   drawer: `<div id="filter-drawer" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(10,20,45,.35);justify-content:flex-end;" onclick="if(event.target===this)this.style.display='none'">
    <form method="get" style="width:340px;max-width:90vw;background:#fff;height:100%;padding:20px;overflow-y:auto;box-shadow:-8px 0 30px rgba(10,25,60,.2);display:flex;flex-direction:column;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-     <b style="font-size:15px;color:var(--ink-900);">Bộ lọc</b>
+     <b style="font-size:14px;color:var(--ink-900);">Bộ lọc</b>
      <span style="cursor:pointer;font-size:20px;color:var(--ink-300);" onclick="document.getElementById('filter-drawer').style.display='none'">×</span>
     </div>
     ${hiddenInputs}
@@ -514,5 +501,5 @@ BANCA.uxDocRow = function(d, rr, uploaded, opts){
    : hasFile
      ? '<button class="btn btn-secondary btn-sm">Xem</button> <button class="btn btn-secondary btn-sm">Thay thế</button>'
      : (need?'<button class="btn btn-primary btn-sm">Tải lên</button>':'<button class="btn btn-secondary btn-sm">Tải lên</button>');
- return `<div class="ux-doc-row"><div><span style="display:inline-flex;width:24px;height:24px;border-radius:7px;align-items:center;justify-content:center;font-weight:800;background:${icon[2]};color:${icon[1]};">${icon[0]}</span></div><div><div class="ux-doc-name">${d.name}</div><div class="ux-doc-sub">${d.sub}${rr.note?' · '+rr.note:''}</div></div><div>${status}</div><div style="font-size:12px;color:var(--ink-500);">${hasFile?file:'—'}</div><div class="ux-action-links">${actions}</div></div>`;
+ return `<div class="ux-doc-row"><div><span style="display:inline-flex;width:24px;height:24px;border-radius:6px;align-items:center;justify-content:center;font-weight:800;background:${icon[2]};color:${icon[1]};">${icon[0]}</span></div><div><div class="ux-doc-name">${d.name}</div><div class="ux-doc-sub">${d.sub}${rr.note?' · '+rr.note:''}</div></div><div>${status}</div><div style="font-size:12px;color:var(--ink-500);">${hasFile?file:'—'}</div><div class="ux-action-links">${actions}</div></div>`;
 };

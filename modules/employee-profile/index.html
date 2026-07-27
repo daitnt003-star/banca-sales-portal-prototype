@@ -9,7 +9,7 @@ const mgr = p.manager ? (BANCA.personas[p.manager]||{}).name : '—';
 
 function tabBar(){
  const tabs=[['info','Thông tin nhân viên'],['certs','Chứng chỉ & đào tạo'],['products','Sản phẩm bán hàng']];
- return `<div class="tabbar" style="margin-bottom:16px;">${tabs.map(([id,l])=>`<div class="tab${tab===id?' active':''}" style="cursor:pointer;${tab===id?'border-bottom:2px solid var(--brand-600);color:var(--brand-600);font-weight:600;':''}padding:9px 14px;display:inline-block;font-size:13px;" onclick="location.search='?tab=${id}'">${l}</div>`).join('')}</div>`;
+ return `<div class="tabbar" style="margin-bottom:16px;">${tabs.map(([id,l])=>`<div class="tab${tab===id?' active':''}" style="cursor:pointer;${tab===id?'border-bottom:2px solid var(--brand-600);color:var(--brand-600);font-weight:600;':''}padding:8px 14px;display:inline-block;font-size:13px;" onclick="location.search='?tab=${id}'">${l}</div>`).join('')}</div>`;
 }
 
 let content='';
@@ -18,14 +18,14 @@ if(tab==='info'){
  content=`<div class="card" style="padding:20px;">
   <div style="display:flex;gap:16px;align-items:center;margin-bottom:18px;">
     <div class="avatar" style="width:56px;height:56px;font-size:20px;border-radius:14px;background:var(--brand-600);color:#fff;display:flex;align-items:center;justify-content:center;">${initials}</div>
-    <div><div style="font-size:17px;font-weight:700;color:var(--ink-900);">${p.name}</div><div style="font-size:12.5px;color:var(--ink-500);">${p.title||p.role} · ${p.partner}</div></div>
+    <div><div style="font-size:16px;font-weight:700;color:var(--ink-900);">${p.name}</div><div style="font-size:12px;color:var(--ink-500);">${p.title||p.role} · ${p.partner}</div></div>
   </div>
-  <table class="dtable"><tbody>${rows.map(([k,v])=>`<tr><td style="width:260px;color:var(--ink-500);font-size:12.5px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`).join('')}</tbody></table>
-  <div style="font-size:11.5px;color:var(--ink-300);margin-top:12px;">Thông tin do hệ thống Distribution quản lý — chỉ xem, không chỉnh sửa tại Sales Portal.</div>
+  <table class="dtable"><tbody>${rows.map(([k,v])=>`<tr><td style="width:260px;color:var(--ink-500);font-size:12px;">${k}</td><td style="font-size:13px;">${v}</td></tr>`).join('')}</tbody></table>
+  <div style="font-size:11px;color:var(--ink-300);margin-top:12px;">Thông tin do hệ thống Distribution quản lý — chỉ xem, không chỉnh sửa tại Sales Portal.</div>
  </div>`;
 } else if(tab==='certs'){
  content = certs.length ? `<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Chứng chỉ / Khóa học</th><th>Loại</th><th>Áp dụng</th><th>Ngày cấp</th><th>Hết hạn</th><th>Trạng thái</th><th></th></tr></thead><tbody>
-  ${certs.map(c=>`<tr><td><div class="prod-name">${c.name}</div>${c.note?`<div style="font-size:11.5px;color:var(--amber-600);">${c.note}</div>`:''}</td><td><span class="chip">${c.type==='LICENSE'?'Chứng chỉ':'Đào tạo'}</span></td><td style="font-size:12.5px;">${c.lines}</td><td style="font-size:12.5px;">${c.issued||'—'}</td><td style="font-size:12.5px;">${c.expires||'—'}</td><td>${BANCA.certStatusBadge(c.status)}</td>
+  ${certs.map(c=>`<tr><td><div class="prod-name">${c.name}</div>${c.note?`<div style="font-size:11px;color:var(--amber-600);">${c.note}</div>`:''}</td><td><span class="chip">${c.type==='LICENSE'?'Chứng chỉ':'Đào tạo'}</span></td><td style="font-size:12px;">${c.lines}</td><td style="font-size:12px;">${c.issued||'—'}</td><td style="font-size:12px;">${c.expires||'—'}</td><td>${BANCA.certStatusBadge(c.status)}</td>
   <td>${c.status==='MISSING'?'<button class="btn btn-primary btn-sm">Học tiếp</button>':c.file?'<button class="btn btn-secondary btn-sm">Xem chứng nhận</button>':''}</td></tr>`).join('')}
  </tbody></table></div><div style="margin-top:10px;"><button class="btn btn-secondary btn-sm">Yêu cầu hỗ trợ đào tạo</button></div>`
  : `<div class="card"><div class="empty-state">Chưa có dữ liệu chứng chỉ/đào tạo cho tài khoản này.</div></div>`;
@@ -34,7 +34,7 @@ if(tab==='info'){
   ${prods.map(x=>{const st=BANCA.productState(x);return `<tr><td><div class="prod-name">${x.name}</div><div class="prod-owner">${x.branding}</div></td><td>${lineTag(x.line)}</td><td>${badge(st)}</td>
   <td>${BANCA.capabilities(x).map(c=>`<span class="chip" style="margin-right:4px;">${capLabel[c]||c}</span>`).join('')||'<span style="color:var(--ink-300);font-size:12px;">Không có quyền</span>'}</td>
   <td style="font-size:12px;color:var(--ink-500);">${x.reason[BANCA.current()]||'Đủ điều kiện'}</td></tr>`}).join('')}
- </tbody></table></div><div style="font-size:11.5px;color:var(--ink-300);margin-top:10px;">Readiness & authorization do Distribution cấu hình — nhân viên tư vấn chỉ xem.</div>`
+ </tbody></table></div><div style="font-size:11px;color:var(--ink-300);margin-top:10px;">Readiness & authorization do Distribution cấu hình — nhân viên tư vấn chỉ xem.</div>`
  : `<div class="card"><div class="empty-state">${p.status!=='ACTIVE'?'Tài khoản ngừng hoạt động — không có sản phẩm khả dụng.':'Không có sản phẩm được cấp quyền.'}</div></div>`;
 }
 shell('Hồ sơ nhân viên','Hồ sơ nhân viên', tabBar()+content, {startSale:false});

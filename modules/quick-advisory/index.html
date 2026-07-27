@@ -79,9 +79,9 @@ const rowHtml = rows.map(a=>{
     <td style="font-size:13px;">${offer?dash(offer.productName)+' · '+dash(offer.packageName):'<span style="color:var(--ink-300);">Chưa chọn</span>'}</td>
     <td style="font-size:13px;">${offer&&offer.premiumBand?offer.premiumBand+' <span class="help-hint" tabindex="0" title="Ph\u00ed minh h\u1ecda (indicative), ch\u01b0a ph\u1ea3i b\u00e1o gi\u00e1 cam k\u1ebft.">?</span>':'—'}</td>
     <td>${BANCA.adviceStatusBadge(a.status)}</td>
-    <td style="font-size:12.5px;">${personaName(a.createdBy)}</td>
+    <td style="font-size:12px;">${personaName(a.createdBy)}</td>
     <td>${a.convertedCaseId?`<a href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}" class="chip" style="text-decoration:none;background:var(--teal-100);color:var(--teal-600);">${a.convertedCaseId}</a>`:'<span style="color:var(--ink-300);">—</span>'}</td>
-    <td style="font-size:12.5px;color:var(--ink-500);">${dash(a.updatedAt)}</td>
+    <td style="font-size:12px;color:var(--ink-500);">${dash(a.updatedAt)}</td>
     <td style="white-space:nowrap;">${adviceActions(a)}</td>
   </tr>`;
 }).join('');
@@ -94,7 +94,7 @@ const listBody = rows.length
 const toolbar = `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     ${BANCA.ui.searchBar({mode:'live',id:'adv-search',value:qs.get('q')||'',placeholder:'Tìm mã / khách / nhu cầu…',enter:'advSearch()'})}
-    <span style="font-size:12.5px;color:var(--ink-500);">Hiển thị <b>${rows.length}</b> / ${all.length} phiên</span>
+    <span style="font-size:12px;color:var(--ink-500);">Hiển thị <b>${rows.length}</b> / ${all.length} phiên</span>
   </div>
 </div>`;
 

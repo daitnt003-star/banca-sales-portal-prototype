@@ -151,10 +151,13 @@ BANCA.deriveCaseViewState = function(app){
   const _approved  = ['APPROVED_STP','APPROVED'].includes(s.underwritingDecision) || s.underwritingDecision==='APPROVED_WITH_CONDITION';
   const _confirmed = BANCA.confirmationComplete(app);
   const _amount    = BANCA._payAmount(app);
-  const _noActivePay = !['PENDING','PROCESSING','SUCCESS'].includes(s.paymentStatus);
-  const _noBlocker = s.applicationStatus!=='CANCELLED' && s.underwritingDecision!=='DECLINED' && s.underwritingStatus!=='NEED_MORE_INFORMATION';
-  const _quoteValid = _amount>0 && !(app && app.quote && ['EXPIRED','INVALID'].includes(app.quote.quoteStatus));
-  const canInitiatePayment = _approved && _confirmed && _quoteValid && _amount>0 && _noBlocker && _noActivePay;
+  // §9.2 — GATE DUY NHẤT: paymentEnableRule. Resolver không tự suy luận điều kiện thanh toán
+  // song song nữa; nó chỉ mang theo lý do để UI hiển thị khi CTA bị disabled (§15.3).
+  // Fail-safe: thiếu config → KHOÁ thanh toán kèm lý do, không mở nhầm (fail closed).
+  const _payGate = BANCA.paymentEnableRule
+    ? BANCA.paymentEnableRule(app)
+    : {enabled:false, reasons:['Chưa nạp cấu hình điều kiện thanh toán']};
+  const canInitiatePayment = _payGate.enabled;
   const owner = (app && app.owner===((BANCA.current&&BANCA.current())));
   const A = {
     trackUw:   {key:'trackUw',   label:'Theo dõi thẩm định', tab:'uw'},
@@ -173,7 +176,8 @@ BANCA.deriveCaseViewState = function(app){
     states:s, phase:null, displayStatus:'', statusTone:'wait',
     primaryAction:null, secondaryActions:[], currentStep:null, nextActionLabel:'',
     paymentAccessible:false, underwritingAccessible:true,
-    canCreatePaymentIntent:canInitiatePayment, canInitiatePayment:canInitiatePayment, workQueueType:null
+    canCreatePaymentIntent:canInitiatePayment, canInitiatePayment:canInitiatePayment,
+    paymentBlockReasons:_payGate.reasons, workQueueType:null
   };
   const R = o => Object.assign(base, o);
 

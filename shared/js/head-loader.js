@@ -8,6 +8,10 @@
   'shared/mock/seed/products.js',
   'shared/mock/seed/status-model.js',
   'shared/mock/seed/journey-registry.js',
+  'shared/mock/seed/channel-profiles.js',
+  'shared/mock/seed/customer-data-access.js',
+  'shared/mock/seed/status-mappings.js',
+  'shared/mock/seed/quote-version.js',
   'shared/mock/seed/vehicle-master.js',
   'shared/mock/seed/product-schemas.js',
   'shared/mock/seed/insured-units.js',
@@ -37,12 +41,15 @@
   'shared/mock/handlers/identity-service.js',
   'shared/mock/handlers/readiness-service.js',
   'shared/mock/handlers/authorization-service.js',
+  'shared/js/navigation-config.js',
   'shared/js/app-manifest.js',
   'shared/js/mock-store.js',
-  'shared/js/app-shell.js'
+  'shared/js/app-shell.js',
+  'shared/components/foundation-components.js'
  ];
- const V = 'v=20260723y'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260727a'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
+ document.write('<link rel="stylesheet" href="'+r+'shared/styles/components.css?'+V+'">');
 })();
 function BANCA_READY(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded',fn); }

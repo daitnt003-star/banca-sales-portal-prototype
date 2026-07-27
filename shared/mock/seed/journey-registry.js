@@ -70,7 +70,7 @@ BANCA.buildSalesEntryContext = function(raw){
  * ------------------------------------------------------------- */
 BANCA.JOURNEY_STAGE_CATALOG = {
   CUSTOMER_INFO:      {label:'Khách hàng'},
-  INSURED_PARTY:      {label:'Người được bảo hiểm'},
+  INSURED_PARTY:      {label:'Đối tượng bảo hiểm'},
   RISK_OBJECT:        {label:'Đối tượng bảo hiểm'},
   PACKAGE_AND_QUOTE:  {label:'Gói & phí dự kiến'},
   RISK_DECLARATION:   {label:'Khai báo rủi ro'},
@@ -157,7 +157,7 @@ BANCA.ProductJourneyDefinitions = {
     hiddenStages:     [],
     stages: _stages([
       'CUSTOMER_INFO',
-      {id:'INSURED_PARTY', label:'Người được bảo hiểm', component:'paInsuredPerson'},
+      {id:'INSURED_PARTY', label:'Đối tượng bảo hiểm', component:'paInsuredPerson'},
       {id:'PACKAGE_AND_QUOTE', label:'Gói & báo giá', component:'paPackage'},
       {id:'RISK_DECLARATION', component:'paDeclaration'},
       {id:'REVIEW_AND_SUBMIT', label:'Review'},
@@ -210,7 +210,7 @@ BANCA.ProductJourneyDefinitions = {
     hiddenStages:     [],
     stages: _stages([
       'CUSTOMER_INFO',
-      {id:'INSURED_PARTY', label:'Người được bảo hiểm', component:'healthInsuredPerson'},
+      {id:'INSURED_PARTY', label:'Đối tượng bảo hiểm', component:'healthInsuredPerson'},
       {id:'PACKAGE_AND_QUOTE', label:'Gói & phí', component:'healthPackage'},
       {id:'RISK_DECLARATION', component:'healthDeclaration'},
       {id:'DOCUMENTS', component:'healthDocuments'},

@@ -4,8 +4,8 @@ window.BANCA = window.BANCA || {};
 // 7 bước journey chuẩn hóa (unsubmitted filter theo current_stage)
 BANCA.STAGES = [
   {id:'CUSTOMER_INFO',      label:'Thông tin khách hàng'},
-  {id:'INSURED_PARTY',      label:'Người được bảo hiểm'},
-  {id:'RISK_OBJECT',        label:'Đối tượng bảo hiểm (xe)'},
+  {id:'INSURED_PARTY',      label:'Đối tượng bảo hiểm'},
+  {id:'RISK_OBJECT',        label:'Đối tượng bảo hiểm'},
   {id:'PACKAGE_AND_QUOTE',  label:'Gói bảo hiểm & báo giá'},
   {id:'RISK_DECLARATION',   label:'Khai báo rủi ro'},
   {id:'DOCUMENTS',          label:'Tài liệu'},

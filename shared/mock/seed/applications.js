@@ -78,6 +78,28 @@ BANCA.applications = [
    ],
    vehicle:null, quote:null,
    demoMeta:{title:'Health gia đình (multi-insured)', currentPoint:'Sản phẩm & quyền lợi', expectedFlow:'Bổ sung khai sinh trẻ + loại thành viên ngoài độ tuổi → nộp → thẩm định per-member → thanh toán tổng'}},
+  // Health cá nhân — 1 người, sạch, đang ở bước Khai báo sức khỏe → gần nộp.
+  {id:'DRAFT-2026-HLT2', submissionState:'NOT_SUBMITTED', owner:'RM-01', customerId:'CUS-007', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   currentStage:'RISK_DECLARATION', progress:72, warnings:[], updatedAt:'2026-07-23 10:05', expiresAt:'2026-08-22', source:'BANK_CUSTOMER',
+   buyerIsInsured:true, effectiveDate:'2026-07-26',
+   insuredMembers:[
+    {name:'Trịnh Mỹ Linh',dob:'1988-06-25',relationship:'Bản thân',age:38,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',gender:'Nữ',identityNumber:'079088003333',occupation:'Nhân viên văn phòng',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true}, docs:{}, beneficiaries:[]}
+   ],
+   vehicle:null, quote:null,
+   demoMeta:{title:'Health cá nhân', currentPoint:'Khai báo sức khỏe', expectedFlow:'Hoàn tất khai báo → tài liệu → nộp → chấp thuận STP → thanh toán → phát hành'}},
+  // Health đôi (vợ/chồng) — đang ở bước Tài liệu, thiếu bản khai sức khỏe của 1 người → chặn nộp.
+  {id:'DRAFT-2026-HLT3', submissionState:'NOT_SUBMITTED', owner:'RM-01', customerId:'CUS-010', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   currentStage:'DOCUMENTS', progress:84, warnings:['MISSING_DOCUMENT'], updatedAt:'2026-07-23 10:20', expiresAt:'2026-08-22', source:'BANK_CUSTOMER',
+   buyerIsInsured:true, effectiveDate:'2026-07-27',
+   insuredMembers:[
+    {name:'Lý Thu Trang',dob:'1991-08-19',relationship:'Bản thân',age:34,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',gender:'Nữ',identityNumber:'079091005555',occupation:'Kinh doanh',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true}, docs:{HEALTH_DECLARATION:'UPLOADED'}, beneficiaries:[]},
+    {name:'Nguyễn Hoàng Việt',dob:'1989-11-02',relationship:'Vợ/Chồng',age:36,insuredUnitId:'IU-2',active:true,package:'HEALTH_STD',gender:'Nam',identityNumber:'079089006666',occupation:'Kỹ sư',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:true,truthDeclaration:true}, docs:{}, beneficiaries:[]}
+   ],
+   vehicle:null, quote:null,
+   demoMeta:{title:'Health đôi (vợ/chồng)', currentPoint:'Tài liệu', expectedFlow:'Bổ sung bản khai sức khỏe người còn lại → nộp → thẩm định per-member → thanh toán tổng'}},
   {id:'DRAFT-2026-RN1', submissionState:'NOT_SUBMITTED', owner:'RM-01', customerId:'CUS-010', productId:'motor', productName:'Bảo hiểm vật chất xe', package:'Premium',
    currentStage:'RISK_OBJECT', progress:55, warnings:[], updatedAt:'2026-07-23 08:30', expiresAt:'2026-08-22', source:'RENEWAL',
    renewalPolicyRef:'JB-POL-2026-0207', renewPrevPremium:11200000,
@@ -225,6 +247,50 @@ BANCA.applications = [
    ],
    quote:{quoteId:'Q-HEALTH-2204',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:6300000,premiumBreakdown:{basePremium:5727000,addOnPremium:0,loading:0,discount:0,tax:573000,fee:0,totalPremium:6300000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Đỗ Minh Quân',age:36,relationship:'Bản thân',package:'HEALTH_STD'},{name:'Đỗ Thảo Nhi',age:12,relationship:'Con',package:'HEALTH_BASIC'}]}},
    demoMeta:{title:'Health gia đình — đủ điều kiện thanh toán',currentPoint:'Xác nhận & thanh toán',expectedFlow:'Tất cả xác nhận → 3 cách thanh toán mở → callback gateway → phát hành'},
+   vehicle:null},
+  // Health cá nhân — chấp thuận STP, khách đã xác nhận, đã khởi tạo thanh toán → chờ khách trả (PENDING_PAYMENT).
+  {id:'APP-2026-HLT5', submissionState:'SUBMITTED', owner:'RM-01', customerId:'CUS-002', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   status:'PENDING_PAYMENT', applicationStatus:'PROCESSING', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED_STP', paymentStatus:'PENDING', policyStatus:'NOT_STARTED',
+   submittedAt:'2026-07-23 09:30', updatedAt:'2026-07-23 10:40', premium:5775000, sla:'2026-07-26 10:40', todo:'Khách hoàn tất thanh toán', paymentInitAt:'2026-07-23 10:40',
+   buyerIsInsured:true, effectiveDate:'2026-07-26',
+   insuredMembers:[
+    {name:'Phạm Thu Hà',dob:'1990-09-30',relationship:'Bản thân',age:35,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',gender:'Nữ',identityNumber:'079095006666',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 09:32',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-23 10:20'}}
+   ],
+   quote:{quoteId:'Q-HEALTH-2205',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:5775000,premiumBreakdown:{basePremium:5250000,addOnPremium:0,loading:0,discount:0,tax:525000,fee:0,totalPremium:5775000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Phạm Thu Hà',age:35,relationship:'Bản thân'}]}},
+   payment:{paymentId:'PAY-HEALTH-2205', applicationId:'APP-2026-HLT5', amount:5775000, currency:'VND', paymentChannel:'PAYMENT_LINK', paymentExperience:'CUSTOMER_REMOTE', paymentInstrument:'BANK_TRANSFER', paymentInitiator:'SELLER', payerType:'CUSTOMER', status:'PENDING', qrPayload:'00020101021238...2205', expiresAt:'2026-07-26 10:40', gatewayReference:'PAY-HEALTH-2205'},
+   demoMeta:{title:'Health cá nhân — chờ thanh toán',currentPoint:'Thanh toán',expectedFlow:'Khách trả qua payment link → callback SUCCESS → phát hành hợp đồng'},
+   vehicle:null},
+  // Health đôi — thẩm định yêu cầu bổ sung hồ sơ bệnh án của 1 người (NEED_MORE_INFO).
+  {id:'APP-2026-HLT6', submissionState:'SUBMITTED', owner:'RM-01', customerId:'CUS-004', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   status:'NEED_MORE_INFO', applicationStatus:'PROCESSING', underwritingStatus:'IN_PROGRESS',
+   submittedAt:'2026-07-22 16:20', updatedAt:'2026-07-23 09:00', premium:11550000, sla:'2026-07-26 17:00', deadline:'2026-07-26 17:00',
+   todo:'Bổ sung: Hồ sơ bệnh án 12 tháng (Đặng Kim Oanh)',
+   supplement:{type:'DOCUMENT', items:['Hồ sơ bệnh án 12 tháng gần nhất'], requestedBy:'UW Trần Thị Thẩm', requestedAt:'2026-07-23 09:00', memberName:'Đặng Kim Oanh'},
+   buyerIsInsured:true, effectiveDate:'2026-07-25',
+   insuredMembers:[
+    {name:'Đặng Kim Oanh',dob:'1995-07-15',relationship:'Bản thân',age:31,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',gender:'Nữ',identityNumber:'079095003330',
+     riskAnswers:{preExistingCondition:true,hospitalizedLast12Months:true,seriousIllness:false,smoker:false,truthDeclaration:true},
+     underwriting:{decision:'REFERRED',decidedAt:'2026-07-23 08:50',label:'Cần bổ sung thông tin',paymentAllowed:false,additionalDocuments:['Hồ sơ bệnh án 12 tháng gần nhất']}, confirmation:{status:'NOT_SENT'}},
+    {name:'Lê Anh Tuấn',dob:'1992-02-28',relationship:'Vợ/Chồng',age:34,insuredUnitId:'IU-2',active:true,package:'HEALTH_STD',gender:'Nam',identityNumber:'079092004440',
+     riskAnswers:{preExistingCondition:false,hospitalizedLast12Months:false,seriousIllness:false,smoker:false,truthDeclaration:true},
+     underwriting:{decision:'APPROVED_STP',decidedAt:'2026-07-23 08:50',label:'Chấp thuận tự động',paymentAllowed:true,additionalPremium:0,conditions:[],exclusions:[]}, confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-23 08:55'}}
+   ],
+   quote:{quoteId:'Q-HEALTH-2206',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:11550000,premiumBreakdown:{basePremium:10500000,addOnPremium:0,loading:0,discount:0,tax:1050000,fee:0,totalPremium:11550000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Đặng Kim Oanh',age:31,relationship:'Bản thân'},{name:'Lê Anh Tuấn',age:34,relationship:'Vợ/Chồng'}]}},
+   demoMeta:{title:'Health đôi — cần bổ sung hồ sơ',currentPoint:'Thẩm định',expectedFlow:'Bổ sung bệnh án → thẩm định lại thành viên → xác nhận → thanh toán'},
+   vehicle:null},
+  // Health cá nhân + con — ĐÃ PHÁT HÀNH hợp đồng JB-HEALTH-2026-2202.
+  {id:'APP-2026-HLT7', submissionState:'SUBMITTED', owner:'RM-01', customerId:'CUS-007', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD',
+   status:'ISSUED', applicationStatus:'COMPLETED', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED_STP', paymentStatus:'SUCCESS', policyStatus:'ISSUED',
+   submittedAt:'2026-07-20 10:00', updatedAt:'2026-07-21 11:30', premium:9450000, sla:null, todo:'Xem hợp đồng', policyId:'JB-HEALTH-2026-2202',
+   buyerIsInsured:true, effectiveDate:'2026-07-21',
+   insuredMembers:[
+    {name:'Trịnh Mỹ Linh',dob:'1988-06-25',relationship:'Bản thân',age:38,insuredUnitId:'IU-1',active:true,package:'HEALTH_STD',underwriting:{decision:'APPROVED_STP',label:'Chấp thuận tự động',paymentAllowed:true},confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-20 11:05'}},
+    {name:'Trịnh Gia Bảo',dob:'2015-03-18',relationship:'Con',age:11,insuredUnitId:'IU-2',active:true,package:'HEALTH_BASIC',guardianName:'Trịnh Mỹ Linh',guardianRelationship:'Mẹ',underwriting:{decision:'APPROVED_STP',label:'Chấp thuận tự động',paymentAllowed:true},confirmation:{status:'CONFIRMED',otp:'VERIFIED',confirmedAt:'2026-07-20 11:06'}}
+   ],
+   quote:{quoteId:'Q-HEALTH-2207',quoteVersion:1,quoteType:'INDICATIVE',quoteStatus:'VALID',productId:'health',packageId:'HEALTH_STD',premium:9450000,premiumBreakdown:{basePremium:8591000,addOnPremium:0,loading:0,discount:0,tax:859000,fee:0,totalPremium:9450000},ratingInputsSnapshot:{packageCode:'HEALTH_STD',members:[{name:'Trịnh Mỹ Linh',age:38,relationship:'Bản thân',package:'HEALTH_STD'},{name:'Trịnh Gia Bảo',age:11,relationship:'Con',package:'HEALTH_BASIC'}]}},
+   payment:{paymentId:'PAY-HEALTH-2207', applicationId:'APP-2026-HLT7', amount:9450000, currency:'VND', paymentChannel:'PAYMENT_LINK', paymentExperience:'CUSTOMER_REMOTE', paymentInstrument:'BANK_TRANSFER', paymentInitiator:'SELLER', payerType:'CUSTOMER', status:'SUCCESS', paidAt:'2026-07-21 11:15', gatewayTransactionId:'GTW-HEALTH-2207'},
    vehicle:null}
 ];
 BANCA.appById = id => BANCA.applications.find(a=>a.id===id);

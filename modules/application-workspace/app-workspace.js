@@ -489,45 +489,69 @@ if(app.submissionState==='NOT_SUBMITTED'){
   <datalist id="${id}-list">${options.map(o=>`<option value="${o}">`).join('')}</datalist>
   ${extra?`<div style="font-size:10.5px;color:var(--ink-300);margin-top:3px;">${extra}</div>`:''}</div>`;
 
+ // Component DÙNG CHUNG: checkbox "Bên mua đồng thời là người được bảo hiểm chính".
+ // Mọi sản phẩm gọi cùng 1 markup — chỉ khác checked/disabled/onchange (bản chất là ẩn/hiện/khóa, KHÔNG khác style).
+ const buyerInsuredToggle = (checked, opts) => { opts=opts||{}; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" ${checked?'checked':''} ${opts.disabled?'disabled':''}${opts.onchange?` onchange="${opts.onchange}"`:''}> ${opts.label||'Bên mua đồng thời là người được bảo hiểm chính'}</label>`; };
+
  let stepBody='';
  if(cur.id==='CUSTOMER_INFO'){
   const bankFed = entryMode==='BANK_CUSTOMER' || entryMode==='INSURANCE_CUSTOMER' || entryMode==='RENEWAL';
   // Header: nguồn + phương thức nhập (config-driven theo customerDocumentPolicy)
   const srcKind = app.sourceAdviceId?'ADVICE':app.leadId?'REFERRAL':entryMode==='BANK_CUSTOMER'?'BANK':entryMode==='INSURANCE_CUSTOMER'?'BANK':'PORTAL';
   const idDoc = {code:'ID', name:'CCCD / Hộ chiếu', sub:'Định danh khách — OCR tự động điền', ocr:'enabled', required:!bankFed, docType:'NATIONAL_ID'};
-  const modeHead = `<div class="card" style="padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-    <div><div style="font-size:12px;color:var(--ink-500);">Nguồn khách hàng</div><div style="font-weight:700;">${BANCA.sourceBadge?BANCA.sourceBadge(srcKind):''} <span class="chip" style="background:var(--brand-100);color:var(--brand-700);">${entrySourceLabel}</span></div>
-     <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">${custDocPolicy.note||''}</div></div>
-    <button class="btn btn-secondary btn-sm" onclick="viewSourceContext()">Xem ngữ cảnh nguồn</button>
-  </div>`;
+  // Card khách hàng — DÙNG CHUNG format Health (card viền trái brand · header tên + badge + nút · doc-item OCR có label · lưới trường · banner).
+  const srcLine = `<div style="font-size:11.5px;color:var(--ink-500);margin-bottom:10px;">Nguồn khách hàng: ${BANCA.sourceBadge?BANCA.sourceBadge(srcKind):''} <span class="chip" style="background:var(--brand-100);color:var(--brand-700);">${entrySourceLabel}</span>${custDocPolicy.note?' · '+custDocPolicy.note:''}</div>`;
 
   if(bankFed && cust){
-    stepBody = modeHead + `<div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
-     ${input('Họ tên', cust.name, !!cust.cif)}${input('Ngày sinh', cust.dob, !!cust.cif)}
-     ${input('CIF', cust.cif||'— (prospect)', true)}
-     <div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">Điện thoại</label><div style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;">${phoneCell(cust,'c1')}</div></div>
-     ${input('Email', cust.email, false)}${input('Segment', cust.segment, true)}
-     ${input('Khoản vay / tài sản liên quan', cust.loanRef||'Không', true)}${input('Bảo hiểm hiện có', (cust.existingInsurance||[]).join(', ')||'Không', true)}
-    </div>
-    <div class="alert2 info" style="margin-top:4px;">Người được bảo hiểm: <b>chính chủ</b> (${cust.name}) · KYC ngân hàng được chấp nhận — trường đã xác minh chỉ đọc, trường thiếu cho phép bổ sung.</div>
-    <div class="section-title" style="margin-top:16px;"><h2>Giấy tờ định danh</h2><span class="subtitle">Tùy chọn — đối chiếu/bổ sung khi cần</span></div>
-    <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, idDoc)}</div>`;
+    const custBadge = cust.cif
+      ? `<span class="chip" style="font-size:9px;background:var(--brand-100);color:var(--brand-700);">CIF ${cust.cif}</span>`
+      : '<span class="chip" style="font-size:9px;">Prospect</span>';
+    stepBody = `<div class="card" style="padding:13px;margin-bottom:12px;border-left:3px solid var(--brand-600);">
+     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+      <b style="font-size:13px;">${cust.name} ${custBadge}</b>
+      <button class="btn btn-secondary btn-sm" onclick="viewSourceContext()">Xem ngữ cảnh nguồn</button>
+     </div>
+     ${srcLine}
+     <div style="margin-bottom:10px;">
+      <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ định danh — OCR tự động điền họ tên · ngày sinh · số giấy tờ (đối chiếu/bổ sung khi cần)</div>
+      <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, Object.assign({}, idDoc, {locked:readOnly}))}</div>
+     </div>
+     <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
+      ${input('Họ tên', cust.name, !!cust.cif)}${input('Ngày sinh', cust.dob, !!cust.cif)}
+      ${input('CIF', cust.cif||'— (prospect)', true)}
+      <div class="field" style="margin-bottom:10px;"><label style="font-size:11.5px;color:var(--ink-500);display:block;margin-bottom:3px;">Điện thoại</label><div style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px;">${phoneCell(cust,'c1')}</div></div>
+      ${input('Email', cust.email, false)}${input('Segment', cust.segment, true)}
+      ${input('Khoản vay / tài sản liên quan', cust.loanRef||'Không', true)}${input('Bảo hiểm hiện có', (cust.existingInsurance||[]).join(', ')||'Không', true)}
+     </div>
+     <div class="alert2 info" style="margin:6px 0 0;">Người được bảo hiểm: <b>chính chủ</b> (${cust.name}) · KYC ngân hàng được chấp nhận — trường đã xác minh chỉ đọc, trường thiếu cho phép bổ sung.</div>
+    </div>`;
   } else {
-    stepBody = modeHead + `<div class="alert2 warn" style="margin-bottom:12px;">Khách hàng mới${app.sourceAdviceId?' (từ tư vấn)':''}: cần <b>consent</b> và định danh trước khi tạo yêu cầu chính thức. Tải/chụp CCCD ở mục Giấy tờ định danh để tự điền, hoặc nhập thủ công. OCR chỉ bóc tách dữ liệu, không thay cho KYC.</div>
-    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" id="prospect-consent" ${readOnly?'disabled':''}> Khách hàng đồng ý cung cấp và xử lý dữ liệu cá nhân cho mục đích bảo hiểm.</label>
-    <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
-     ${inputId('cf-name','Họ tên', app.customerName||'')}${inputId('cf-dob','Ngày sinh','')}
-     ${inputId('cf-id','Số CCCD/Hộ chiếu','')}${inputId('cf-phone','Điện thoại','')}
-     ${inputId('cf-email','Email','')}${inputId('cf-address','Địa chỉ','')}
-    </div>
-    <div class="section-title" style="margin-top:16px;"><h2>Giấy tờ định danh</h2><span class="subtitle">Tải/chụp CCCD để tự động điền các trường trên</span></div>
-    <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, idDoc)}</div>
-    <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Kiểm tra trùng (dedup) khi lưu; nếu trùng khách có sẵn sẽ dùng record đó, không tạo CIF giả.</div>`;
+    stepBody = `<div class="card" style="padding:13px;margin-bottom:12px;border-left:3px solid var(--amber-600);">
+     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+      <b style="font-size:13px;">Khách hàng mới${app.sourceAdviceId?' (từ tư vấn)':''} <span class="chip" style="font-size:9px;background:#fdf3e3;color:var(--amber-600);">Cần định danh</span></b>
+      <button class="btn btn-secondary btn-sm" onclick="viewSourceContext()">Xem ngữ cảnh nguồn</button>
+     </div>
+     ${srcLine}
+     <div class="alert2 warn" style="margin-bottom:12px;">Khách hàng mới cần <b>consent</b> và định danh trước khi tạo yêu cầu chính thức. Tải/chụp CCCD ở mục Giấy tờ định danh để tự điền, hoặc nhập thủ công. OCR chỉ bóc tách dữ liệu, không thay cho KYC.</div>
+     <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" id="prospect-consent" ${readOnly?'disabled':''}> Khách hàng đồng ý cung cấp và xử lý dữ liệu cá nhân cho mục đích bảo hiểm.</label>
+     <div style="margin-bottom:10px;">
+      <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ định danh — tải/chụp CCCD để OCR tự động điền các trường bên dưới</div>
+      <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, idDoc)}</div>
+     </div>
+     <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
+      ${inputId('cf-name','Họ tên', app.customerName||'')}${inputId('cf-dob','Ngày sinh','')}
+      ${inputId('cf-id','Số CCCD/Hộ chiếu','')}${inputId('cf-phone','Điện thoại','')}
+      ${inputId('cf-email','Email','')}${inputId('cf-address','Địa chỉ','')}
+     </div>
+     <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Kiểm tra trùng (dedup) khi lưu; nếu trùng khách có sẵn sẽ dùng record đó, không tạo CIF giả.</div>
+    </div>`;
   }
  } else if(cur.id==='INSURED_PARTY' && BANCA.journeyStageComponent(app.productId,'INSURED_PARTY')==='healthInsuredPerson'){
   const buyerIsInsured = app.buyerIsInsured!==false;
   const effDate = app.effectiveDate || dateOnly(new Date().toISOString());
   const units = BANCA.healthUnitsOf(app);
+  // Sau khi upload/quét giấy tờ 1 member (window.docUpload — dùng chung với Motor), đồng bộ OCR → member rồi reload (giống Motor).
+  window.__docRefresh = function(){ try{ window.healthSyncOcrToMembers(app.id); }catch(e){} location.reload(); };
   const relOpts = (BANCA.HEALTH_RELATIONSHIPS||['Bản thân','Vợ/Chồng','Con','Cha','Mẹ','Khác']);
   const memberRows = units.map(function(u){
     const idx=u.index, uid=u.insuredUnitId;
@@ -555,6 +579,10 @@ if(app.submissionState==='NOT_SUBMITTED'){
         ${idx>0&&!readOnly?`<button class="btn btn-secondary btn-sm" onclick="healthRemoveUnit('${app.id}','${uid}')">Xóa</button>`:''}
        </div>
       </div>
+      ${!inactive?`<div style="margin-bottom:10px;">
+       <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ định danh — OCR tự động điền họ tên · ngày sinh · giới tính · số giấy tờ</div>
+       <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, {code:'HID-'+uid, name:(u.isChild?'Giấy khai sinh / CCCD':'CCCD / Hộ chiếu')+' — '+(u.name||('Người được BH '+(idx+1))), sub:'Định danh người được bảo hiểm · OCR chỉ prefill, không thay cho KYC/xác minh', ocr:readOnly?'none':'enabled', required:false, docType:'NATIONAL_ID', locked:readOnly})}</div>
+      </div>`:''}
       <div style="display:grid;grid-template-columns:1.3fr 130px 120px 110px 80px;gap:10px;align-items:end;">
         <div><label style="font-size:11px;color:var(--ink-500);">Họ tên</label><input value="${u.name||''}" ${readOnly?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','name',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
         <div><label style="font-size:11px;color:var(--ink-500);">Ngày sinh</label><input type="date" value="${u.dob||''}" ${readOnly||(idx===0&&buyerIsInsured)?'disabled':''} onchange="healthUnitSetField('${app.id}','${uid}','dob',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
@@ -576,9 +604,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   })();
   stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Người được bảo hiểm sức khỏe (gia đình) — mỗi người là 1 đơn vị bảo hiểm độc lập. Tuổi tính từ ngày sinh & ngày hiệu lực; eligibility kiểm tra ngay.</div>
    <div class="card" style="padding:16px;margin-bottom:12px;">
-    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;">
-     <input type="checkbox" ${buyerIsInsured?'checked':''} ${readOnly?'disabled':''} onchange="healthSetField('${app.id}','buyerIsInsured',this.checked)"> Bên mua đồng thời là người được bảo hiểm chính
-    </label>
+    ${buyerInsuredToggle(buyerIsInsured, {disabled:readOnly, onchange:`healthSetField('${app.id}','buyerIsInsured',this.checked)`})}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
      <div><label style="font-size:11.5px;color:var(--ink-500);">Ngày hiệu lực (chung)</label><input type="date" value="${effDate}" ${readOnly?'disabled':''} onchange="healthSetField('${app.id}','effectiveDate',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
      <div><label style="font-size:11.5px;color:var(--ink-500);">Số thành viên</label><input readonly value="${units.length}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;background:var(--paper);color:var(--ink-500);"></div>
@@ -605,9 +631,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Người được bảo hiểm (Bảo hiểm tai nạn cá nhân) — journey riêng, không dùng lại field/tài liệu xe.</div>
    <div class="card" style="padding:16px;">
     <div class="label" style="margin-bottom:10px;">Thông tin người được bảo hiểm</div>
-    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;">
-     <input type="checkbox" ${buyerIsInsured?'checked':''} ${readOnly?'disabled':''} onchange="paSetField('${app.id}','buyerIsInsured',this.checked)"> Bên mua đồng thời là người được bảo hiểm
-    </label>
+    ${buyerInsuredToggle(buyerIsInsured, {disabled:readOnly, onchange:`paSetField('${app.id}','buyerIsInsured',this.checked)`})}
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
      <div><label style="font-size:11.5px;color:var(--ink-500);">Họ tên</label>
       <input value="${app.insuredName||(cust?cust.name:'')||''}" ${readOnly?'disabled':''} onchange="paSetField('${app.id}','insuredName',this.value)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;"></div>
@@ -747,57 +771,50 @@ if(app.submissionState==='NOT_SUBMITTED'){
 
   window.__docRefresh = function(){ location.reload(); };
 
-  const inputMethods = `<div class="card" style="padding:14px 16px;margin-bottom:12px;">
-    <div style="font-weight:700;">🚗 Thông tin xe (VEHICLE)</div>
-    <div style="font-size:12.5px;color:var(--ink-500);margin:4px 0 12px;">Chọn cách nhập. OCR KHÔNG lấy: giá trị xe · mục đích sử dụng · tình trạng thế chấp · lịch sử tổn thất (các mục này từ ngân hàng / định giá / nhân viên tư vấn nhập).</div>
-    ${!scanned ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-      <input type="file" id="docf-REG" accept="image/*" style="display:none" onchange="docUpload('${app.id}','REG','VEHICLE_REGISTRATION',this)">
-      <input type="file" id="docf-REGc" accept="image/*" capture="environment" style="display:none" onchange="docUpload('${app.id}','REG','VEHICLE_REGISTRATION',this)">
-      <button class="btn btn-primary" onclick="document.getElementById('docf-REG').click()">📷 Quét đăng ký xe</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('docf-REGc').click()">Chụp ảnh</button>
-      <span style="color:var(--ink-300);">— hoặc —</span>
-      <button class="btn btn-secondary" onclick="var e=document.getElementById('vm-plate'); if(e) e.focus();">✍️ Nhập thủ công</button>
-    </div>` : `<div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, regDef)}</div>`}
-  </div>`;
+  // ===== Đối tượng bảo hiểm (Motor) — format Health: banner + section-title + 1 card đối tượng (doc-item OCR dùng chung + lưới trường) =====
+  const infoBanner = `<div class="alert2 info" style="margin-bottom:12px;">Đối tượng bảo hiểm (Bảo hiểm vật chất xe) — chiếc xe là đối tượng được bảo hiểm. Quét đăng ký xe để OCR tự động điền nhận dạng &amp; kỹ thuật; giá trị xe · mục đích · thế chấp nhập riêng (không lấy từ OCR).</div>`;
 
-  const OCR_SHOW = ['ownerName','plate','brand','model','type','chassisNumber','engineNumber','manufactureYear','color','seats'];
-  const extractedPanel = ex? `<div class="card" style="padding:14px 16px;margin-bottom:12px;border-left:4px solid var(--teal-600);">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <b>Dữ liệu bóc tách từ Giấy đăng ký xe</b>
-      <span style="font-size:12px;color:var(--ink-500);">Nguồn: Đăng ký xe · tin cậy tổng ${BANCA.pctConf(ex.overall)} · ${BANCA.ocrStateBadge('review', regRec.reviewStatus||'NOT_REVIEWED')}</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:10px;">
-      ${ex.fields.filter(f=>OCR_SHOW.includes(f.key)).map(f=>{const low=f.confidence<0.85;return `<div style="font-size:12.5px;padding:8px;border:1px solid ${low?'var(--amber-600)':'var(--line)'};border-radius:8px;${low?'background:#fdf7ec;':''}"><div style="color:var(--ink-500);font-size:11px;">${f.label} · ${BANCA.pctConf(f.confidence)}${low?' <span class="badge badge-conditional" style="font-size:9px;">Cần kiểm tra</span>':''}</div><div style="font-weight:600;">${f.value}</div></div>`;}).join('')}
-    </div>
-    <div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">Giá trị đã điền vào form bên dưới — rà soát & sửa nếu cần. Trường tin cậy thấp cần kiểm tra trước khi tiếp tục.</div>
-  </div>` : '';
+  const vehTitle = (((vPlate?vPlate+' · ':'')+((vBrand||'')+' '+(vModel||'')).trim()).trim()) || 'Xe cơ giới';
+  const idnBadge = scanned
+    ? '<span class="chip" style="font-size:9px;background:var(--brand-100);color:var(--brand-700);">Đã bóc tách OCR</span>'
+    : '<span class="chip" style="font-size:9px;">Chưa có giấy tờ</span>';
 
-  const conflictCard = ownerConflict ? `<div class="card" style="padding:14px 16px;margin-bottom:12px;border-left:4px solid var(--red-600);">
-    <b style="color:var(--red-600);">⚠️ Xung đột dữ liệu — Chủ xe (Data conflict)</b>
+  const conflictCard = ownerConflict ? `<div class="alert2 warn" style="margin:0 0 10px;padding:10px 12px;">
+    <b style="color:var(--red-600);">⚠️ Xung đột dữ liệu — Chủ xe</b>
     <div style="font-size:12.5px;color:var(--ink-500);margin:6px 0 10px;">Nguồn ngân hàng và OCR khác nhau. Chọn giá trị dùng cho yêu cầu (không ghi đè master).</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <label style="border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;"><input type="radio" name="ownconf" value="bank" checked onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${cust.name}';"> <b>${cust.name}</b><div style="font-size:11px;color:var(--ink-500);">Nguồn ngân hàng (CIF ${cust.cif||'—'})</div></label>
-      <label style="border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;"><input type="radio" name="ownconf" value="ocr" onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${gx('ownerName')}';"> <b>${gx('ownerName')}</b><div style="font-size:11px;color:var(--ink-500);">OCR đăng ký xe</div></label>
+      <label style="border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;background:#fff;"><input type="radio" name="ownconf" value="bank" checked onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${cust.name}';"> <b>${cust.name}</b><div style="font-size:11px;color:var(--ink-500);">Nguồn ngân hàng (CIF ${cust.cif||'—'})</div></label>
+      <label style="border:1px solid var(--line);border-radius:9px;padding:10px;cursor:pointer;background:#fff;"><input type="radio" name="ownconf" value="ocr" onchange="var e=document.getElementById('vm-owner'); if(e)e.value='${gx('ownerName')}';"> <b>${gx('ownerName')}</b><div style="font-size:11px;color:var(--ink-500);">OCR đăng ký xe</div></label>
     </div>
   </div>` : '';
 
-  const g1 = `<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">1 · Nhận dạng xe</div><div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
-    ${inputId('vm-plate','Biển số', vPlate)}${inputId('vm-owner','Chủ xe (theo đăng ký)', vOwner)}
-    ${combo('vm-brand','Hãng xe',brands,vBrand)}${combo('vm-model','Dòng xe',models,vModel)}
-    ${combo('vm-type','Loại xe',BANCA.vehicleMaster.types,vType)}
-  </div></div>`;
-  const g2 = `<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">2 · Thông tin kỹ thuật</div><div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
-    ${inputId('vm-vin','Số khung (VIN)', vVin)}${inputId('vm-engine','Số máy', vEngine)}
-    ${inputId('vm-year','Năm sản xuất', vYear)}${inputId('vm-color','Màu xe', vColor)}
-    ${combo('vm-seats','Số chỗ ngồi',BANCA.vehicleMaster.seats,vSeats)}
-  </div></div>`;
-  const g3 = `<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">3 · Sử dụng & định giá <span style="font-weight:400;color:var(--ink-300);font-size:10.5px;">(không lấy từ OCR)</span></div><div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
+  // 1 card đối tượng (giống member card Health): header + doc-item OCR có label + lưới trường nhận dạng/kỹ thuật
+  const vehicleCard = `<div class="card" style="padding:13px;margin-bottom:9px;border-left:3px solid var(--brand-600);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+     <b style="font-size:13px;">🚗 ${vehTitle} ${idnBadge}</b>
+    </div>
+    <div style="margin-bottom:10px;">
+     <div style="font-size:11.5px;color:var(--ink-500);margin-bottom:5px;">Giấy tờ xe — OCR tự động điền hãng · dòng · loại · số khung · số máy · năm SX (KHÔNG lấy giá trị xe)</div>
+     <div class="card" style="padding:0;overflow:hidden;">${BANCA.docItemHtml(app.id, Object.assign({}, regDef, {locked:readOnly}))}</div>
+    </div>
+    ${conflictCard}
+    <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
+     ${inputId('vm-plate','Biển số', vPlate)}${inputId('vm-owner','Chủ xe (theo đăng ký)', vOwner)}
+     ${combo('vm-brand','Hãng xe',brands,vBrand)}${combo('vm-model','Dòng xe',models,vModel)}
+     ${combo('vm-type','Loại xe',BANCA.vehicleMaster.types,vType)}
+     ${inputId('vm-vin','Số khung (VIN)', vVin)}${inputId('vm-engine','Số máy', vEngine)}
+     ${inputId('vm-year','Năm sản xuất', vYear)}${inputId('vm-color','Màu xe', vColor)}
+     ${combo('vm-seats','Số chỗ ngồi',BANCA.vehicleMaster.seats,vSeats)}
+    </div>
+  </div>`;
+
+  const g3 = `<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Sử dụng &amp; định giá <span style="font-weight:400;color:var(--ink-300);font-size:10.5px;">(không lấy từ OCR)</span></div><div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0 18px;">
     ${combo('vm-usage','Mục đích sử dụng',BANCA.vehicleMaster.usages,v.usage)}
     ${inputId('vm-value','Giá trị xe (VNĐ)', vValue?vValue.toLocaleString('vi-VN'):'', bankAssetValue?'Nguồn: Janus Loan System (asset context) — có thể chỉnh theo định giá':'Giá trị thị trường — nhập tay hoặc từ dịch vụ định giá')}
   </div>${bankAssetValue?'<div style="font-size:11.5px;color:var(--ink-500);margin-top:2px;">'+BANCA.sourceBadge('BANK')+' Giá trị tài sản lấy từ Janus Loan System.</div>':''}</div>`;
 
   const g4 = `<div class="card" style="padding:16px;margin-bottom:12px;border-left:3px solid ${mgCur.mortgaged?'var(--amber-600)':'var(--line)'};">
-   <div class="label" style="margin-bottom:8px;">4 · Sở hữu & khoản vay <span style="font-weight:400;color:var(--ink-300);font-size:10.5px;">(nguồn duy nhất quyết định bên thụ hưởng — không lấy từ OCR)</span></div>
+   <div class="label" style="margin-bottom:8px;">Sở hữu &amp; khoản vay <span style="font-weight:400;color:var(--ink-300);font-size:10.5px;">(nguồn duy nhất quyết định bên thụ hưởng — không lấy từ OCR)</span></div>
    ${bankFedCust&&cust.loanRef?`<div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">${BANCA.sourceBadge('BANK')} Ngữ cảnh khoản vay (Janus Loan System): <b>${cust.loanRef}</b> — không cần nhập lại.</div>`:''}
    <div class="field" style="max-width:480px;"><label style="font-size:11.5px;color:var(--ink-500);">Chiếc xe này có đang được dùng làm tài sản thế chấp/bảo đảm cho khoản vay không?</label>
     <select id="mg-flag" ${readOnly?'disabled':''} onchange="mortgageChanged()" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:3px;">
@@ -821,7 +838,10 @@ if(app.submissionState==='NOT_SUBMITTED'){
    ${app.source==='RENEWAL'?'<div style="font-size:11px;color:var(--amber-600);margin-top:6px;">⚠ Yêu cầu tái tục: câu hỏi này PHẢI hỏi lại — không kế thừa từ kỳ trước.</div>':''}
   </div>`;
 
-  stepBody = inputMethods + conflictCard + extractedPanel + g1 + g2 + g3 + g4;
+  stepBody = infoBanner
+   + `<div class="section-title" style="margin-top:0;"><h2>Đối tượng bảo hiểm</h2><span class="subtitle">Xe cơ giới — quét đăng ký xe để tự động điền; rà soát &amp; sửa nếu cần</span></div>`
+   + `<div class="card" style="padding:16px;margin-bottom:12px;">${buyerInsuredToggle(true, {disabled:true})}</div>`
+   + vehicleCard + g3 + g4;
  } else if(cur.id==='PACKAGE_AND_QUOTE'){
   // ===== Công thức thác nước (chốt 16:35): TNDS tách riêng · Vật chất: gốc + add-on(tiền) = Subtotal − NCD(trên subtotal) + VAT = Phí phải đóng =====
   const q=app.quote;
@@ -854,39 +874,35 @@ if(app.submissionState==='NOT_SUBMITTED'){
    return `<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;padding:7px 10px;border:1px solid ${on?'var(--brand-600)':'var(--line)'};border-radius:8px;cursor:pointer;${on?'background:var(--brand-100);':''}"><input type="checkbox" class="addon-cb" data-code="${a.code}" ${on?'checked':''} ${readOnly?'disabled':''} onchange="autoRerate()"> ${a.name} <b style="font-size:11.5px;">+${amt?BANCA.vnd(amt):a.ratePct+'%'}</b> <span style="color:var(--ink-300);font-size:10px;">(bỏ chọn để không mua)</span></label>`;
   }).join('');
 
-  // Khối báo giá THÁC NƯỚC
-  const wfRow=(label,amount,opts)=>{
+  // Khối báo giá — DÙNG CHUNG style với Health (dòng flex có gạch đứt → tổng đậm màu brand → caption).
+  const qRow=(label,amount,opts)=>{
    opts=opts||{};
-   return `<tr style="${opts.rule?'border-top:1px solid var(--line);':''}"><td style="padding:${opts.bold?'6px':'3px'} 14px 3px 0;color:${opts.muted?'var(--ink-300)':opts.bold?'var(--ink-900)':'var(--ink-500)'};${opts.bold?'font-weight:700;':''}">${label}</td><td style="text-align:right;${opts.bold?'font-weight:700;font-size:14px;color:var(--brand-600);':''}color:${opts.neg?'var(--teal-600)':opts.pos?'var(--amber-600)':'inherit'};">${amount}</td></tr>`;
+   return `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:4px 0;border-bottom:1px dashed var(--line);"><span style="color:${opts.strong?'var(--ink-900)':'var(--ink-500)'};${opts.strong?'font-weight:700;':''}">${label}</span><b style="white-space:nowrap;color:${opts.neg?'var(--teal-600)':opts.pos?'var(--amber-600)':'inherit'};">${amount}</b></div>`;
   };
   const quoteBlock = q&&q.subtotal!=null? (()=>{
    const effStatus = qStatus;
    const stale = effStatus==='STALE'||effStatus==='EXPIRED';
+   const pkgName = (BANCA.motorPackages[snap.packageCode]||{}).name||app.package;
    return `<div class="card" style="padding:14px;" id="quote-block">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
-     <div style="flex:1;min-width:340px;">
-      <div class="label">Báo giá — ${q.id} (v${q.version}) <span id="q-badge">${BANCA.quoteStatusBadge(effStatus)}</span></div>
-      <div id="q-table-wrap" style="transition:opacity .2s;">
-      <table style="margin-top:8px;font-size:12.5px;border-collapse:collapse;width:100%;max-width:520px;">
-       ${wfRow('<b>Khối 1 — TNDS bắt buộc</b> <span style="font-size:10.5px;color:var(--ink-300);">(phí luật cố định, không add-on/NCD)</span>', BANCA.vnd(q.tplPremium))}
-       ${wfRow('<b style="padding-top:6px;display:inline-block;">Khối 2 — Vật chất xe</b>','',{rule:true})}
-       ${wfRow('Phí gốc vật chất ('+((BANCA.motorPackages[snap.packageCode]||{}).name||app.package)+' · IDV '+BANCA.vnd(snap.sumInsured||val)+')', BANCA.vnd(q.odBase))}
-       ${(q.lines||[]).map(l=>wfRow((l.amount<0?'− ':'+ ')+l.label+' ('+l.pct+'%)', (l.amount<0?'−':'+')+BANCA.vnd(Math.abs(l.amount)), {neg:l.amount<0,pos:l.amount>0})).join('')}
-       ${wfRow('= Tạm tính trước giảm phí (Subtotal)', BANCA.vnd(q.subtotal), {rule:true})}
-       ${q.ncdAmount?wfRow('− NCD '+q.ncdPct+'% <span style="font-size:10.5px;color:var(--ink-300);">(trên subtotal đã gồm add-on)</span>','−'+BANCA.vnd(q.ncdAmount),{neg:true}):''}
-       ${q.ncdAmount?wfRow('= Phí vật chất sau giảm', BANCA.vnd(q.odAfterNcd), {rule:true}):''}
-       ${wfRow('+ VAT '+BANCA.VAT_PCT+'% (phần vật chất)','+'+BANCA.vnd(q.vatAmount),{pos:true})}
-       ${wfRow('<span id="q-total-label">= PHÍ PHẢI ĐÓNG (TNDS + Vật chất)</span>', '<span id="q-total">'+BANCA.vnd(q.totalPremium)+'</span>', {rule:true,bold:true})}
-      </table>
-      </div>
-      <div id="q-dirty-note" style="display:none;font-size:12px;color:var(--red-600);font-weight:600;margin-top:6px;">Phí sẽ thay đổi — bấm "Tính phí" để cập nhật.</div>
-      <div style="font-size:11.5px;color:${stale?'var(--red-600)':'var(--ink-500)'};margin-top:6px;">Hiệu lực đến ${q.validUntil} · rated ${q.ratedAt}</div>
-     </div>
-     <div style="display:flex;flex-direction:column;gap:6px;">
-      ${!readOnly&&caps.includes('can_quote')&&effStatus!=='ACTIVE'?`<button class="btn btn-primary btn-sm" id="rate-btn" onclick="rerate()">Tính phí lại</button>`:''}
-      ${!readOnly&&caps.includes('can_quote')?`<button class="btn btn-secondary btn-sm" onclick="restoreDefaults()" title="Đưa add-on & khấu trừ về đúng cấu hình gốc của gói đang chọn">Khôi phục mặc định gói</button>`:''}
-      <button class="btn btn-secondary btn-sm" onclick="showQuoteHistory()">Lịch sử báo giá</button>
-     </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+     <div class="label" style="margin:0;">Báo giá xe (TNDS + Vật chất → giảm phí → tổng) — ${q.id} (v${q.version})</div>
+     <span id="q-badge">${BANCA.quoteStatusBadge(effStatus)}</span>
+    </div>
+    <div id="q-table-wrap" style="transition:opacity .2s;">
+     ${qRow('TNDS bắt buộc <span style="font-size:10.5px;color:var(--ink-300);">(phí luật cố định)</span>', BANCA.vnd(q.tplPremium))}
+     ${qRow('Phí gốc vật chất · '+pkgName+' · IDV '+BANCA.vnd(snap.sumInsured||val), BANCA.vnd(q.odBase))}
+     ${(q.lines||[]).map(l=>qRow((l.amount<0?'− ':'+ ')+l.label+' ('+l.pct+'%)', (l.amount<0?'−':'+')+BANCA.vnd(Math.abs(l.amount)), {neg:l.amount<0,pos:l.amount>0})).join('')}
+     ${qRow('Tạm tính trước giảm phí', BANCA.vnd(q.subtotal), {strong:true})}
+     ${q.ncdAmount?qRow('Chiết khấu không tổn thất (NCD '+q.ncdPct+'%)','−'+BANCA.vnd(q.ncdAmount),{neg:true}):''}
+     ${qRow('VAT '+BANCA.VAT_PCT+'% (phần vật chất)','+'+BANCA.vnd(q.vatAmount),{pos:true})}
+     <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:8px 0 0;border-top:1px solid var(--line);margin-top:4px;color:var(--brand-600);"><span id="q-total-label">Phí phải đóng (TNDS + Vật chất)</span><span id="q-total">${BANCA.vnd(q.totalPremium)}</span></div>
+    </div>
+    <div id="q-dirty-note" style="display:none;font-size:12px;color:var(--red-600);font-weight:600;margin-top:6px;">Phí sẽ thay đổi — bấm "Tính phí" để cập nhật.</div>
+    <div style="font-size:10.5px;color:${stale?'var(--red-600)':'var(--ink-300)'};margin-top:6px;">TNDS tách riêng · add-on &amp; NCD tính trên phần vật chất. Hiệu lực đến ${q.validUntil} · rated ${q.ratedAt}. Biểu phí minh họa.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+     ${!readOnly&&caps.includes('can_quote')&&effStatus!=='ACTIVE'?`<button class="btn btn-primary btn-sm" id="rate-btn" onclick="rerate()">Tính phí lại</button>`:''}
+     ${!readOnly&&caps.includes('can_quote')?`<button class="btn btn-secondary btn-sm" onclick="restoreDefaults()" title="Đưa add-on & khấu trừ về đúng cấu hình gốc của gói đang chọn">Khôi phục mặc định gói</button>`:''}
+     <button class="btn btn-secondary btn-sm" onclick="showQuoteHistory()">Lịch sử báo giá</button>
     </div>
    </div><div id="quote-history"></div>`;
   })() : '<div class="alert2 info" id="quote-block">Chưa có báo giá — chọn gói, chỉnh tùy chọn và bấm "Tính phí".'+((!readOnly&&caps.includes('can_quote'))?' <button class="btn btn-primary btn-sm" onclick="rerate()">Tính phí</button>':'')+'</div>';
@@ -1064,8 +1080,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const ocrDocs = BANCA.DOC_CATALOG.filter(d=>isOcr(d.code));
   const ocrSection = ocrDocs.length? `<div class="section-title" style="margin-top:0;"><h2>Tài liệu được OCR</h2><span class="subtitle">Bóc tách ở bước Khách hàng / Đối tượng bảo hiểm — chỉ xem, không thay thế tại đây</span></div>
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;">${ocrDocs.map(d=>BANCA.docItemHtml(app.id, Object.assign(toDef(d),{locked:true}))).join('')}</div>` : '';
-  const legendInner = (done,blk)=>`<div>Tài liệu bắt buộc: <b style="color:${blk.length?'var(--red-600)':'var(--teal-600)'};">${done}/${needDocs.length}</b>${blk.length?' · còn thiếu: '+blk.map(d=>d.name).join(', '):' · đã đủ'}</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;"><span><b style="color:var(--red-600);">●</b> Bắt buộc</span><span><b style="color:var(--amber-600);">◐</b> Có điều kiện</span><span><b style="color:var(--ink-300);">○</b> Không cần</span></div>`;
+  const legendInner = (done,blk)=>`<div>Tài liệu bắt buộc: <b style="color:${blk.length?'var(--red-600)':'var(--teal-600)'};">${done}/${needDocs.length}</b>${blk.length?' · còn thiếu: '+blk.map(d=>d.name).join(', '):' · đã đủ'}</div>`;
   const legendNote = `<div id="doc-legend" class="card" style="padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-500);">${legendInner(requiredDone, blocking)}</div>`;
   // FIX: bước Tài liệu trước đây thiếu __docRefresh → upload xong bộ đếm "x/y" và cờ chặn nộp không cập nhật
   // (nhìn như "tải lên không hoạt động"). Định nghĩa lại để refresh legend theo store thật sau mỗi upload.
@@ -1115,13 +1130,42 @@ if(app.submissionState==='NOT_SUBMITTED'){
     root.appendChild(d);
   };
   const reqRender = needDocs.filter(d=>!isOcr(d.code));   // OCR docs hiển thị ở section riêng
-  const otherRender = otherDocs.filter(d=>!isUploaded(d.code) && !isOcr(d.code));
-  stepBody = legendNote + ocrSection
+  // ===== Tài liệu khác — chỉ hiện khi đã tải HOẶC người dùng chủ động chọn thêm (giống Health: không show hết) =====
+  const OKEY = 'banca_otherdocs_'+app.id;
+  const otherAdded = (function(){ try{ return JSON.parse(localStorage.getItem(OKEY)||'[]'); }catch(e){ return []; } })();
+  window.addOtherDoc = function(appId){
+    const sel=document.getElementById('add-other-doc'); if(!sel||!sel.value) return;
+    let list=[]; try{ list=JSON.parse(localStorage.getItem('banca_otherdocs_'+appId)||'[]'); }catch(e){}
+    if(list.indexOf(sel.value)<0) list.push(sel.value);
+    localStorage.setItem('banca_otherdocs_'+appId, JSON.stringify(list));
+    location.reload();
+  };
+  window.removeOtherDoc = function(appId, code){
+    let list=[]; try{ list=JSON.parse(localStorage.getItem('banca_otherdocs_'+appId)||'[]'); }catch(e){}
+    localStorage.setItem('banca_otherdocs_'+appId, JSON.stringify(list.filter(function(c){return c!==code;})));
+    location.reload();
+  };
+  const otherCandidates = otherDocs.filter(d=>!isOcr(d.code));
+  const otherShown = otherCandidates.filter(d=> isUploaded(d.code) || otherAdded.indexOf(d.code)>=0);
+  const otherAvailable = otherCandidates.filter(d=> !isUploaded(d.code) && otherAdded.indexOf(d.code)<0);
+  const otherBlock = `<div class="section-title"><h2>Tài liệu khác (tùy chọn)</h2><span class="subtitle">Chỉ thêm khi cần — không bắt buộc, không hiển thị mặc định</span></div>`
+    + (!readOnly && otherAvailable.length ? `<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+       <select id="add-other-doc" style="flex:1;min-width:220px;padding:8px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;">
+        <option value="">+ Chọn tài liệu để thêm…</option>
+        ${otherAvailable.map(d=>`<option value="${d.code}">${d.name}</option>`).join('')}
+       </select>
+       <button class="btn btn-secondary btn-sm" onclick="addOtherDoc('${app.id}')">Thêm tài liệu</button>
+      </div>` : '')
+    + (otherShown.length ? `<div class="card" style="padding:0;overflow:hidden;">${otherShown.map(function(d){
+        const added = otherAdded.indexOf(d.code)>=0 && !isUploaded(d.code);
+        return BANCA.docItemHtml(app.id, toDef(d)) + (added&&!readOnly?`<div style="padding:0 14px 10px;margin-top:-4px;"><button class="btn btn-secondary btn-sm" onclick="removeOtherDoc('${app.id}','${d.code}')">Bỏ khỏi danh sách</button></div>`:'');
+      }).join('')}</div>` : (otherAvailable.length? '' : '<div style="font-size:12px;color:var(--ink-300);margin-bottom:8px;">Không còn tài liệu tùy chọn khả dụng.</div>'));
+  stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Tài liệu Bảo hiểm vật chất xe — chỉ hiển thị tài liệu <b>bắt buộc</b> cho yêu cầu này. Tài liệu khác chọn thêm từ danh sách khi cần (không show hết).</div>`
+   + legendNote + ocrSection
    + `<div class="section-title" ${ocrDocs.length?'':'style="margin-top:0;"'} style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;"><div><h2>Tài liệu bắt buộc cho yêu cầu này</h2><span class="subtitle">Tài liệu đã tải hiển thị nút Xem / Thay thế; dòng còn thiếu ưu tiên xử lý trước khi nộp.</span></div>${readOnly?'':`<button class="btn btn-secondary btn-sm" onclick="docSendToCustomer()" style="white-space:nowrap;">📤 Gửi khách tự tải</button>`}</div>
-      <div class="card" style="padding:0;overflow:hidden;">${reqRender.map(d=>BANCA.docItemHtml(app.id, toDef(d))).join('')||'<div class="empty-state" style="padding:20px;">Không có tài liệu bắt buộc.</div>'}</div>
-      ${otherRender.length?`<div class="section-title"><h2>Tài liệu khác</h2><span class="subtitle">Không bắt buộc / kế thừa / bổ sung nếu cần</span></div>
-      <div class="card" style="padding:0;overflow:hidden;">${otherRender.map(d=>BANCA.docItemHtml(app.id, toDef(d))).join('')}</div>`:''}
-      <div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">Chấp nhận PDF/JPG/PNG ≤ 10MB. OCR là capability của từng tài liệu; trạng thái upload/OCR/duyệt/xác minh tách riêng.${mgDoc.mortgaged?' <b style="color:var(--amber-600);">Xe thế chấp — bên thụ hưởng là bắt buộc.</b>':''}</div>`;
+      <div class="card" style="padding:0;overflow:hidden;">${reqRender.map(d=>BANCA.docItemHtml(app.id, toDef(d))).join('')||'<div class="empty-state" style="padding:20px;">Không có tài liệu bắt buộc.</div>'}</div>`
+   + otherBlock
+   + `<div style="font-size:11.5px;color:var(--ink-300);margin-top:8px;">Chấp nhận PDF/JPG/PNG ≤ 10MB. OCR là capability của từng tài liệu; trạng thái upload/OCR/duyệt/xác minh tách riêng.${mgDoc.mortgaged?' <b style="color:var(--amber-600);">Xe thế chấp — bên thụ hưởng là bắt buộc.</b>':''}</div>`;
   }
  } else if(cur.id==='REVIEW_AND_SUBMIT'){
   // Guard nộp: quote validity + ma trận tài liệu (rule engine) + NTH khi thế chấp + quyền
@@ -1455,6 +1499,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
      phone:u.phone||null, active:u.active!==false, package:u.package||null,
      riskAnswers:u.riskAnswers||{}, docs:u.docs||{}, beneficiaries:u.beneficiaries||[],
      confirmation:u.confirmation||null, underwriting:u.underwriting||null, certificateNumber:u.certificateNumber||null,
+     ocr:u.ocr||null,
      age: BANCA.healthAgeAt(u.dob, a.effectiveDate||dateOnly(new Date().toISOString()))};
   });
  }
@@ -1482,6 +1527,30 @@ if(app.submissionState==='NOT_SUBMITTED'){
  window.healthUnitSetField = function(id, unitId, field, val){
   const reload = ['dob','relationship'].includes(field);
   _healthMapUnit(id, unitId, function(m){ m[field]=val; }, reload, true);
+ };
+ // ===== OCR người được bảo hiểm (Health) — DÙNG CHUNG component với Motor =====
+ // Không có UI riêng: mỗi member render bằng BANCA.docItemHtml(code:'HID-<uid>') giống hệt tài liệu xe.
+ // Upload đi qua window.docUpload → BANCA.mockOcr → docPatch(extracted) → window.__docRefresh().
+ // __docRefresh (đặt trong nhánh render INSURED_PARTY) đồng bộ extracted → member rồi reload, y như Motor reload sau upload.
+ function _ocrDobToISO(v){ const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((v||'').trim()); return m? (m[3]+'-'+m[2]+'-'+m[1]) : ''; }
+ window.healthSyncOcrToMembers = function(id){
+  const members = _healthPersistMembers(app);
+  let changed = false;
+  members.forEach(function(m){
+   const rec = BANCA.docGet(id, 'HID-'+m.insuredUnitId);
+   if(rec && rec.extracted && !rec.appliedToMember){
+    const g = function(k){ return ((rec.extracted.fields.find(function(f){return f.key===k;})||{}).value)||''; };
+    if(g('fullName')) m.name = g('fullName');
+    const iso = _ocrDobToISO(g('dob')); if(iso) m.dob = iso;
+    if(g('gender')) m.gender = g('gender');
+    if(g('idNumber')) m.identityNumber = g('idNumber');
+    m.ocr = {overall:rec.extracted.overall};
+    BANCA.docPatch(id, 'HID-'+m.insuredUnitId, {appliedToMember:true});
+    changed = true;
+   }
+  });
+  if(changed) _healthCommitMembers(id, members);
+  return changed;
  };
  window.healthUnitSetGuardianChoice = function(id, unitId, selectedUnitId){
   _healthMapUnit(id, unitId, function(m){
@@ -1768,6 +1837,25 @@ const casePh = casePhase(st);
 const supCount = (app.supplement&&app.supplement.items||[]).length;
 // §III/§X — next action từ canonical resolver (dùng chung với list/header/queue).
 const caseView = BANCA.deriveCaseViewState(app);
+// ===== SINGLE SOURCE OF TRUTH cho tiến độ luồng (QA 2026-07-24) =====
+// Mọi component tiến độ (header stepper, timeline "Tiến trình", "Trạng thái nghiệp vụ") ĐỀU đọc từ đây,
+// derive từ caseView.states — KHÔNG tự suy từ app.status/app.uw riêng (tránh lệch giữa các sản phẩm/màn hình).
+const caseFlow = (function(){
+ const s = caseView.states;
+ const approved = ['APPROVED_STP','APPROVED','APPROVED_WITH_CONDITION','APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION'].includes(s.underwritingDecision);
+ const declined = s.underwritingDecision==='DECLINED' || s.applicationStatus==='REJECTED' || app.status==='REJECTED';
+ const cancelled = s.applicationStatus==='CANCELLED' || app.status==='CANCELLED';
+ const uwDecided = approved || declined || s.underwritingStatus==='DECIDED' || !!app.uw;
+ const confirmComplete = BANCA.confirmationComplete(app);
+ const needConfirm = ['APPROVED_WITH_CONDITION','APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION'].includes(s.underwritingDecision)
+   || !!app.confirm
+   || (Array.isArray(app.insuredMembers) && app.insuredMembers.some(function(m){return m && m.confirmation;}));
+ const paySuccess = s.paymentStatus==='SUCCESS';
+ const payProcessing = s.paymentStatus==='PROCESSING';
+ const issued = s.policyStatus==='ISSUED';
+ return {s, approved, declined, cancelled, dead:(declined||cancelled), uwDecided,
+   needConfirm, confirmComplete, confirmDone:(!needConfirm||confirmComplete), paySuccess, payProcessing, issued};
+})();
 function caseNextAction(){
  return [caseView.nextActionLabel||'Đang xử lý — theo dõi trạng thái.', caseView.statusTone||'wait'];
 }
@@ -1835,7 +1923,7 @@ const topLink=([key,label,target])=>`<a href="?id=${app.id}&tab=${target}" class
 const subLink=([id,label])=>`<a href="?id=${app.id}&tab=${id}" style="text-decoration:none;padding:6px 11px;border-radius:7px;font-size:12.5px;${activeTab===id?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${label}</a>`;
 const subSet = topActive==='snapshot'?SNAP_SUB : null;
 const subNav = subSet ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${subSet.map(subLink).join('')}</div>` : '';
-const viewOnlyBanner = (topActive==='snapshot') ? `<div class="alert2 info" style="margin-bottom:12px;">🔒 <b>Bản yêu cầu đã nộp — chỉ xem.</b> Dữ liệu dưới đây là snapshot tại thời điểm nộp; chỉ chỉnh khi có yêu cầu bổ sung.</div>` : '';
+const viewOnlyBanner = '';
 const tabBar=`<div class="tabbar" style="margin-bottom:14px;overflow-x:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;">${topTabs.map(topLink).join('')}</div>${subNav}${viewOnlyBanner}`;
 
 // P2-3: SLA countdown màu theo mức khẩn (mốc demo NOW = 2026-07-20 15:30)
@@ -1849,16 +1937,19 @@ function slaHtml(sla){
 }
 
 // P0-10 + P1-4: timeline 3 trạng thái (done / waiting / auto|not-required)
+// FIX QA (2026-07-24): derive từ caseView.states — CÙNG NGUỒN với header stepper (caseStepperStrip),
+// không dùng field cũ app.uw/app.confirm (health STP không có app.uw → trước đây "Thẩm định đang chờ" sai).
 function timeline(){
- const flowNeedsConfirm = !!app.confirm || ['PENDING_CUSTOMER_CONFIRM'].includes(st) || (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision));
- const paidOrLater=['PAID','PENDING_ISSUE','ISSUED'].includes(st);
- const confirmDone = app.confirm? paidOrLater||st==='PENDING_PAYMENT' : false;
+ const f = caseFlow;
+ const uwTime = f.uwDecided ? ((app.uw&&app.uw.decidedAt) || (app.stpDecision&&app.stpDecision.decidedAt) || app.updatedAt) : null;
+ const confirmTime = app.confirm ? (app.confirm.confirmedAt||app.confirm.sentAt) : null;
+ const payTime = f.paySuccess ? (app.payment&&app.payment.paidAt) : null;
  const items=[
   ['Nộp yêu cầu bảo hiểm','done',app.submittedAt],
-  ['Thẩm định', app.uw?'done':(['REJECTED','CANCELLED'].includes(st)?'na':'wait'), app.uw?app.uw.decidedAt:null],
-  ['Khách xác nhận', !flowNeedsConfirm?'auto':(confirmDone?'done':(st==='PENDING_CUSTOMER_CONFIRM'||app.confirm?'wait':'wait')), app.confirm?app.confirm.sentAt:null],
-  ['Thanh toán', app.payment&&app.payment.status==='SUCCESS'?'done':(paidOrLater?'done':(st==='PENDING_PAYMENT'?'wait':['REJECTED','CANCELLED'].includes(st)?'na':'wait')), app.payment&&app.payment.paidAt||null],
-  ['Phát hành', st==='ISSUED'?'done':(['REJECTED','CANCELLED'].includes(st)?'na':'wait'), st==='ISSUED'?app.updatedAt:null]
+  ['Thẩm định', f.uwDecided?'done':(f.dead?'na':'wait'), uwTime],
+  ['Khách xác nhận', !f.needConfirm?'auto':(f.confirmComplete?'done':(f.dead?'na':'wait')), confirmTime],
+  ['Thanh toán', (f.paySuccess||f.issued)?'done':(f.payProcessing?'wait':(f.dead?'na':'wait')), payTime],
+  ['Phát hành', f.issued?'done':(f.dead?'na':'wait'), f.issued?app.updatedAt:null]
  ];
  const icon={done:['✓','var(--teal-600)','#fff'],wait:['⏳','var(--amber-100)','var(--amber-600)'],auto:['⚙','var(--paper)','var(--ink-300)'],na:['—','var(--paper)','var(--ink-300)']};
  const lbl={done:'',wait:' (đang chờ)',auto:' — Không yêu cầu (auto)',na:' — Không áp dụng'};
@@ -1981,11 +2072,11 @@ function cpCard(num,title,inner,sub){
    ${inner}
  </section>`;
 }
-// ---- Section 1: Trạng thái xử lý (process progress) ----
-function cpProcessSection(){
- const s=caseView.states;
- const approved = ['APPROVED_STP','APPROVED'].includes(s.underwritingDecision) || s.underwritingDecision==='APPROVED_WITH_CONDITION';
- const confirmed = BANCA.confirmationComplete(app);
+// ---- Trạng thái xử lý (process progress) — strip dùng chung (header + section) ----
+function caseStepperStrip(){
+ const s=caseFlow.s;
+ const approved = caseFlow.approved;
+ const confirmed = caseFlow.confirmComplete;
  const steps=['Chấp thuận','Xác nhận khách hàng','Chờ thanh toán','Đang xử lý','Thanh toán thành công','Phát hành hợp đồng'];
  let active;
  if(s.policyStatus==='ISSUED') active=6;
@@ -2005,12 +2096,7 @@ function cpProcessSection(){
     <span style="font-size:10.5px;color:${state==='todo'?'var(--ink-300)':'var(--ink-700)'};font-weight:${state==='active'?'700':'500'};line-height:1.2;">${l}</span>
    </div>`;
  }).join('<div style="height:1px;background:var(--line);flex:0 0 12px;margin-top:12px;"></div>');
- // Thông báo phát hành (đúng trạng thái — KHÔNG banner sai).
- let issueNote='';
- if(s.paymentStatus==='SUCCESS' && s.policyStatus==='ISSUING') issueNote=`<div class="alert2 info" style="margin:12px 0 0;">Đã thanh toán — đang phát hành hợp đồng. Chờ Core trả kết quả.</div>`;
- else if(s.policyStatus==='ISSUED' && app.policyId) issueNote=`<div class="alert2" style="margin:12px 0 0;background:var(--teal-100);color:var(--teal-600);">✓ Hợp đồng đã phát hành · Số HĐ <b>${app.policyId}</b> — <a href="?id=${app.id}&tab=policy" style="color:var(--teal-600);text-decoration:underline;">xem hợp đồng</a>.</div>`;
- else if(s.policyStatus==='ISSUE_FAILED') issueNote=`<div class="alert2 danger" style="margin:12px 0 0;">Đã thanh toán nhưng phát hành lỗi — không thu lại tiền. <a href="?id=${app.id}&tab=policy" style="color:var(--red-600);text-decoration:underline;">Xử lý phát hành</a>.</div>`;
- return cpCard(1,'Trạng thái xử lý', `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px;flex-wrap:nowrap;overflow-x:auto;">${nodes}</div>${issueNote}`, caseView.displayStatus);
+ return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:2px;flex-wrap:nowrap;overflow-x:auto;">${nodes}</div>`;
 }
 // ---- Section 2: Xác nhận khách hàng ----
 function cpConfirmSection(){
@@ -2063,7 +2149,7 @@ function cpConfirmSection(){
   </div>`;
   inner = statusBanner(cLabel[1], cLabel[0], '', '') + cfBody;
  }
- return cpCard(2,'Xác nhận khách hàng', inner);
+ return cpCard(1,'Xác nhận khách hàng', inner);
 }
 // ---- Section 3: Phí cần thanh toán (breakdown khớp tổng phí) ----
 function cpFeeSection(){
@@ -2118,7 +2204,7 @@ function cpFeeSection(){
     <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;"><span>Tổng phí</span><span>${BANCA.vnd(total)}</span></div>
     ${memberHtml}
    </div>`;
- return cpCard(3,'Phí cần thanh toán', inner);
+ return cpCard(2,'Phí cần thanh toán', inner);
 }
 // ---- Section 4: Ba cách thanh toán (hiển thị trực tiếp) ----
 function cpMethodsSection(){
@@ -2158,12 +2244,12 @@ function cpMethodsSection(){
    </div>
    <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Chưa tạo yêu cầu thanh toán cho tới khi nhân viên tư vấn xác nhận cấu hình trong từng cách.</div>`;
  }
- return cpCard(4,'Cách thanh toán', inner);
+ return cpCard(3,'Cách thanh toán', inner);
 }
 // ---- Section 5: Trạng thái thanh toán hiện tại ----
 function cpCurrentSection(){
  const pay=app.payment;
- if(!pay) return cpCard(5,'Trạng thái thanh toán', `<div class="alert2 info" style="margin:0;">Chưa khởi tạo thanh toán.</div>`);
+ if(!pay) return cpCard(4,'Trạng thái thanh toán', `<div class="alert2 info" style="margin:0;">Chưa khởi tạo thanh toán.</div>`);
  const s2=pay.status;
  const tone={SUCCESS:'ok',PENDING:'wait',PROCESSING:'wait',FAILED:'danger',TIMEOUT:'danger',EXPIRED:'danger',CANCELLED:'danger'}[s2]||'wait';
  const toneColor={ok:'var(--teal-600)',wait:'var(--amber-600)',danger:'var(--red-600)'}[tone];
@@ -2195,7 +2281,7 @@ function cpCurrentSection(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><b style="font-size:14px;color:${toneColor};">${cpStatusVN(s2)}</b>${BANCA.paymentBadge?BANCA.paymentBadge(s2):''}</div>
     ${factHtml}${preview}${tech}${tools}
    </div>`;
- return cpCard(5,'Trạng thái thanh toán', inner);
+ return cpCard(4,'Trạng thái thanh toán', inner);
 }
 // ---- Section 6: Lịch sử thanh toán (row → chi tiết, KHÔNG lặp key-value dưới bảng) ----
 function cpHistorySection(){
@@ -2212,10 +2298,10 @@ function cpHistorySection(){
   }).join('');
   inner=`<div class="card" style="padding:0;overflow:hidden;"><table class="dtable"><thead><tr><th>Mã giao dịch</th><th>Cách thanh toán</th><th>Người thanh toán</th><th>Thời gian</th><th>Số tiền</th><th>Trạng thái</th><th>Tham chiếu</th></tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Bấm vào dòng giao dịch để xem chi tiết.</div>`;
  }
- return cpCard(6,'Lịch sử thanh toán', inner);
+ return cpCard(5,'Lịch sử thanh toán', inner);
 }
 function renderConfirmPay(){
- return cpProcessSection()+cpConfirmSection()+cpFeeSection()+cpMethodsSection()+cpCurrentSection()+cpHistorySection();
+ return cpConfirmSection()+cpFeeSection()+cpMethodsSection()+cpCurrentSection()+cpHistorySection();
 }
 
 // ---- Customer reconfirmation rule (rule-based, không cho nhân viên tư vấn chọn) ----
@@ -2305,7 +2391,7 @@ if(activeTab==='overview'){
  const intDot=t=>({ok:'var(--teal-600)',wait:'var(--amber-600)',idle:'var(--ink-300)',bad:'var(--red-600)'}[t]||'var(--ink-300)');
  const cardStatus=`<section class="card" style="padding:16px;"><div class="label" style="margin-bottom:10px;">Trạng thái nghiệp vụ & tích hợp</div>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-     <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Nghiệp vụ</div>${['Thẩm định','Chờ khách','Thanh toán','Phát hành'].map((b,i)=>{const done=[['UW_DECIDED','PENDING_CUSTOMER_CONFIRM','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'],['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'],['PAID','PENDING_ISSUE','ISSUED'],['ISSUED']][i].includes(st);return `<div style="font-size:12.5px;padding:3px 0;">${done?'✓':'○'} ${b}</div>`;}).join('')}</div>
+     <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Nghiệp vụ</div>${(function(){const busDone=[caseFlow.uwDecided, caseFlow.confirmDone && caseFlow.uwDecided, caseFlow.paySuccess||caseFlow.issued, caseFlow.issued];return ['Thẩm định','Chờ khách','Thanh toán','Phát hành'].map(function(b,i){return `<div style="font-size:12.5px;padding:3px 0;">${busDone[i]?'✓':'○'} ${b}</div>`;}).join('');})()}</div>
      <div><div style="font-size:12px;color:var(--ink-500);margin-bottom:6px;">Tích hợp hệ thống</div>${intg.map(([k,v,t])=>`<div style="font-size:12.5px;padding:3px 0;display:flex;justify-content:space-between;"><span>${k}</span><span style="color:${intDot(t)};font-weight:600;">${v}</span></div>`).join('')}</div>
    </div></section>`;
  // Epic 9: Sức khỏe yêu cầu widget
@@ -2651,13 +2737,10 @@ const hdr=`<div class="card" style="padding:14px 18px;margin-bottom:14px;positio
    <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Tổng phí</div><b style="font-size:24px;color:var(--brand-600);display:block;margin-top:1px;">${BANCA.vnd((app.uw&&app.uw.newPremium)||app.premium)}</b></div>
   </div>
  </div>
- ${dashStrip}
- <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);">
-  <div style="font-size:13.5px;max-width:56%;"><span style="color:var(--ink-500);">Việc tiếp theo:</span> <b style="color:${naTone};">${na[0]}</b></div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-   ${getSubmittedCaseActions().join('')}
-   ${readOnly?'<span class="chip">Chỉ xem (manager)</span>':''}
-  </div>
+ <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">${caseStepperStrip()}</div>
+ <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);">
+  ${getSubmittedCaseActions().join('')}
+  ${readOnly?'<span class="chip">Chỉ xem (manager)</span>':''}
  </div>
 </div>`;
 
@@ -2674,7 +2757,9 @@ const routedBanner = (qs.get('routed')==='1' && app.routing) ? (function(){
   </div>`;
 })() : '';
 
-shell('Yêu cầu bảo hiểm đã nộp','Không gian theo dõi yêu cầu đã nộp', hdr+tabBar+notiBanner+routedBanner+body, {startSale:false});
+// bỏ hết alert giải thích (.alert2.info) ở mọi tab tracking cho gọn — giữ warn/danger (actionable) và success (teal inline).
+const trackCleanStyle = `<style>.track-clean .alert2.info{display:none!important;}</style>`;
+shell('Yêu cầu bảo hiểm đã nộp','Không gian theo dõi yêu cầu đã nộp', trackCleanStyle+'<div class="track-clean">'+hdr+tabBar+routedBanner+body+'</div>', {startSale:false});
 
 window.viewVersion=function(v){ if(String(v)!==String(caseVer)) alert('Xem snapshot phiên bản V'+v+' (demo). Bản đã nộp cũ được giữ nguyên.'); };
 window.compareVersions=function(id){

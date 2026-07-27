@@ -93,7 +93,24 @@ BANCA.policies = [
     {id:'internal-note', name:'Ghi chú nội bộ', fileName:'NOTE-JB-HEALTH-2026-2201', kind:'Ghi chú', version:'Nội bộ', issuedAt:'2026-07-22', source:'Vận hành', status:'Ẩn', canView:false, canDownload:false, canSendToCustomer:false, hiddenFromDocumentList:true}
    ],
    payment:{paymentId:'PAY-HEALTH-2201',paymentExperience:'CUSTOMER_REMOTE',paymentInstrument:'BANK_TRANSFER',deliveryChannel:'SMS',merchantReference:'MR-APP-2026-HLT1',gatewayTransactionId:'GTW-HEALTH-2201',paidAt:'2026-07-22 09:45'},
-   billing:[{date:'2026-07-22', amount:5775000, method:'BANK_TRANSFER', ref:'GTW-HEALTH-2201', status:'SUCCESS'}]}
+   billing:[{date:'2026-07-22', amount:5775000, method:'BANK_TRANSFER', ref:'GTW-HEALTH-2201', status:'SUCCESS'}]},
+  {id:'JB-HEALTH-2026-2202', certificate:'GCN-HEALTH-2202', owner:'RM-01', customerId:'CUS-007', productType:'health', productId:'health', productName:'Bảo hiểm sức khỏe', package:'HEALTH_STD', packageCode:'HEALTH_STD',
+   premium:9450000, issueDate:'2026-07-21', effectiveFrom:'2026-07-21', effectiveTo:'2027-07-20', status:'ACTIVE', renewalStatus:null, isNew:true, appId:'APP-2026-HLT7',
+   policyholder:{name:'Trịnh Mỹ Linh',cif:'JB0067890',phone:'0965438899',email:'linh.trinh@example.com',identityNumber:'079088003333'},
+   insuredMembers:[{name:'Trịnh Mỹ Linh',dob:'1988-06-25',relationship:'Bản thân',age:38,identityNumber:'079088003333',package:'HEALTH_STD',certificateNumber:'GCN-2202-01',memberStatus:'ACTIVE'},{name:'Trịnh Gia Bảo',dob:'2015-03-18',relationship:'Con',age:11,identityNumber:null,package:'HEALTH_BASIC',isChild:true,certificateNumber:'GCN-2202-02',memberStatus:'ACTIVE'}],
+   certificateMode:'CERTIFICATE_PER_MEMBER', issueMode:'ONE_POLICY_MULTI_INSURED',
+   coverage:{code:'HEALTH_STD', name:'Sức khỏe Tiêu chuẩn', inpatientLimit:250000000, outpatientLimit:20000000, dentalLimit:5000000, maternityLimit:0, annualLimit:275000000, copayPercent:10, termMonths:12, territory:'Việt Nam'},
+   exclusions:['Bệnh có sẵn trong thời gian chờ','Điều trị nha khoa thẩm mỹ','Thai sản không mua kèm'],
+   specialConditions:[], territorialScope:'Việt Nam', wordingRef:'QT-BH-HEALTH-2026 v1.0',
+   documents:[
+    {id:'certificate-current', name:'Giấy chứng nhận bảo hiểm sức khỏe', fileName:'GCN-HEALTH-2202.pdf', kind:'PDF', version:'Hiện hành', issuedAt:'2026-07-21', effectiveFrom:'2026-07-21', source:'Core policy', status:'Hiện hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'wording-current', name:'Điều khoản bảo hiểm sức khỏe', fileName:'QT-BH-HEALTH-2026-v1.0.pdf', kind:'PDF', version:'v1.0', issuedAt:'2026-07-21', effectiveFrom:'2026-07-21', source:'Sản phẩm', status:'Hiện hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'source-application', name:'Yêu cầu bảo hiểm đã phát hành hợp đồng này', fileName:'APP-2026-HLT7', kind:'Trang', version:'Bản phát hành', issuedAt:'2026-07-20', effectiveFrom:'2026-07-21', source:'Sales Portal', status:'Đã phát hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'health-declaration', name:'Bản khai sức khỏe', fileName:'DECL-HEALTH-2202.pdf', kind:'PDF', version:'Bản phát hành', issuedAt:'2026-07-20', effectiveFrom:'2026-07-21', source:'Sales Portal', status:'Đã phát hành', canView:true, canDownload:true, canSendToCustomer:true},
+    {id:'vat-invoice', name:'Hóa đơn VAT', fileName:'INV-HEALTH-2202.pdf', kind:'PDF', version:'Hiện hành', issuedAt:'2026-07-21', source:'Kế toán', status:'Sẵn sàng', canView:true, canDownload:true, canSendToCustomer:true}
+   ],
+   payment:{paymentId:'PAY-HEALTH-2207',paymentExperience:'CUSTOMER_REMOTE',paymentInstrument:'BANK_TRANSFER',deliveryChannel:'SMS',merchantReference:'MR-APP-2026-HLT7',gatewayTransactionId:'GTW-HEALTH-2207',paidAt:'2026-07-21 11:15'},
+   billing:[{date:'2026-07-21', amount:9450000, method:'BANK_TRANSFER', ref:'GTW-HEALTH-2207', status:'SUCCESS'}]}
 ];
 BANCA.policyById = id => BANCA.policies.find(p=>p.id===id);
 BANCA.myPolicies = (p = BANCA.current()) => {

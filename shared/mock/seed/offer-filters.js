@@ -32,12 +32,15 @@ BANCA.OFFER_GROUP_FILTERS = {
     ]
   },
 
-  // Chờ khách hàng → customer action.
+  // Chờ khách hàng → chỉ filter liên quan HÀNH ĐỘNG CỦA KHÁCH (AC03).
   WAIT_CUST: {
     kind: 'chips', filters: [
       { param: 'cact', label: 'Khách cần làm', options: [
-        { v: 'CONFIRM', label: 'Chờ xác nhận (OTP)', statuses: ['PENDING_CUSTOMER_CONFIRM'] },
-        { v: 'PAY', label: 'Chờ thanh toán', statuses: ['PAYMENT_METHOD_REQUIRED', 'PENDING_PAYMENT'] }
+        { v: 'CONFIRM', label: 'Chờ xác nhận', phases: ['CUSTOMER_CONFIRMATION_REQUIRED'] },
+        { v: 'OTP', label: 'Chờ OTP', phases: ['CUSTOMER_CONFIRMATION_REQUIRED'] },
+        { v: 'PAY', label: 'Chờ thanh toán', phases: ['PAYMENT_METHOD_REQUIRED', 'PAYMENT_PENDING'] },
+        { v: 'PAYFAIL', label: 'Thanh toán thất bại', phases: ['PAYMENT_FAILED'] },
+        { v: 'EXPIRING', label: 'Sắp hết hạn', sla: true }
       ] }
     ]
   },
@@ -63,7 +66,14 @@ BANCA.OFFER_GROUP_FILTERS = {
   }
 };
 
-// Áp các quick-filter của 1 nhóm lên danh sách app (generic, page không hard-code).
+// Sắp hết hạn (SLA) — dùng chung, dựa trên app.sla.
+BANCA.isSlaSoon = function (app, hours) {
+  if (!app || !app.sla) return false;
+  var d = new Date(String(app.sla).replace(' ', 'T'));
+  var hrs = (d - new Date('2026-07-20T15:30:00')) / 3600000;
+  return hrs <= (hours || 24);
+};
+// Áp các quick-filter của 1 nhóm lên danh sách app (generic — match statuses/phases/sla, page không hard-code).
 BANCA.applyGroupFilters = function (apps, groupId, qs, me) {
   var gf = BANCA.OFFER_GROUP_FILTERS[groupId];
   if (!gf || !gf.filters) return apps;
@@ -73,6 +83,8 @@ BANCA.applyGroupFilters = function (apps, groupId, qs, me) {
     apps = apps.filter(function (a) {
       if (opt.own && a.owner !== me) return false;
       if (opt.statuses && opt.statuses.indexOf(a.status) < 0) return false;
+      if (opt.phases) { var ph = (BANCA.deriveCaseViewState ? BANCA.deriveCaseViewState(a).phase : null); if (opt.phases.indexOf(ph) < 0) return false; }
+      if (opt.sla && !BANCA.isSlaSoon(a)) return false;
       return true;
     });
   });

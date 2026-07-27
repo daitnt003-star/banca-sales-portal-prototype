@@ -245,23 +245,25 @@ BANCA.ui.dataScopeSelector = function (me, activeScope, activeUnit, r) {
     o.delete('unit'); if (unit) o.set('unit', unit);
     return '?' + o.toString();
   }
-  var chips = defs.map(function (d) {
-    var on = d.id === activeScope;
-    return '<a href="' + href(d.id) + '" class="dss-chip' + (on ? ' on' : '') + '">' + _esc(d.label) + '</a>';
-  }).join('');
-  // Unit selector khi scope là TEAM/BRANCH/REGION và có >1 đơn vị cùng cấp.
+  // AC01 — scope là DROPDOWN (không còn 4 tab ngang).
+  var scopeSel = '<label class="dss-field"><span class="dss-label">Phạm vi</span>' +
+    '<select class="dss-select" onchange="(function(v){var o=new URLSearchParams(location.search); if(v===\'SELF\')o.delete(\'scope\'); else o.set(\'scope\',v); o.delete(\'unit\'); location.search=o.toString();})(this.value)">' +
+    defs.map(function (d) { return '<option value="' + d.id + '"' + (d.id === activeScope ? ' selected' : '') + '>' + _esc(d.label) + '</option>'; }).join('') +
+    '</select></label>';
+  // OrganizationUnitSelector khi scope quản nhiều đơn vị.
   var unitSel = '';
   var cur = (BANCA.DATA_SCOPES || []).find(function (d) { return d.id === activeScope; });
   if (cur && cur.unitType) {
     var units = (BANCA.ORG_UNITS || []).filter(function (u) { return u.type === cur.unitType; });
     if (units.length > 1) {
-      unitSel = '<select class="dss-unit" onchange="(function(v){var o=new URLSearchParams(location.search); if(v)o.set(\'unit\',v); else o.delete(\'unit\'); location.search=o.toString();})(this.value)">' +
+      unitSel = '<label class="dss-field"><span class="dss-label">Đơn vị</span>' +
+        '<select class="dss-select" onchange="(function(v){var o=new URLSearchParams(location.search); if(v)o.set(\'unit\',v); else o.delete(\'unit\'); location.search=o.toString();})(this.value)">' +
         '<option value="">Tất cả ' + _esc((BANCA.orgUnitLabelType ? BANCA.orgUnitLabelType(cur.unitType) : cur.unitType)).toLowerCase() + '</option>' +
         units.map(function (u) { return '<option value="' + u.id + '"' + (u.id === activeUnit ? ' selected' : '') + '>' + _esc(u.name) + '</option>'; }).join('') +
-        '</select>';
+        '</select></label>';
     }
   }
-  return '<div class="data-scope-selector"><span class="dss-label">Phạm vi dữ liệu:</span><div class="dss-chips">' + chips + '</div>' + unitSel + '</div>';
+  return '<div class="data-scope-selector">' + scopeSel + unitSel + '</div>';
 };
 // Lọc theo đơn vị đã chọn (khớp branch/team của owner).
 BANCA.applyUnitFilter = function (apps, unitId) {
@@ -285,12 +287,49 @@ BANCA.ui.offerQuickFilters = function (groupId, qs, r) {
     if (v == null || o.get(param) === v) o.delete(param); else o.set(param, v);
     return '?' + o.toString();
   }
+  function clearHref(param) { var o = new URLSearchParams(location.search); o.delete(param); return '?' + o.toString(); }
   return '<div class="offer-quick-filters">' + gf.filters.map(function (f) {
     var cur = qs.get(f.param);
-    return '<div class="oqf-row"><span class="oqf-label">' + _esc(f.label) + ':</span>' +
+    var all = '<a href="' + clearHref(f.param) + '" class="oqf-chip' + (!cur ? ' on' : '') + '">Tất cả</a>';
+    return '<div class="oqf-row"><span class="oqf-label">' + _esc(f.label) + ':</span>' + all +
       f.options.map(function (o) {
         var on = cur === o.v;
         return '<a href="' + href(f.param, o.v) + '" class="oqf-chip' + (on ? ' on' : '') + '">' + _esc(o.label) + '</a>';
       }).join('') + '</div>';
   }).join('') + '</div>';
+};
+
+// --- Formatters (§ correction AC09) — ngày dd/MM/yyyy · HH:mm, tiền x.xxx.xxx ₫, không xuống dòng vụn ---
+BANCA.fmtDateTime = function (v) {
+  if (!v) return '—';
+  var d = (v instanceof Date) ? v : new Date(String(v).replace(' ', 'T'));
+  if (isNaN(d)) return String(v);
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return '<span class="nowrap">' + p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes()) + '</span>';
+};
+BANCA.money = function (n) {
+  var s = (BANCA.vnd ? BANCA.vnd(n) : ((n || 0).toLocaleString('vi-VN') + ' ₫'));
+  return '<span class="nowrap">' + s + '</span>';
+};
+
+// --- Task-oriented cells (§ correction AC04/AC06/AC07) ---
+// Cột "Khách cần thực hiện": status badge (central) + mô tả ngắn (gộp Việc cần làm/Trạng thái/điều kiện UW).
+BANCA.ui.customerTaskCell = function (app) {
+  var v = BANCA.deriveCaseViewState ? BANCA.deriveCaseViewState(app) : {};
+  var badge = BANCA.caseStatusBadge ? BANCA.caseStatusBadge(app) : '';
+  var desc = v.nextActionLabel || '';
+  // Điều kiện thẩm định cần KHÁCH chấp nhận → đưa vào cột này (không cột KQ thẩm định riêng).
+  if (app.uw && app.uw.decision === 'APPROVED_WITH_CONDITION') desc += (desc ? ' · ' : '') + 'có điều kiện/loại trừ cần khách chấp nhận';
+  return '<div class="task-cell">' + badge + (desc ? '<span class="task-desc">' + _esc(desc) + '</span>' : '') + '</div>';
+};
+// CTA sinh từ nextAction; 1 primary/dòng; KHÔNG cho seller xác nhận thay khách (AC07).
+BANCA.ui.offerCta = function (app) {
+  var v = BANCA.deriveCaseViewState ? BANCA.deriveCaseViewState(app) : {};
+  var pa = v.primaryAction || { label: 'Mở', tab: 'overview', key: 'open' };
+  var label = pa.label, tab = pa.tab || 'overview', key = pa.key;
+  // Actor = KHÁCH → seller chỉ được gửi/gửi lại/theo dõi, không "Xác nhận điều kiện".
+  if (key === 'confirm') { label = (app.confirm && app.confirm.requested) ? 'Theo dõi xác nhận' : 'Gửi yêu cầu xác nhận'; tab = 'confirm'; }
+  if (key === 'retryPay') { label = 'Gửi lại thanh toán'; }
+  var primaryKeys = ['chooseMethod', 'supplement', 'confirm', 'retryPay', 'retryIssue', 'viewPolicy'];
+  return { label: label, tab: tab, primary: primaryKeys.indexOf(key) >= 0 };
 };

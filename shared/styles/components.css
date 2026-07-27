@@ -148,3 +148,13 @@ table.offer-table th[style*="right"]{text-align:right;}
 /* pin CTA phải để luôn thấy hành động */
 table.offer-table td:last-child,table.offer-table th:last-child{position:sticky;right:0;background:var(--paper-card);box-shadow:-6px 0 8px -6px rgba(10,25,60,.12);text-align:right;}
 table.offer-table tr:hover td:last-child{background:var(--paper);}
+
+/* ===== searchBar (shared, đồng bộ mọi nơi) ===== */
+.banca-search-form{display:inline-flex;margin:0;}
+.banca-search{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper-card);padding:0 10px;height:34px;min-width:240px;transition:border-color .12s,box-shadow .12s;}
+.banca-search:focus-within{border-color:var(--brand-500);box-shadow:0 0 0 3px var(--brand-100);}
+.banca-search .bs-ic{font-size:13px;color:var(--ink-300);line-height:1;}
+.banca-search .bs-input{border:0;outline:0;background:transparent;font-size:13px;color:var(--ink-900);width:100%;padding:0;}
+.banca-search .bs-input::placeholder{color:var(--ink-300);}
+
+.banca-search.block{display:flex;width:100%;margin-bottom:8px;}

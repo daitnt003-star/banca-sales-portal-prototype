@@ -94,8 +94,7 @@ BANCA.ui = BANCA.ui || {};
     // 3. Toolbar: scope + search + advanced + result count
     var scopeSel = BANCA.ui.dataScopeSelector ? BANCA.ui.dataScopeSelector(me, cfg.scope, cfg.unit, r) : '';
     var g5 = cfg.g5;
-    var search = '<form method="get" class="qls-searchform">' + (g5 ? '<input type="hidden" name="g5" value="' + e(g5) + '">' : '') +
-      '<input class="otb-search" name="q" value="' + e(cfg.q || '') + '" placeholder="Tìm KH / SĐT / mã"></form>';
+    var search = BANCA.ui.searchBar({ mode: 'submit', name: 'q', value: cfg.q || '', placeholder: 'Tìm KH / SĐT / mã', hidden: g5 ? { g5: g5 } : {} });
     var count = '<span class="qls-count">Hiển thị <b>' + cfg.shown + '</b>/' + cfg.total + ' bản chào</span>';
     var toolbar = '<div class="qls-toolbar">' + scopeSel + '<span class="spacer"></span>' + search + (cfg.advancedBtn || '') + count + '</div>';
     // 4. Quick filters (lifecycle-specific)

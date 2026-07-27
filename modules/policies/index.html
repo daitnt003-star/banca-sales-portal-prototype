@@ -612,11 +612,7 @@ if(p.status!=='ACTIVE'){
    {name:'st',label:'Trạng thái',type:'select',value:fSt,options:[['ALL','Mọi trạng thái'],...statuses.map(st=>[st,stLabel(st)])]}
  ], {f:fTab!=='ALL'?fTab:'', scope:fScope!=='SELF'?fScope:'', q:qs.get('q')||''});
  const searchRow=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-   <form method="get" style="display:flex;gap:8px;align-items:center;">
-     ${fTab!=='ALL'?`<input type="hidden" name="f" value="${fTab}">`:''}
-     ${fScope!=='SELF'?`<input type="hidden" name="scope" value="${fScope}">`:''}
-     <input name="q" value="${qs.get('q')||''}" placeholder="🔍 Tìm khách hàng / số HĐ / số GCN / biển số" style="padding:8px 12px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;width:300px;">
-   </form>
+   ${BANCA.ui.searchBar({mode:'submit',name:'q',value:qs.get('q')||'',placeholder:'Tìm khách hàng / số HĐ / số GCN / biển số',hidden:{f:fTab!=='ALL'?fTab:'',scope:fScope!=='SELF'?fScope:''}})}
    ${fd.button}
  </div>`;
  const filterBar=searchRow+quickFilters+fd.tags+fd.drawer;

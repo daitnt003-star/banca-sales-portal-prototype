@@ -340,3 +340,24 @@ BANCA.ui.offerCta = function (app) {
   var primary = (BANCA.nextActor ? BANCA.nextActor(app) : 'CURRENT_USER') === 'CURRENT_USER' && viewKeys.indexOf(key) < 0;
   return { label: label, tab: tab, primary: primary };
 };
+
+// --- searchBar (§ correction: 1 component dùng chung mọi nơi, không mỗi nơi mỗi kiểu) ---
+// mode:'submit' (GET form, name=q) | 'live' (oninput handler). Cùng style/icon/kích thước.
+BANCA.ui.searchBar = function (cfg) {
+  cfg = cfg || {};
+  var ph = _esc(cfg.placeholder || 'Tìm…');
+  var val = String(cfg.value == null ? '' : cfg.value).replace(/"/g, '&quot;');
+  var name = cfg.name || 'q';
+  var inner = '<span class="bs-ic" aria-hidden="true">🔍</span>' +
+    '<input class="bs-input"' + (cfg.id ? ' id="' + _esc(cfg.id) + '"' : '') +
+    (cfg.mode === 'live' ? '' : ' name="' + _esc(name) + '"') +
+    ' value="' + val + '" placeholder="' + ph + '"' +
+    (cfg.oninput ? ' oninput="' + cfg.oninput + '"' : '') +
+    (cfg.enter ? ' onkeydown="if(event.key===\'Enter\'){' + cfg.enter + '}"' : '') + '>';
+  var box = '<div class="banca-search' + (cfg.block ? ' block' : '') + '">' + inner + '</div>';
+  if (cfg.mode === 'live') return box;
+  var hidden = Object.keys(cfg.hidden || {}).map(function (k) {
+    var v = cfg.hidden[k]; return v ? '<input type="hidden" name="' + _esc(k) + '" value="' + _esc(v) + '">' : '';
+  }).join('');
+  return '<form method="get" class="banca-search-form">' + hidden + box + '</form>';
+};

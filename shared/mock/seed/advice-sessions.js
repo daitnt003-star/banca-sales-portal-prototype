@@ -37,6 +37,61 @@ BANCA.NEED_CATALOG = [
 ];
 BANCA.needLabel = id => (BANCA.NEED_CATALOG.find(n=>n.id===id)||{}).label || id;
 
+// ============================================================
+// §6.2 — BANKING CONTEXT: ngữ cảnh ngân hàng truyền sang (deep link) hoặc seller chọn.
+// Context điều khiển: bộ câu hỏi (qua primaryNeed) · nhu cầu gợi ý · sản phẩm/gói đề xuất
+// · nội dung giải thích · cross-sell · sản phẩm seller được quyền bán (lọc qua readiness).
+// KHÔNG hard-code trong page — advisory chỉ đọc config này.
+// ============================================================
+BANCA.BANKING_CONTEXTS = [
+  { id:'LOAN_AUTO', icon:'🚗', label:'Vay mua ô tô', kind:'LOAN',
+    desc:'Khoản vay có tài sản bảo đảm là xe',
+    primaryNeed:'MOTOR', suggestedNeeds:['MOTOR','LOAN'], crossSell:['ACCIDENT'],
+    explain:'Xe là tài sản bảo đảm cho khoản vay — ngân hàng thường yêu cầu bảo hiểm vật chất xe trong suốt thời gian vay. Gợi ý ưu tiên gói bảo vệ xe, kèm tai nạn cho lái/phụ xe.' },
+  { id:'LOAN_HOME', icon:'🏠', label:'Vay mua nhà', kind:'LOAN',
+    desc:'Khoản vay có tài sản bảo đảm là bất động sản',
+    // Catalog demo CHƯA có sản phẩm bảo hiểm tài sản/nhà → primaryNeed đặt là LOAN
+    // để gợi ý sản phẩm bán được thật (bảo vệ khả năng trả nợ), KHÔNG gợi ý nhầm bảo hiểm xe.
+    primaryNeed:'LOAN', suggestedNeeds:['LOAN','INCOME','HOME'], crossSell:['HEALTH'],
+    explain:'Nhà là tài sản bảo đảm dài hạn. Giai đoạn này ưu tiên bảo vệ khả năng trả nợ khi mất thu nhập/tai nạn — bảo hiểm tài sản (cháy nổ, thiên tai) chưa có trong danh mục sản phẩm demo.' },
+  { id:'LOAN_BUSINESS', icon:'🏭', label:'Vay phục vụ sản xuất kinh doanh', kind:'LOAN',
+    desc:'Khoản vay vốn lưu động / đầu tư SXKD',
+    primaryNeed:'BUSINESS', suggestedNeeds:['BUSINESS','LOAN','ACCIDENT'], crossSell:['HEALTH'],
+    explain:'Rủi ro gián đoạn kinh doanh ảnh hưởng trực tiếp khả năng trả nợ. Ưu tiên bảo hiểm nhóm cho nhân viên và bảo vệ người điều hành chính.' },
+  { id:'PROTECT_HEALTH', icon:'🩺', label:'Bảo vệ sức khỏe cá nhân', kind:'PROTECTION',
+    desc:'Không gắn khoản vay',
+    primaryNeed:'HEALTH', suggestedNeeds:['HEALTH'], crossSell:['ACCIDENT','INCOME'],
+    explain:'Nhu cầu bảo vệ chi phí y tế cho cá nhân. Ưu tiên gói sức khỏe theo mức đồng chi trả và quyền lợi ngoại trú.' },
+  { id:'PROTECT_FAMILY', icon:'👨‍👩‍👧', label:'Bảo vệ gia đình', kind:'PROTECTION',
+    desc:'Nhiều người được bảo hiểm trong một hợp đồng',
+    primaryNeed:'FAMILY_HEALTH', suggestedNeeds:['FAMILY_HEALTH','HEALTH'], crossSell:['ACCIDENT'],
+    explain:'Bảo vệ cho cả gia đình trong một hành trình — mỗi thành viên có kê khai sức khỏe và GCNBH riêng, phí tính theo nhóm tuổi.' },
+  { id:'PROTECT_EMPLOYEE', icon:'🏢', label:'Bảo vệ nhân viên doanh nghiệp', kind:'PROTECTION',
+    desc:'Khách hàng doanh nghiệp',
+    primaryNeed:'BUSINESS', suggestedNeeds:['BUSINESS','ACCIDENT'], crossSell:['HEALTH'],
+    explain:'Phúc lợi bảo hiểm nhóm cho nhân viên. Cần danh sách người được bảo hiểm và quy mô nhóm để tính phí.' },
+  { id:'OTHER', icon:'✳️', label:'Nhu cầu khác', kind:'OTHER',
+    desc:'Chưa xác định — hỏi nhu cầu chung',
+    primaryNeed:null, suggestedNeeds:[], crossSell:[],
+    explain:'Chưa có ngữ cảnh từ ngân hàng — chọn nhu cầu bảo vệ trực tiếp bên dưới.' }
+];
+BANCA.bankingContextById = id => (BANCA.BANKING_CONTEXTS||[]).find(c=>c.id===id) || null;
+
+// Nhu cầu gợi ý theo context, ĐÃ LỌC theo sản phẩm seller được quyền bán (§6.2 gạch đầu dòng cuối).
+BANCA.contextNeedsFor = function(ctxId, me){
+  const c = BANCA.bankingContextById(ctxId); if(!c) return [];
+  return (c.suggestedNeeds||[]).filter(function(n){
+    const grp = BANCA.needToOfferGroup(n);
+    const pid = ((BANCA.ADVICE_OFFERS[grp]||[])[0]||{}).productRef;
+    if(!pid || !BANCA.readinessFor) return true;
+    const rd = BANCA.readinessFor(pid, me);
+    return rd.state !== 'HIDDEN' && rd.state !== 'N/A';   // không gợi ý sản phẩm seller không được bán
+  });
+};
+
+// Phiên bản bộ quy tắc gợi ý — lưu kèm phương án khách chọn (§6.3) để truy vết về sau.
+BANCA.RECOMMENDATION_VERSION = 'REC-2026.07';
+
 BANCA.BUDGET_BANDS = [
   {id:'UNDER_500K',   label:'Dưới 500K/tháng'},
   {id:'500K_1M',      label:'500K – 1 triệu/tháng'},
@@ -49,18 +104,18 @@ BANCA.budgetLabel = id => (BANCA.BUDGET_BANDS.find(b=>b.id===id)||{}).label || i
 // Mỗi option map tới product/package thật, có fit theo need + phí minh họa (band).
 BANCA.ADVICE_OFFERS = {
   HEALTH: [
-    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'BASIC',    packageName:'Basic',    fit:72, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['HEALTH'], gaps:['FAMILY_HEALTH'], why:'Đáp ứng viện phí cơ bản với chi phí thấp nhất.', verify:['Tuổi','Tiền sử bệnh']},
-    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'STANDARD', packageName:'Standard', fit:90, premiumBand:'9–11 triệu/năm', premiumMonthly:'~830K/tháng', meets:['HEALTH','ACCIDENT'], gaps:['FAMILY_HEALTH'], why:'Cân bằng giữa quyền lợi nội trú, ngoại trú và mức phí.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp']},
-    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'PREMIUM',  packageName:'Premium',  fit:84, premiumBand:'16–20 triệu/năm', premiumMonthly:'~1.5 triệu/tháng', meets:['HEALTH','ACCIDENT','FAMILY_HEALTH'], gaps:[], why:'Quyền lợi cao nhất, gồm ngoại trú và nha khoa.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp']}
+    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'BASIC',    packageName:'Basic',    fit:72, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['HEALTH'], gaps:['FAMILY_HEALTH'], why:'Đáp ứng viện phí cơ bản với chi phí thấp nhất.', verify:['Tuổi','Tiền sử bệnh'], issueTime:'Tức thời (STP)'},
+    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'STANDARD', packageName:'Standard', fit:90, premiumBand:'9–11 triệu/năm', premiumMonthly:'~830K/tháng', meets:['HEALTH','ACCIDENT'], gaps:['FAMILY_HEALTH'], why:'Cân bằng giữa quyền lợi nội trú, ngoại trú và mức phí.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp'], issueTime:'Tức thời (STP)'},
+    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'health', productName:'Bảo hiểm sức khỏe', packageRef:'PREMIUM',  packageName:'Premium',  fit:84, premiumBand:'16–20 triệu/năm', premiumMonthly:'~1.5 triệu/tháng', meets:['HEALTH','ACCIDENT','FAMILY_HEALTH'], gaps:[], why:'Quyền lợi cao nhất, gồm ngoại trú và nha khoa.', verify:['Tuổi','Tiền sử bệnh','Nghề nghiệp'], issueTime:'Trong ngày (có thẩm định)'}
   ],
   MOTOR: [
-    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'BASIC',    packageName:'Cơ bản',   fit:70, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['MOTOR'], gaps:[], why:'TNDS + vật chất cơ bản, phí thấp.', verify:['Giá trị xe','Năm SX']},
-    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'STANDARD', packageName:'Tiêu chuẩn', fit:88, premiumBand:'8–10 triệu/năm', premiumMonthly:'~750K/tháng', meets:['MOTOR'], gaps:[], why:'Thêm quyền lợi thủy kích, mất cắp bộ phận.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng']},
-    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'PREMIUM',  packageName:'Nâng cao', fit:82, premiumBand:'11–13 triệu/năm', premiumMonthly:'~1 triệu/tháng', meets:['MOTOR','ACCIDENT'], gaps:[], why:'Bảo vệ toàn diện + PA lái phụ xe, cứu hộ mở rộng.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng']}
+    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'BASIC',    packageName:'Cơ bản',   fit:70, premiumBand:'6–7 triệu/năm',  premiumMonthly:'~550K/tháng', meets:['MOTOR'], gaps:[], why:'TNDS + vật chất cơ bản, phí thấp.', verify:['Giá trị xe','Năm SX'], issueTime:'Tức thời (STP)'},
+    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'STANDARD', packageName:'Tiêu chuẩn', fit:88, premiumBand:'8–10 triệu/năm', premiumMonthly:'~750K/tháng', meets:['MOTOR'], gaps:[], why:'Thêm quyền lợi thủy kích, mất cắp bộ phận.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng'], issueTime:'Tức thời (STP)'},
+    {tier:'PROTECT', badge:'Bảo vệ cao nhất', productRef:'motor', productName:'Bảo hiểm vật chất xe', packageRef:'PREMIUM',  packageName:'Nâng cao', fit:82, premiumBand:'11–13 triệu/năm', premiumMonthly:'~1 triệu/tháng', meets:['MOTOR','ACCIDENT'], gaps:[], why:'Bảo vệ toàn diện + PA lái phụ xe, cứu hộ mở rộng.', verify:['Giá trị xe','Năm SX','Mục đích sử dụng'], issueTime:'Trong ngày (có thẩm định)'}
   ],
   ACCIDENT: [
-    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'BASIC',    packageName:'Basic',    fit:78, premiumBand:'1–2 triệu/năm', premiumMonthly:'~150K/tháng', meets:['ACCIDENT'], gaps:['INCOME'], why:'Trợ cấp tai nạn cơ bản, phí rất thấp.', verify:['Nghề nghiệp']},
-    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'STANDARD', packageName:'Standard', fit:85, premiumBand:'2–3 triệu/năm', premiumMonthly:'~230K/tháng', meets:['ACCIDENT','INCOME'], gaps:[], why:'Bổ sung trợ cấp thu nhập khi nằm viện.', verify:['Nghề nghiệp']}
+    {tier:'SAVE',    badge:'Tiết kiệm nhất',  productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'BASIC',    packageName:'Basic',    fit:78, premiumBand:'1–2 triệu/năm', premiumMonthly:'~150K/tháng', meets:['ACCIDENT'], gaps:['INCOME'], why:'Trợ cấp tai nạn cơ bản, phí rất thấp.', verify:['Nghề nghiệp'], issueTime:'Tức thời (STP)'},
+    {tier:'BALANCE', badge:'Phù hợp nhất',    productRef:'pa', productName:'Bảo hiểm tai nạn cá nhân', packageRef:'STANDARD', packageName:'Standard', fit:85, premiumBand:'2–3 triệu/năm', premiumMonthly:'~230K/tháng', meets:['ACCIDENT','INCOME'], gaps:[], why:'Bổ sung trợ cấp thu nhập khi nằm viện.', verify:['Nghề nghiệp'], issueTime:'Tức thời (STP)'}
   ]
 };
 // Map nhu cầu → nhóm sản phẩm (sửa bug gói sai nhóm so với nhu cầu chính)

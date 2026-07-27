@@ -43,7 +43,11 @@ if(isNew || !id){
   id = BANCA.newAdviceId();
   state = {id, version:1, mode:'ANONYMOUS', status:'IN_PROGRESS', customerRef:null, customerName:null,
            needProfile:[], primaryNeed:null, budgetBand:null, desiredTerm:'1 năm', priorities:{},
-           compareSet:[], selectedOffer:null, upsell:[], createdBy:me, startedAt:Date.now(), updatedAt:BANCA.nowLabel?BANCA.nowLabel():'2026-07-21 12:00'};
+           compareSet:[], selectedOffer:null, upsell:[], createdBy:me, startedAt:Date.now(), updatedAt:BANCA.nowLabel?BANCA.nowLabel():'2026-07-21 12:00',
+           // §6.2 — ngữ cảnh ngân hàng: nhận từ deep link (?ctx=) hoặc seller chọn ở bước Nhu cầu.
+           bankingContext:null};
+  const _ctx = qs.get('ctx');
+  if(_ctx && BANCA.bankingContextById(_ctx)) applyBankingContext(state, _ctx, me);
   persist(state);
   history.replaceState(null,'',`?id=${id}`);
 } else {
@@ -59,16 +63,44 @@ let step = qs.get('step') || (state.primaryNeed?'recommend':'needs');
 let saveMsg = 'Đã lưu lúc '+state.updatedAt;
 const locked = state.locked===true || ['NOT_INTERESTED','CONVERTED_TO_SALE'].includes(state.status);
 
+// §6.2 — áp ngữ cảnh ngân hàng: set nhu cầu gợi ý + nhu cầu chính (đã lọc theo quyền bán).
+// Dùng CHUNG cho deep link từ ngân hàng và cho seller chọn tay — không tách 2 nhánh.
+function applyBankingContext(st, ctxId, who){
+  const c = BANCA.bankingContextById(ctxId); if(!c) return;
+  st.bankingContext = ctxId;
+  const needs = BANCA.contextNeedsFor(ctxId, who);
+  if(needs.length){
+    st.needProfile = needs.map(n=>({needId:n, label:BANCA.needLabel(n), weight:'HIGH'}));
+    st.primaryNeed = needs.indexOf(c.primaryNeed)>=0 ? c.primaryNeed : needs[0];
+  }
+}
 // expose state mutators to window (onclick handlers)
 function save(){ state.updatedAt = (new Date()).toTimeString().slice(0,5); persist(state); const el=document.getElementById('adv-save'); if(el){ el.textContent='Đang lưu…'; setTimeout(()=>{ el.textContent='Đã lưu lúc '+state.updatedAt; },250); } }
 window.advGo = function(s){ const u=new URL(location.href); u.searchParams.set('step',s); u.searchParams.set('id',state.id); location.href=u.toString(); };
 window.advToggleNeed = function(nid){ const i=state.needProfile.findIndex(n=>n.needId===nid); if(i>=0) state.needProfile.splice(i,1); else state.needProfile.push({needId:nid,label:BANCA.needLabel(nid),weight:'MEDIUM'}); if(!state.primaryNeed && state.needProfile[0]) state.primaryNeed=state.needProfile[0].needId; if(state.primaryNeed && !state.needProfile.some(n=>n.needId===state.primaryNeed)) state.primaryNeed=(state.needProfile[0]||{}).needId||null; save(); renderStep(); };
+window.advSetContext = function(ctxId){
+  if(state.bankingContext===ctxId){ state.bankingContext=null; }
+  else { applyBankingContext(state, ctxId, me); }
+  save(); renderStep();
+};
 window.advSetBudget = function(b){ state.budgetBand=b; save(); renderStep(); };
 window.advSetMode = function(m){ state.mode=m; if(m==='ANONYMOUS'){state.customerRef=null;state.customerName=null;} save(); renderStep(); };
 window.advSetPrimary = function(nid){ state.primaryNeed=nid; save(); renderStep(); };
 window.advSetWeight = function(nid,w){ state.priorities[nid]=w; save(); renderStep(); };
 window.advToggleCompare = function(pkg){ const i=state.compareSet.indexOf(pkg); if(i>=0) state.compareSet.splice(i,1); else { if(state.compareSet.length>=3){ advToast('So sánh tối đa 3 gói trong bản demo.'); return; } state.compareSet.push(pkg); } if(state.status==='RECOMMENDED') state.status='COMPARING'; save(); renderStep(); };
-window.advSelectOffer = function(pkg){ const offers=BANCA.adviceOffersFor(state.primaryNeed); const o=offers.find(x=>x.packageRef===pkg); if(o){ state.selectedOffer={productRef:o.productRef, productName:o.productName, packageRef:o.packageRef, packageName:o.packageName, premiumBand:o.premiumBand}; } save(); renderStep(); };
+window.advSelectOffer = function(pkg){
+  const offers=BANCA.adviceOffersFor(state.primaryNeed); const o=offers.find(x=>x.packageRef===pkg);
+  if(o){
+    state.selectedOffer={productRef:o.productRef, productName:o.productName, packageRef:o.packageRef, packageName:o.packageName, premiumBand:o.premiumBand, fit:o.fit, issueTime:o.issueTime};
+    // §6.3 — lưu đúng bộ khoá spec để Quote Workspace KHÔNG bắt chọn lại sản phẩm/gói.
+    state.selectedProductId      = o.productRef;
+    state.selectedPackageId      = o.packageRef;
+    state.recommendationVersion  = BANCA.RECOMMENDATION_VERSION;
+    state.estimatedPremium       = o.premiumBand;
+    state.adviceOutcome          = 'OFFER_SELECTED';
+  }
+  save(); renderStep();
+};
 window.advSaveSession = function(){ state.status='SAVED'; save(); syncSeed(); advToast('Đã lưu bản tư vấn '+state.id+'. Không tạo yêu cầu hay báo giá.'); setTimeout(()=>{ location.href=r+'modules/quick-advisory/index.html?tab=SAVED'; },800); };
 window.advFollowUp = function(){
   advModal(`<div style="font-size:14px;margin-bottom:8px;">Hẹn theo dõi lại phiên <b>${state.id}</b></div>
@@ -242,9 +274,21 @@ function convertReady(){
   return {ok:true};
 }
 // ---------- RENDER ----------
+// §15.4 — giữ ngữ cảnh khi chuyển bước: vào bằng deep link cũng phải thấy
+// ngân hàng đã truyền ngữ cảnh nào, vì nó quyết định sản phẩm/gói đang được gợi ý.
+function contextBar(){
+  const c = state.bankingContext ? BANCA.bankingContextById(state.bankingContext) : null;
+  if(!c) return '';
+  return `<div class="card" style="padding:8px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;">
+    <span style="color:var(--ink-500);">Ngữ cảnh ngân hàng:</span>
+    <b>${c.icon} ${c.label}</b>
+    ${BANCA.ui.dataSourceBadge('BANK')}
+    <a href="javascript:advGo('needs')" style="color:var(--brand-600);margin-left:auto;">Đổi ngữ cảnh</a>
+  </div>`;
+}
 function stepper(){
   const idx = STEPS.findIndex(s=>s[0]===step);
-  return `<div class="adv-steps">${STEPS.map((s,i)=>{
+  return contextBar() + `<div class="adv-steps">${STEPS.map((s,i)=>{
     const cls = i<idx?'done':i===idx?'active':'';
     return `<a href="javascript:advGo('${s[0]}')" style="text-decoration:none;" class="adv-step ${cls}"><span class="n">${i<idx?'✓':i+1}</span>${s[2]||''} ${s[1]}</a>`;
   }).join('')}</div>`;
@@ -377,9 +421,24 @@ window.advExport = function(kind){ advModal(`<div style="text-align:center;paddi
 function bodyNeeds(){
   const dyn = state.dynAnswers||{};
   const dynQ = state.primaryNeed ? BANCA.needQuestionsFor(state.primaryNeed) : [];
-  return `<div class="card" style="padding:18px;">
+  // §6.2 — Ngữ cảnh ngân hàng: ngân hàng truyền sang (?ctx=) hoặc seller chọn.
+  const ctxCur = state.bankingContext ? BANCA.bankingContextById(state.bankingContext) : null;
+  const ctxBlock = `<div class="card" style="padding:18px;margin-bottom:12px;">
+    <h3 style="margin:0 0 4px;font-size:15px;">Ngữ cảnh từ ngân hàng</h3>
+    <p style="margin:0 0 12px;color:var(--ink-500);font-size:13px;">Ngữ cảnh quyết định bộ câu hỏi, sản phẩm và gói được đề xuất. Chưa lấy thông tin định danh khách hàng ở bước này.</p>
+    <div class="need-grid">${BANCA.BANKING_CONTEXTS.map(c=>{
+      const on = state.bankingContext===c.id;
+      return `<div class="need-card ${on?'sel':''}" onclick="advSetContext('${c.id}')">
+        <div class="ic">${c.icon}</div>
+        <div><div style="font-weight:600;font-size:13px;">${c.label}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${c.desc}</div></div>
+      </div>`;}).join('')}</div>
+    ${ctxCur?`<div class="alert2 info" style="margin:12px 0 0;">${ctxCur.explain}</div>`:''}
+    ${ctxCur&&ctxCur.crossSell&&ctxCur.crossSell.length?`<div style="font-size:12px;color:var(--ink-500);margin-top:8px;">Có thể bán kèm: ${ctxCur.crossSell.map(n=>`<span class="chip">${BANCA.needLabel(n)}</span>`).join(' ')}</div>`:''}
+  </div>`;
+
+  return ctxBlock + `<div class="card" style="padding:18px;">
     <h3 style="margin:0 0 4px;font-size:16px;">Điều anh/chị quan tâm nhất hôm nay là gì?</h3>
-    <p style="margin:0 0 14px;color:var(--ink-500);font-size:13px;">Chọn theo mục tiêu bảo vệ — có thể chọn nhiều. Chưa cần định danh khách hàng (chọn nguồn khách khi chuyển sang bán hàng).</p>
+    <p style="margin:0 0 14px;color:var(--ink-500);font-size:13px;">${ctxCur&&ctxCur.id!=='OTHER'?'Đã gợi ý sẵn theo ngữ cảnh — có thể điều chỉnh.':'Chọn theo mục tiêu bảo vệ — có thể chọn nhiều.'} Chưa cần định danh khách hàng (chọn nguồn khách khi chuyển sang bán hàng).</p>
     <div class="need-grid">${BANCA.NEED_CATALOG.map(n=>{
       const sel = state.needProfile.some(x=>x.needId===n.id);
       return `<div class="need-card ${sel?'sel':''}" onclick="advToggleNeed('${n.id}')">
@@ -475,6 +534,7 @@ function bodyRecommend(){
       </div>
       <div style="font-size:11px;color:var(--ink-300);">Tài liệu dự kiến: ${docHintOf(o.productRef)}</div>
       <div style="font-size:11px;color:var(--ink-300);">Cần xác minh khi bán: ${o.verify.join(', ')}</div>
+      <div style="font-size:11px;color:var(--ink-300);">Thời gian phát hành dự kiến: <b>${o.issueTime||'—'}</b></div>
       ${!eligible?`<div style="border:1px solid var(--red-600);background:#fdecec;border-radius:8px;padding:8px;font-size:11px;"><div>Phù hợp nhu cầu: <b style="color:var(--teal-600);">CÓ</b> · Được phép bán: <b style="color:var(--red-600);">KHÔNG</b></div><div style="color:var(--red-600);margin-top:2px;">${rd.reason||'Nhân viên tư vấn chưa đủ điều kiện bán sản phẩm này.'}</div></div>`:''}
       <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
         <button class="btn btn-sm ${inCompare?'btn-primary':'btn-secondary'}" onclick="advToggleCompare('${o.packageRef}')">${inCompare?'✓ Đang so sánh':'Thêm vào so sánh'}</button>

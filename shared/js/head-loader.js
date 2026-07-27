@@ -48,7 +48,7 @@
   'shared/components/foundation-components.js',
   'shared/components/sales-context-offer.js'
  ];
- const V = 'v=20260727d'; // cache-bust: tăng khi sửa shared files
+ const V = 'v=20260727e'; // cache-bust: tăng khi sửa shared files
  files.forEach(f => document.write('<script src="'+r+f+'?'+V+'"><\/script>'));
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/tokens.css?'+V+'">');
  document.write('<link rel="stylesheet" href="'+r+'shared/styles/components.css?'+V+'">');

@@ -7,7 +7,7 @@ window.BANCA = window.BANCA || {};
  * Referrer/Advisor/SellingProducer/CaseOwner lưu ĐỘC LẬP, không ghi đè khi chuyển giao.
  * ==========================================================================*/
 BANCA.PARTICIPATION_ROLE = ['REFERRER','ADVISOR','SELLING_PRODUCER','CASE_OWNER','SERVICING_SELLER','ASSIGNMENT_ACTOR','SUPPORTER'];
-BANCA.HANDOFF_TYPE = { SALES_HANDOFF:'Tạo yêu cầu bảo hiểm từ tư vấn này', CASE_REASSIGNMENT:'Chuyển phụ trách', DELEGATION:'Công việc hỗ trợ' };
+BANCA.HANDOFF_TYPE = { SALES_HANDOFF:'Tạo bản chào từ tư vấn này', CASE_REASSIGNMENT:'Chuyển phụ trách', DELEGATION:'Công việc hỗ trợ' };
 BANCA.HANDOFF_STATES = ['DRAFT','PENDING_ASSIGNMENT','ASSIGNED','PENDING_ACCEPTANCE','ACCEPTED','NEED_MORE_INFORMATION','DECLINED','EXPIRED','CANCELLED','UNASSIGNED_EXCEPTION'];
 BANCA.ROUTING_MODE = ['DIRECT_SELLER','TEAM_QUEUE','AUTO_ROUTE'];
 BANCA.DECLINE_REASONS = ['Không đúng portfolio','Không đủ readiness','Sai sản phẩm','Sai chi nhánh/team','Quá tải','Trùng cơ hội','Không liên hệ được khách','Thiếu thông tin'];

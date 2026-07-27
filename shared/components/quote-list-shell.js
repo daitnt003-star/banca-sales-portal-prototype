@@ -83,7 +83,7 @@ BANCA.ui = BANCA.ui || {};
     var canSell = cfg.canSell !== false;
     // 1. Title + primary CTA
     var top = '<div class="qls-top"><h1 class="qls-title">Bản chào</h1>' +
-      (canSell ? '<button class="btn btn-primary" onclick="openStartSale()">+ Tạo yêu cầu bảo hiểm</button>' : '') + '</div>';
+      (canSell ? '<button class="btn btn-primary" onclick="openStartSale()">+ ' + BANCA.t('createOffer') + '</button>' : '') + '</div>';
     // 2. Lifecycle tabs (count)
     var tabs = '<div class="offer-group-bar">' + (BANCA.QUOTE_LIFECYCLES || []).map(function (lc) {
       var on = lc.id === lifecycle;

@@ -6,8 +6,12 @@ const ROOT = path.resolve(__dirname, '..');
 const SCAN_ROOTS = ['modules', 'shared'];
 
 const forbidden = [
-  ['Bắt đầu bán bảo hiểm', 'Tạo yêu cầu bảo hiểm'],
-  ['Bắt đầu bán hàng', 'Tạo yêu cầu bảo hiểm'],
+  // §8.1 — hành động tạo gọi theo object nghiệp vụ "Bản chào".
+  ['Tạo yêu cầu bảo hiểm từ tư vấn này', 'Tạo bản chào từ tư vấn này'],
+  ['Tạo yêu cầu bảo hiểm', 'Tạo bản chào'],
+  ['Tạo yêu cầu mới', 'Tạo bản chào'],
+  ['Bắt đầu bán bảo hiểm', 'Tạo bản chào'],
+  ['Bắt đầu bán hàng', 'Tạo bản chào'],
   ['Yêu cầu chưa gửi', 'Yêu cầu bảo hiểm chưa nộp'],
   ['Yêu cầu đã gửi', 'Yêu cầu bảo hiểm đã nộp'],
   ['Hồ sơ chưa gửi', 'Yêu cầu bảo hiểm chưa nộp'],
@@ -21,12 +25,12 @@ const forbidden = [
   ['Approved STP', 'Đã chấp thuận tự động'],
   ['UW pending', 'Chờ thẩm định'],
   ['Policy issued', 'Hợp đồng đã phát hành'],
-  ['Tạo hồ sơ mới', 'Tạo yêu cầu bảo hiểm'],
-  ['Lập yêu cầu mới', 'Tạo yêu cầu bảo hiểm'],
+  ['Tạo hồ sơ mới', 'Tạo bản chào'],
+  ['Lập yêu cầu mới', 'Tạo bản chào'],
   ['Tiếp tục hồ sơ', 'Tiếp tục yêu cầu'],
   ['Xem hồ sơ', 'Xem yêu cầu'],
   ['Mở hồ sơ', 'Mở yêu cầu'],
-  ['Chuyển sang bán hàng', 'Tạo yêu cầu bảo hiểm từ tư vấn này'],
+  ['Chuyển sang bán hàng', 'Tạo bản chào từ tư vấn này'],
   ['Đối tượng bán', 'Đối tượng bảo hiểm'],
   ['Người bán', 'Nhân viên phụ trách'],
   ['Application', 'Yêu cầu bảo hiểm'],

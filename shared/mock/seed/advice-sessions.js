@@ -1,7 +1,7 @@
 // ============================================================
 // Quick Advisory (Tư vấn nhanh) — seed & config
 // Luồng ĐỘC LẬP với bán hàng. KHÔNG tạo Sales Session/Quote/HSYCBH
-// khi tư vấn. Chỉ nối sang bán qua hành động "Tạo yêu cầu bảo hiểm từ tư vấn này".
+// khi tư vấn. Chỉ nối sang bán qua hành động "Tạo bản chào từ tư vấn này".
 // Phí ở đây LUÔN là minh họa (illustrative band), không phải phí chính thức.
 // ============================================================
 window.BANCA = window.BANCA || {};

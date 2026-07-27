@@ -51,10 +51,10 @@ function adviceActions(a){
     return `<a class="btn btn-primary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a>${canDelete?` <button class="btn btn-secondary btn-sm" style="color:var(--red-600);" onclick="advDeleteDraft('${a.id}')">Xoá nháp</button>`:''}`;
   }
   if(s==='SAVED'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo yêu cầu bảo hiểm từ tư vấn này</a>`:''}`;
+    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo bản chào từ tư vấn này</a>`:''}`;
   }
   if(s==='FOLLOW_UP_LATER'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo yêu cầu bảo hiểm từ tư vấn này</a>`:''}`;
+    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo bản chào từ tư vấn này</a>`:''}`;
   }
   if(s==='CONVERTED_TO_SALE'){
     return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.convertedCaseId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}">Mở yêu cầu</a>`:''}`;

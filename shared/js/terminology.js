@@ -20,8 +20,8 @@ BANCA.T = {
   unsubmittedRequestTitle: 'Yêu cầu bảo hiểm chưa nộp',
   submittedRequestTitle: 'Yêu cầu bảo hiểm đã nộp',
   requestCode: 'Mã yêu cầu',
-  createInsuranceRequest: 'Tạo yêu cầu bảo hiểm',
-  createRequestFromAdvice: 'Tạo yêu cầu bảo hiểm từ tư vấn này',
+  createInsuranceRequest: 'Tạo bản chào',            // alias cũ — giữ để code cũ không vỡ
+  createRequestFromAdvice: 'Tạo bản chào từ tư vấn này',
   continueLatestRequest: 'Tiếp tục yêu cầu gần nhất',
   continueRequest: 'Tiếp tục yêu cầu',
   viewRequest: 'Xem yêu cầu',

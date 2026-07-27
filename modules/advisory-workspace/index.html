@@ -147,12 +147,12 @@ window.advConvertTab = function(tab, q){
 window.advAttachBank = function(custId){ const c=BANCA.customerById(custId); state.customerRef=custId; state.customerName=c?c.name:null; state.mode='BANK_CUSTOMER'; save(); advConvertConfirmModal(); };
 window.advAttachLead = function(leadId){ const x=(BANCA.referrals||[]).find(r=>r.id===leadId)||{}; state.leadId=leadId; state.customerRef=x.customerId||null; state.customerName=x.customerName||null; state.campaign=x.source||null; state.mode='REFERRAL'; save(); advConvertConfirmModal(); };
 window.advAttachProspect = function(){ const nm=(document.getElementById('adv-prospect-name').value||'').trim(); if(!nm){ advToast('Nhập tên khách.'); return; } state.customerName=nm; state.mode='NEW_PROSPECT'; save(); advConvertConfirmModal(); };
-// ===== Tạo yêu cầu bảo hiểm từ tư vấn này — customer-first, tạo Handoff =====
+// ===== Tạo bản chào từ tư vấn này — customer-first, tạo Handoff =====
 function advConvertConfirmModal(){
   const o=state.selectedOffer||{};
   const cust=state.customerRef?BANCA.customerById(state.customerRef):null;
   const meName=(BANCA.personas[me]||{}).name||me;
-  advModal(`<div style="font-size:14px;font-weight:700;margin-bottom:4px;">Tạo yêu cầu bảo hiểm từ tư vấn này</div>
+  advModal(`<div style="font-size:14px;font-weight:700;margin-bottom:4px;">Tạo bản chào từ tư vấn này</div>
    <div style="font-size:11px;color:var(--ink-300);margin-bottom:10px;">Xác định khách hàng → xác nhận tư vấn → chọn phân công → bàn giao.</div>
    <div class="label" style="margin-bottom:4px;">① Khách hàng (đã xác định)</div>
    <div class="card" style="padding:10px;font-size:12px;margin-bottom:10px;"><b>${state.customerName||'—'}</b>${cust&&cust.cif?' · CIF '+cust.cif:(state.leadId?' · Lead '+state.leadId:' · Prospect')} · Consent: <span class="badge badge-ready" style="font-size:9px;">Hợp lệ</span></div>
@@ -293,7 +293,7 @@ function sidebar(){
       ${[['concern','Mối quan tâm'],['budget','Ngân sách/rào cản phí'],['barrier','Rào cản'],['followup','Hẹn theo dõi'],['free','Ghi chú tự do']].map(([k,l])=>`<div style="margin-bottom:8px;"><div style="font-size:11px;color:var(--ink-500);margin-bottom:2px;">${l}</div><input id="an-${k}" value="${(an[k]||'').replace(/"/g,'&quot;')}" onchange="advSetAdvisorField('${k}',this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;"></div>`).join('')}
     </div>
     <div class="card" style="padding:12px 14px;font-size:12px;color:var(--ink-500);background:var(--amber-100);border-color:transparent;">
-      ⚠️ Phí hiển thị là <b>minh họa</b>. Chỉ khi bấm <b>Tạo yêu cầu bảo hiểm từ tư vấn này</b> mới tạo phiên bán & tính phí chính thức.
+      ⚠️ Phí hiển thị là <b>minh họa</b>. Chỉ khi bấm <b>Tạo bản chào từ tư vấn này</b> mới tạo phiên bán & tính phí chính thức.
     </div>
   </aside>`;
 }
@@ -307,8 +307,8 @@ function footer(){
     if(locked){ primary = `<span class="chip" style="background:#eef0f4;color:var(--ink-500);">🔒 Phiên đã khoá (${state.status==='CONVERTED_TO_SALE'?'đã chuyển bán':'chưa quan tâm'})</span>`; }
     else { const chk = convertReady();
     primary = chk.ok
-      ? `<button class="btn btn-primary" onclick="advConvert()">Tạo yêu cầu bảo hiểm từ tư vấn này →</button>`
-      : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;"><span style="font-size:12px;color:var(--amber-600);max-width:340px;text-align:right;">⚠️ ${chk.reason}</span>${(!state.selectedOffer)?`<button class="btn btn-secondary" onclick="advGo('recommend')">← Chọn gói</button>`:''}<button class="btn btn-primary" disabled style="opacity:.45;cursor:not-allowed;" title="${chk.reason}">Tạo yêu cầu bảo hiểm từ tư vấn này →</button></div>`; }
+      ? `<button class="btn btn-primary" onclick="advConvert()">Tạo bản chào từ tư vấn này →</button>`
+      : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;"><span style="font-size:12px;color:var(--amber-600);max-width:340px;text-align:right;">⚠️ ${chk.reason}</span>${(!state.selectedOffer)?`<button class="btn btn-secondary" onclick="advGo('recommend')">← Chọn gói</button>`:''}<button class="btn btn-primary" disabled style="opacity:.45;cursor:not-allowed;" title="${chk.reason}">Tạo bản chào từ tư vấn này →</button></div>`; }
   } else if(next){
     const disabled = (step==='needs' && !state.primaryNeed);
     primary = `${disabled?'<span style="font-size:11px;color:var(--amber-600);">Chọn ít nhất 1 nhu cầu để tiếp tục</span> ':''}<button class="btn btn-primary" ${disabled?'disabled style="opacity:.5;"':''} onclick="advGo('${next}')">Tiếp tục →</button>`;
@@ -545,7 +545,7 @@ function bodyResult(){
       <button class="btn btn-secondary" onclick="advFollowUp()">Hẹn tư vấn sau</button>
       <button class="btn btn-secondary" onclick="advNotInterestedConfirm()" style="color:var(--red-600);">Ghi nhận chưa quan tâm</button>
     </div>`}
-    <div style="margin-top:8px;font-size:11px;color:var(--ink-300);">Nút <b>Tạo yêu cầu bảo hiểm từ tư vấn này</b> ở thanh dưới. ${!chk.ok?'<span style="color:var(--amber-600);">'+chk.reason+'</span>':''}</div>
+    <div style="margin-top:8px;font-size:11px;color:var(--ink-300);">Nút <b>Tạo bản chào từ tư vấn này</b> ở thanh dưới. ${!chk.ok?'<span style="color:var(--amber-600);">'+chk.reason+'</span>':''}</div>
   </div>`;
 }
 

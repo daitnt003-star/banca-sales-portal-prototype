@@ -91,7 +91,7 @@ const kpiHtml=`<div class="kpi-strip light">
 function handoffInbox(){
   const list = BANCA.handoffsForSeller ? BANCA.handoffsForSeller(me) : [];
   if(!list.length) return `<div class="section-title"><h2>Bàn giao mới</h2></div><div class="card" style="padding:12px 14px;font-size:12px;color:var(--ink-500);">Không có bàn giao mới.</div>`;
-  const badge = t => t==='SALES_HANDOFF'?'<span class="badge badge-ready" style="font-size:11px;">Tạo yêu cầu bảo hiểm từ tư vấn này</span>':t==='CASE_REASSIGNMENT'?'<span class="badge badge-conditional" style="font-size:11px;">Chuyển phụ trách</span>':'<span class="badge badge-version" style="font-size:11px;">Công việc hỗ trợ</span>';
+  const badge = t => t==='SALES_HANDOFF'?'<span class="badge badge-ready" style="font-size:11px;">Tạo bản chào từ tư vấn này</span>':t==='CASE_REASSIGNMENT'?'<span class="badge badge-conditional" style="font-size:11px;">Chuyển phụ trách</span>':'<span class="badge badge-version" style="font-size:11px;">Công việc hỗ trợ</span>';
   const cta = t => t==='SALES_HANDOFF'?'Tiếp nhận & bán hàng':t==='CASE_REASSIGNMENT'?'Tiếp nhận & xử lý':'Bắt đầu công việc';
   const srcBadge = h => `<span class="badge badge-version" style="font-size:9px;" title="${h.sourceSystem||''}">${h.source==='BANK_CRM'?'Bank CRM':h.source==='REFERRAL'?'Lead/Referral':'Portal'}</span>`;
   const card = h => `<div class="card" style="padding:14px 16px;margin-bottom:10px;border-left:4px solid ${h.type==='SALES_HANDOFF'?'var(--teal-600)':h.type==='CASE_REASSIGNMENT'?'var(--amber-600)':'var(--brand-600)'};">
@@ -209,7 +209,7 @@ ${actionQueueBlock()}
 ${handoffInbox()}
 
 <div class="section-title"><h2>Yêu cầu bảo hiểm chưa nộp gần đây</h2><a href="${r}modules/unsubmitted-applications/index.html" style="font-size:12px;color:var(--brand-600);">Xem tất cả (${drafts.length}) →</a></div>
-${drafts.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Sản phẩm</th><th>Bước hiện tại</th><th>Hoàn thành</th><th>Cảnh báo</th><th>Cập nhật</th><th></th></tr></thead><tbody>${draftRows}</tbody></table></div>`:`<div class="card"><div class="empty-state">Chưa có yêu cầu nháp. Bấm "Tạo yêu cầu bảo hiểm" để tạo yêu cầu đầu tiên.</div></div>`}
+${drafts.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Mã yêu cầu</th><th>Khách hàng</th><th>Sản phẩm</th><th>Bước hiện tại</th><th>Hoàn thành</th><th>Cảnh báo</th><th>Cập nhật</th><th></th></tr></thead><tbody>${draftRows}</tbody></table></div>`:`<div class="card"><div class="empty-state">Chưa có yêu cầu nháp. Bấm "Tạo bản chào" để tạo yêu cầu đầu tiên.</div></div>`}
 
 <div class="section-title"><h2>Trạng thái xử lý yêu cầu đã nộp</h2><span class="subtitle">Click để xem danh sách theo trạng thái</span></div>
 ${cardHtml}

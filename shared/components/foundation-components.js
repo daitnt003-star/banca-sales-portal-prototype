@@ -91,3 +91,50 @@ BANCA.ui.channelSwitcher = function () {
   }).join('');
   return '<label class="channel-switcher">Channel: <select onchange="BANCA.setChannel(this.value)">' + opts + '</select></label>';
 };
+
+// --- Phase 2 hooks: data-access stage resolver + consent action (§4.2) ---
+// Stage của 1 application: ưu tiên field đã lưu, fallback theo channel profile.
+BANCA.appDataAccessStage = function (app) {
+  app = app || {};
+  if (app.dataAccessStage) return app.dataAccessStage;
+  // Anonymous gate là OPT-IN: chỉ áp cho phiên bán mới đánh dấu anonymousEntry
+  // (Banca integrated/standalone). Seed cũ / agent → coi như đã định danh.
+  if (app.anonymousEntry) {
+    var prof = BANCA.channelProfile ? BANCA.channelProfile() : null;
+    return (prof && prof.initialDataAccessStage) || 'ANONYMOUS_CONTEXT';
+  }
+  return 'IDENTIFIED_CONTEXT';
+};
+BANCA.appIsAnonymous = function (app) { return !BANCA.dataAccess.canShowPII(BANCA.appDataAccessStage(app)); };
+
+// Khách đồng ý chia sẻ dữ liệu → fetch PII → IDENTIFIED_CONTEXT → persist → reload.
+BANCA.grantConsent = function (appId) {
+  var apps = (BANCA.applications || []);
+  var app = apps.find(function (a) { return a.id === appId; }) || {};
+  var ref = app.externalCustomerRef || app.customerId || (app.sourceReference && app.sourceReference.externalCustomerId) || appId;
+  var pii = BANCA.fetchCustomerPII(ref);
+  var patch = {
+    dataAccessStage: 'IDENTIFIED_CONTEXT',
+    consent: { version: 'CONSENT_BANCA_v1', grantedAt: new Date().toISOString(), channel: BANCA.channel() },
+    piiFields: pii.fields,
+    customerName: (pii.fields.fullName && pii.fields.fullName.value) || app.customerName || null
+  };
+  if (BANCA.patchApp) BANCA.patchApp(appId, patch);
+  if (typeof location !== 'undefined') location.reload();
+};
+
+// Banner consent dùng chung (anonymous context + CTA đồng ý). Chỉ hiện khi anonymous.
+BANCA.ui.consentGate = function (app) {
+  if (!BANCA.appIsAnonymous(app)) return '';
+  var ctx = {
+    customerRef: app.externalCustomerRef || app.customerId || app.id,
+    dataAccessStage: 'ANONYMOUS_CONTEXT',
+    ageBand: app.ageBand, incomeBand: app.incomeBand,
+    loanType: app.loanType || (app.adviceNeed ? null : null),
+    loanAmount: app.loanAmount, insuranceNeed: app.insuranceNeed || app.adviceNeed
+  };
+  return '<div class="card consent-gate" style="margin-bottom:14px;border-left:4px solid var(--amber-600);">' +
+    BANCA.ui.customerContextCard(ctx) +
+    '<button class="btn btn-primary" style="margin-top:12px;" onclick="BANCA.grantConsent(\'' + _esc(app.id) + '\')">Khách đồng ý chia sẻ dữ liệu → lấy thông tin</button>' +
+    '</div>';
+};

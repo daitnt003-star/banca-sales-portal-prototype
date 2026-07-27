@@ -68,6 +68,9 @@ if(isNew){
    mortgage: rp?rp.mortgage:null,
    renewalPolicyRef: ctx.renewalPolicyRef||null, renewPrevPremium: rp?rp.prevPremium:null,
    quote:null, isNewDemo:true,
+   // §4.2 — phiên bán mới Banca (không phải từ advice/tái tục) bắt đầu ẩn danh, PII lấy sau consent.
+   anonymousEntry: (!ctx.sourceAdviceId && !ctx.renewalPolicyRef && ['BANK_CUSTOMER','HANDOVER'].includes(ctx.mode||'BANK_CUSTOMER') && (BANCA.channel?BANCA.channel():'BANCA_INTEGRATED')!=='AGENT_BROKER'),
+   externalCustomerRef: ctx.customerId||(ctx.sourceReference&&ctx.sourceReference.externalCustomerId)||null,
    sourceAdviceId:ctx.sourceAdviceId||null, sourceAdviceVersion:ctx.sourceAdviceVersion,
    adviceNeed:ctx.adviceNeed, adviceBudget:ctx.adviceBudget, adviceNote:ctx.adviceNote, adviceSessionId:ctx.adviceSessionId, leadId:ctx.leadId, campaign:ctx.campaign, leadNeed:ctx.leadNeed };
  if(ctx.sourceAdviceId && !sourceAdvice) sourceAdvice=(BANCA.adviceById&&BANCA.adviceById(ctx.sourceAdviceId))||null;
@@ -1279,7 +1282,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
    <div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:22px;font-weight:700;color:var(--ink-900);line-height:1.15;">${app.id}</span><span class="badge badge-draft">Chưa nộp</span>${warnBadges(app.warnings)}${app.sourceAdviceId?`<a href="${r}modules/advisory-workspace/index.html?id=${app.sourceAdviceId}&step=result" class="chip" style="text-decoration:none;background:var(--purple-100);color:var(--purple-600);">💡 Từ tư vấn ${app.sourceAdviceId}</a>`:''}</div>
-    <div style="font-size:13.5px;color:var(--ink-500);margin-top:3px;">${cust?cust.name:(app.customerName||'—')} · ${app.productName}${app.package?' · '+app.package:''} · Nguồn ${app.source==='ADVICE'?'Tư vấn nhanh':BANCA.label('source',app.source)}</div>
+    <div style="font-size:13.5px;color:var(--ink-500);margin-top:3px;">${BANCA.appIsAnonymous(app)?('🔒 '+(app.externalCustomerRef||app.customerId||app.id)+' · <i>định danh chưa chia sẻ</i>'):(cust?cust.name:(app.customerName||'—'))} · ${app.productName}${app.package?' · '+app.package:''} · Nguồn ${app.source==='ADVICE'?'Tư vấn nhanh':BANCA.label('source',app.source)}</div>
    </div>
    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-left:auto;">
     <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Phí tạm tính</div><b style="font-size:22px;color:var(--brand-600);display:block;margin-top:1px;">${app.quote?BANCA.vnd(app.quote.adjustedPremium||app.quote.premium):'—'}</b></div>
@@ -1307,7 +1310,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
     Chỉ cần <b>xác nhận phần thay đổi</b> rồi <b>tính lại phí (re-rate)</b> — không nhập lại toàn bộ thông tin.
    </div>
   </div>` : '';
- shell('Yêu cầu bảo hiểm chưa nộp','Lập yêu cầu yêu cầu bảo hiểm', hdr + adviceRefBanner + renewalBanner + stepper + stepBody + `
+ const consentGate = (BANCA.ui&&BANCA.ui.consentGate)?BANCA.ui.consentGate(app):'';
+ shell('Yêu cầu bảo hiểm chưa nộp','Lập yêu cầu yêu cầu bảo hiểm', hdr + consentGate + adviceRefBanner + renewalBanner + stepper + stepBody + `
   <div class="ux-bottom-actions">
    ${(()=>{ // P0-7: điều hướng bỏ qua bước auto
     const visible = steps.filter(s=>!AUTO_STAGES.includes(s.id));

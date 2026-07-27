@@ -111,6 +111,24 @@ BANCA.sellersInScope = function(id){
 
 // Scope tabs khả dụng của user (['SELF','TEAM','BRANCH']).
 BANCA.availableScopes = function(id){ return BANCA.resolveManagerProfile(id).availableScopes || ['SELF']; };
+
+// ============================================================
+// NGUỒN CHUẨN DUY NHẤT về quyền quản lý đội nhóm (quyết định 2026-07-27).
+// Lấy theo KHẢ NĂNG khai báo trong hồ sơ tài khoản, KHÔNG theo cờ isManager rời
+// trong danh sách nhân sự — trước đây 2 nguồn lệch nhau khiến tài khoản vừa bán
+// vừa quản lý (RM-01) không nhìn thấy mục "Đội nhóm" dù hồ sơ có phạm vi TEAM.
+//   isManager : có phạm vi quản lý ngoài phạm vi cá nhân
+//   scope     : phạm vi quản lý dùng để tính hoa hồng thứ cấp
+// ============================================================
+BANCA.MANAGER_SCOPES = ['TEAM','BRANCH','REGION','ORG_SUBTREE'];
+BANCA.managerCapability = function(id){
+  const p = BANCA.resolveManagerProfile(id);
+  const scopes = p.availableScopes || ['SELF'];
+  const mgrScopes = scopes.filter(s => BANCA.MANAGER_SCOPES.indexOf(s) >= 0);
+  const scope = p.scopeResolution && BANCA.MANAGER_SCOPES.indexOf(p.scopeResolution) >= 0
+    ? p.scopeResolution : (mgrScopes[0] || null);
+  return { isManager: mgrScopes.length > 0, scope: scope, scopes: mgrScopes };
+};
 BANCA.defaultScope   = function(id){ return BANCA.resolveManagerProfile(id).defaultScope || 'SELF'; };
 BANCA.scopeTabLabel  = function(scope){ return {SELF:'Cá nhân', TEAM:'Đội nhóm', BRANCH:'Chi nhánh', REGION:'Khu vực'}[scope] || scope; };
 

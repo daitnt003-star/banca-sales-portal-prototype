@@ -22,22 +22,33 @@
   .cmp-table th,.cmp-table td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top;}
   .cmp-table thead th{position:sticky;top:0;background:var(--paper-card);z-index:var(--z-sticky);}
   /* §B — thẻ phương án nhiều nhu cầu */
-  .plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;}
-  .plan-card{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;background:var(--paper-card);}
+  .plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-md);}
+  .plan-card{border:1px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm);background:var(--paper-card);}
   .plan-card.sel{border-color:var(--brand-600);box-shadow:0 0 0 2px var(--brand-100) inset;}
-  .plan-tag{font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:4px;display:inline-block;}
+  .plan-tag{font-size:var(--text-2xs);font-weight:700;letter-spacing:.04em;padding:var(--space-3xs) var(--space-sm);border-radius:var(--radius-xs);display:inline-block;}
   .plan-tag.budget{background:var(--teal-100);color:var(--teal-600);}
   .plan-tag.fuller{background:var(--brand-100);color:var(--brand-700);}
   /* §D — sticky comparison bar + drawer */
-  .adv-cmp-bar{position:sticky;bottom:72px;z-index:var(--z-sticky);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--ink-900);color:#fff;padding:10px 16px;border-radius:12px;box-shadow:var(--shadow-3);margin-top:12px;}
-  .adv-cmp-bar-actions{display:flex;gap:8px;align-items:center;}
+  .adv-cmp-bar{position:sticky;bottom:calc(var(--space-4xl) + var(--space-3xl));z-index:var(--z-sticky);display:flex;justify-content:space-between;align-items:center;gap:var(--space-md);flex-wrap:wrap;background:var(--ink-900);color:var(--paper-card);padding:var(--space-sm) var(--space-lg);border-radius:var(--radius-lg);box-shadow:var(--shadow-3);margin-top:var(--space-md);}
+  .adv-cmp-bar-actions{display:flex;gap:var(--space-sm);align-items:center;}
   .adv-drawer-overlay{position:fixed;inset:0;background:rgba(14,21,37,.4);z-index:var(--z-drawer);}
-  .adv-drawer{position:fixed;top:0;right:0;height:100%;width:min(520px,94vw);background:var(--paper-card);z-index:var(--z-drawer);box-shadow:var(--shadow-3);display:flex;flex-direction:column;transform:translateX(0);}
-  .adv-drawer-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--line);}
-  .adv-drawer-title{margin:0;font-size:16px;}
-  .adv-drawer-body{padding:16px;overflow:auto;flex:1;}
-  @media(min-width:641px) and (max-width:1024px){.adv-drawer{width:min(680px,96vw);}}
-  @media(max-width:640px){.adv-drawer{width:100vw;}.adv-cmp-bar{bottom:64px;}}
+  .adv-drawer{position:fixed;top:0;right:0;height:100%;width:min(calc(var(--sb2-w) * 2),94vw);background:var(--paper-card);z-index:var(--z-drawer);box-shadow:var(--shadow-3);display:flex;flex-direction:column;}
+  .adv-drawer-head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-md);padding:var(--space-lg);border-bottom:1px solid var(--line);}
+  .adv-drawer-title{margin:0;font-size:var(--text-lg);}
+  .adv-drawer-body{padding:var(--space-lg);overflow:auto;flex:1;}
+  /* tiện ích giữ markup mới ngắn + đúng token */
+  .adv-kv{display:flex;justify-content:space-between;gap:var(--space-sm);font-size:var(--text-xs);}
+  .adv-kv.sm{font-size:var(--text-sm);}
+  .adv-kv .k{color:var(--ink-500);}
+  .adv-sub{font-size:var(--text-xs);color:var(--ink-500);}
+  .adv-hint{font-size:var(--text-2xs);color:var(--ink-300);}
+  .adv-chips{display:flex;gap:var(--space-xs);flex-wrap:wrap;margin-top:var(--space-xs);}
+  .adv-grid-kv{display:grid;gap:var(--space-2xs);}
+  .adv-th{display:flex;justify-content:space-between;align-items:center;gap:var(--space-xs);}
+  .adv-x{border:none;background:none;cursor:pointer;color:var(--ink-300);line-height:1;}
+  .badge-mini{font-size:var(--text-2xs);}
+  @media(min-width:641px) and (max-width:1024px){.adv-drawer{width:min(calc(var(--sb2-w) * 2 + var(--sb1-w)),96vw);}}
+  @media(max-width:640px){.adv-drawer{width:100vw;}.adv-cmp-bar{bottom:calc(var(--space-4xl) + var(--space-2xl));}}
   @media(max-width:1024px){.adv-layout{grid-template-columns:1fr;}.adv-side{position:static;}}
   @media(prefers-reduced-motion:no-preference){.adv-drawer{transition:transform var(--duration-slow);}}
 </style></head><body><script>
@@ -248,8 +259,8 @@ window.advOpenCompare=function(){
   const bestFit=Math.max.apply(null, cols.map(o=>o.fit||0));
   const dataOf=o=>(BANCA.ADVICE_COMPARE[o.productRef]||{})[o.packageRef]||{};
   const cell=(inner)=>`<td>${inner}</td>`;
-  const head=`<tr><th>Tiêu chí</th>${cols.map(o=>`<th><div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><span style="font-weight:700;">${o.packageName}</span><button aria-label="Bỏ ${o.packageName} khỏi so sánh" onclick="advToggleCompareRef('${advCmpRef(o.productRef,o.packageRef)}')" style="border:none;background:none;cursor:pointer;color:var(--ink-300);font-size:14px;line-height:1;">×</button></div><div style="font-size:11px;color:var(--ink-500);">${o.productName}</div></th>`).join('')}</tr>`;
-  const rowFit=`<tr><td style="color:var(--ink-500);">Fit score ${tip('fit')}</td>${cols.map(o=>{const f=o.fit||0;return cell(`<b>${f}%</b> ${f===bestFit?'<span class="badge badge-ready" style="font-size:9px;">Phù hợp nhất</span>':''}`);}).join('')}</tr>`;
+  const head=`<tr><th>Tiêu chí</th>${cols.map(o=>`<th><div class="adv-th"><span style="font-weight:700;">${o.packageName}</span><button class="adv-x" aria-label="Bỏ ${o.packageName} khỏi so sánh" onclick="advToggleCompareRef('${advCmpRef(o.productRef,o.packageRef)}')">×</button></div><div class="adv-sub">${o.productName}</div></th>`).join('')}</tr>`;
+  const rowFit=`<tr><td style="color:var(--ink-500);">Fit score ${tip('fit')}</td>${cols.map(o=>{const f=o.fit||0;return cell(`<b>${f}%</b> ${f===bestFit?'<span class="badge badge-ready badge-mini">Phù hợp nhất</span>':''}`);}).join('')}</tr>`;
   const rowFee=`<tr><td style="color:var(--ink-500);">Phí minh họa ${tip('indicative')}</td>${cols.map(o=>cell(`<b style="color:var(--brand-600);">${o.premiumBand}</b><div style="font-size:11px;color:var(--ink-500);">${o.premiumMonthly||''}</div>`)).join('')}</tr>`;
   const rowMeets=`<tr><td style="color:var(--ink-500);">Nhu cầu đáp ứng</td>${cols.map(o=>cell((o.meets||[]).map(m=>BANCA.needLabel(m)).join(', ')||'—')).join('')}</tr>`;
   const rowGaps=`<tr><td style="color:var(--ink-500);">Nhu cầu còn thiếu</td>${cols.map(o=>cell((o.gaps||[]).length?('<span aria-hidden="true">⚠️ </span>'+(o.gaps||[]).map(m=>BANCA.needLabel(m)).join(', ')):'Không')).join('')}</tr>`;
@@ -281,7 +292,7 @@ window.advOpenAlternatives=function(filterNeed){
     const trade=[]; if(!isRec && o.fit<bestFit) trade.push('Fit thấp hơn gói đề xuất ('+o.fit+'% so với '+bestFit+'%)'); (o.gaps||[]).forEach(g=>trade.push('Chưa đủ: '+BANCA.needLabel(g)));
     return `<div class="opt-card ${sel?'sel':''}" style="${eligible?'':'opacity:.6;'}gap:6px;">
       <div style="display:flex;justify-content:space-between;align-items:center;"><b style="font-size:14px;">${o.packageName}</b><span style="font-size:12px;color:var(--ink-500);">Fit ${o.fit}%</span></div>
-      <div style="font-size:12px;color:var(--ink-500);">${o.productName}${isRec?' · <span class="badge badge-ready" style="font-size:9px;">Đề xuất</span>':''}</div>
+      <div class="adv-sub">${o.productName}${isRec?' · <span class="badge badge-ready badge-mini">Đề xuất</span>':''}</div>
       <div style="font-size:14px;font-weight:700;color:var(--brand-600);">${o.premiumBand}</div>
       <div style="font-size:12px;"><b style="color:var(--teal-600);">Đáp ứng:</b> ${(o.meets||[]).map(m=>BANCA.needLabel(m)).join(', ')}</div>
       ${trade.length?`<div style="font-size:11px;color:var(--amber-600);">Đánh đổi: ${trade.join(' · ')}</div>`:''}
@@ -654,16 +665,16 @@ function planCard(plan){
   const cmpRef = advCmpRef(plan.primaryOffer.productRef, plan.primaryOffer.packageRef);
   const inCmp = state.compareSet.indexOf(cmpRef)>=0;
   return `<div class="plan-card ${sel?'sel':''}">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span class="plan-tag ${tagCls}">${plan.label}</span><span style="font-size:12px;color:var(--ink-500);">Điểm phù hợp ${plan.score}</span></div>
-    <div style="font-size:12px;color:var(--ink-500);">${plan.desc}</div>
-    <div><span class="label">Sản phẩm chính</span><div style="font-size:14px;font-weight:700;">${plan.primaryOffer.productName} · ${plan.primaryOffer.packageName}</div></div>
-    ${plan.addOns.length?`<div><span class="label">Bổ trợ</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;">${plan.addOns.map(o=>`<span class="badge badge-base" style="font-size:10px;">${o.productName} · ${o.packageName}</span>`).join('')}</div></div>`:'<div style="font-size:12px;color:var(--ink-300);">Tùy chọn: chưa thêm sản phẩm bổ trợ</div>'}
-    <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--ink-500);">Tổng phí (minh họa)</span><b style="color:var(--brand-600);">${plan.totalMonthlyLabel}</b></div>
-    <div style="font-size:12px;"><b style="color:var(--teal-600);">Đáp ứng:</b> ${plan.coveredNeeds.map(n=>BANCA.needLabel(n)).join(', ')||'—'}</div>
-    ${plan.remainingGaps.length?`<div style="font-size:12px;"><b style="color:var(--amber-600);">Còn thiếu:</b> ${plan.remainingGaps.map(n=>BANCA.needLabel(n)).join(', ')}</div>`:'<div style="font-size:12px;color:var(--teal-600);">✓ Phủ toàn bộ nhu cầu đã chọn</div>'}
-    <div style="font-size:12px;color:var(--ink-500);">${plan.why}</div>
-    ${plan.verify.length?`<div style="font-size:11px;color:var(--ink-300);">Cần xác minh khi bán: ${plan.verify.join(', ')}</div>`:''}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+    <div class="adv-kv" style="align-items:center;"><span class="plan-tag ${tagCls}">${plan.label}</span><span class="k">Điểm phù hợp ${plan.score}</span></div>
+    <div class="adv-sub">${plan.desc}</div>
+    <div><span class="label">Sản phẩm chính</span><div style="font-weight:700;">${plan.primaryOffer.productName} · ${plan.primaryOffer.packageName}</div></div>
+    ${plan.addOns.length?`<div><span class="label">Bổ trợ</span><div class="adv-chips">${plan.addOns.map(o=>`<span class="badge badge-base badge-mini">${o.productName} · ${o.packageName}</span>`).join('')}</div></div>`:'<div class="adv-hint">Tùy chọn: chưa thêm sản phẩm bổ trợ</div>'}
+    <div class="adv-kv sm"><span class="k">Tổng phí (minh họa)</span><b style="color:var(--brand-600);">${plan.totalMonthlyLabel}</b></div>
+    <div class="adv-sub"><b style="color:var(--teal-600);">Đáp ứng:</b> ${plan.coveredNeeds.map(n=>BANCA.needLabel(n)).join(', ')||'—'}</div>
+    ${plan.remainingGaps.length?`<div class="adv-sub"><b style="color:var(--amber-600);">Còn thiếu:</b> ${plan.remainingGaps.map(n=>BANCA.needLabel(n)).join(', ')}</div>`:'<div class="adv-sub" style="color:var(--teal-600);">✓ Phủ toàn bộ nhu cầu đã chọn</div>'}
+    <div class="adv-sub">${plan.why}</div>
+    ${plan.verify.length?`<div class="adv-hint">Cần xác minh khi bán: ${plan.verify.join(', ')}</div>`:''}
+    <div class="adv-chips">
       <button class="btn btn-sm ${sel?'btn-primary':'btn-secondary'}" onclick="advSelectPlan('${plan.id}')">${sel?'✓ Đã chọn phương án':'Chọn phương án'}</button>
       <button class="btn btn-sm ${inCmp?'btn-primary':'btn-secondary'}" onclick="advToggleCompareRef('${cmpRef}')">${inCmp?'✓ Đang so sánh':'Thêm vào so sánh'}</button>
     </div>
@@ -695,13 +706,13 @@ function bodyRecommend(){
   const pg=BANCA.protectionGap(state);
   const tc={ink:'var(--ink-700)',teal:'var(--teal-600)',amber:'var(--amber-600)',red:'var(--red-600)'};
   const gapCard=`<div class="card" style="padding:16px;margin-bottom:12px;border-left:4px solid var(--amber-600);">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;"><span style="font-size:22px;">${pg.icon}</span><b style="font-size:14px;">${pg.title}</b><span class="badge ${pg.personalized?'badge-ready':'badge-version'}" style="font-size:9px;">${pg.scenarioLabel}</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;"><span style="font-size:22px;">${pg.icon}</span><b>${pg.title}</b><span class="badge badge-mini ${pg.personalized?'badge-ready':'badge-version'}">${pg.scenarioLabel}</span></div>
     <div class="label" style="margin:8px 0 4px;">Giả định đầu vào</div>
-    <div style="display:grid;gap:4px;margin-bottom:8px;">${pg.assumptions.map(a=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;"><span style="color:var(--ink-500);">${a.label}${a.provided?'':' <span class="badge badge-version" style="font-size:9px;">mặc định</span>'}</span><b style="text-align:right;">${a.value}</b></div>`).join('')}</div>
+    <div class="adv-grid-kv" style="margin-bottom:8px;">${pg.assumptions.map(a=>`<div class="adv-kv"><span class="k">${a.label}${a.provided?'':' <span class="badge badge-version badge-mini">mặc định</span>'}</span><b>${a.value}</b></div>`).join('')}</div>
     <div class="label" style="margin:8px 0 4px;">Cách tính</div>
-    <div style="display:grid;gap:6px;">${pg.breakdown.map(b=>`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--ink-500);">${b.op?('<span style=\"color:var(--ink-300);\">'+b.op+'</span> '):''}${b.label}</span><b style="color:${tc[b.tone]||'var(--ink-700)'};">${BANCA.vnd(b.amount)}</b></div>`).join('')}</div>
-    <div style="margin-top:10px;"><div style="height:10px;background:var(--line);border-radius:6px;overflow:hidden;"><div style="width:${pg.gapPct}%;height:100%;background:var(--red-600);"></div></div><div style="font-size:11px;color:var(--ink-300);margin-top:4px;">Mức độ khoảng trống ~${pg.gapPct}% — bảo hiểm giúp lấp phần này.</div></div>
-    <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">${pg.disclaimer}</div>
+    <div class="adv-grid-kv">${pg.breakdown.map(b=>`<div class="adv-kv sm"><span class="k">${b.op?('<span style="color:var(--ink-300);">'+b.op+'</span> '):''}${b.label}</span><b style="color:${tc[b.tone]||'var(--ink-700)'};">${BANCA.vnd(b.amount)}</b></div>`).join('')}</div>
+    <div style="margin-top:10px;"><div style="height:10px;background:var(--line);border-radius:6px;overflow:hidden;"><div style="width:${pg.gapPct}%;height:100%;background:var(--red-600);"></div></div><div class="adv-hint" style="margin-top:4px;">Mức độ khoảng trống ~${pg.gapPct}% — bảo hiểm giúp lấp phần này.</div></div>
+    <div class="adv-hint" style="margin-top:6px;">${pg.disclaimer}</div>
   </div>`;
   // §B — phương án cho nhiều nhu cầu (>=2). 1 nhu cầu giữ nguyên hành vi (chỉ thẻ offer bên dưới).
   const needCount=(state.needProfile||[]).length;

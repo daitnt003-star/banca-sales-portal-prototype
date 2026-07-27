@@ -67,24 +67,32 @@ BANCA.commissionSummary = function(ownerOrScope){
 //  · Trực tiếp  = hợp đồng do CHÍNH người đó bán.
 //  · Thứ cấp    = % override trên hợp đồng của cấp dưới trong phạm vi quản lý.
 // ============================================================
-BANCA.overrideRates = { TEAM: 0.015, BRANCH: 0.008, REGION: 0.004 };
+// ORG_SUBTREE = quản lý theo cây tổ chức; với Giám đốc chi nhánh tương đương cấp
+// chi nhánh nên dùng chung tỷ lệ BRANCH (thiếu dòng này thì hoa hồng thứ cấp = 0).
+BANCA.overrideRates = { TEAM: 0.015, BRANCH: 0.008, ORG_SUBTREE: 0.008, REGION: 0.004 };
 
 // Người này có quản lý owner kia không (theo managerScope).
+// Phạm vi quản lý lấy từ HỒ SƠ TÀI KHOẢN (nguồn chuẩn), không từ cờ isManager rời —
+// nếu 2 chỗ dùng 2 nguồn thì người thấy mục Đội nhóm lại không được tính hoa hồng thứ cấp.
+BANCA._managerScopeOf = function(id){
+  if(BANCA.managerCapability) return BANCA.managerCapability(id).scope;
+  return (BANCA.personas[id]||{}).managerScope || null;   // fallback khi chạy thiếu profile
+};
 BANCA._managesOwner = function(managerId, ownerId){
   if(managerId===ownerId) return false;
   const mgr=BANCA.personas[managerId]||{}, sp=BANCA.personas[ownerId]||{};
-  if(!mgr.isManager) return false;
-  if(mgr.managerScope==='TEAM')   return sp.team===mgr.team;
-  if(mgr.managerScope==='BRANCH') return sp.branch===mgr.branch;
-  if(mgr.managerScope==='REGION') return BANCA.regionOf && BANCA.regionOf(sp.branch)===BANCA.regionOf(mgr.branch);
+  const scope = BANCA._managerScopeOf(managerId);
+  if(!scope) return false;
+  if(scope==='TEAM')   return !!mgr.team && sp.team===mgr.team;
+  if(scope==='BRANCH' || scope==='ORG_SUBTREE') return !!mgr.branch && sp.branch===mgr.branch;
+  if(scope==='REGION') return BANCA.regionOf && BANCA.regionOf(sp.branch)===BANCA.regionOf(mgr.branch);
   return false;
 };
 
 BANCA.commissionSplit = function(userId){
   const all=(BANCA.policies||[]).filter(p=>p.status!=='EXPIRED').map(BANCA.commissionOfPolicy)
     .filter(x=>x.state==='ACCRUED');
-  const per=BANCA.personas[userId]||{};
-  const rate=BANCA.overrideRates[per.managerScope]||0;
+  const rate=BANCA.overrideRates[BANCA._managerScopeOf(userId)]||0;
 
   const directRows = all.filter(x=>x.owner===userId);
   const overrideRows = all.filter(x=>BANCA._managesOwner(userId,x.owner)).map(x=>Object.assign({},x,{
@@ -109,7 +117,7 @@ BANCA.directCommissionOf = function(sellerId){
 // Hoa hồng thứ cấp mà 1 quản lý nhận được TỪ nhân viên cụ thể.
 BANCA.overrideCommissionFrom = function(managerId, sellerId){
   if(!BANCA._managesOwner(managerId, sellerId)) return 0;
-  const rate=BANCA.overrideRates[(BANCA.personas[managerId]||{}).managerScope]||0;
+  const rate=BANCA.overrideRates[BANCA._managerScopeOf(managerId)]||0;
   return (BANCA.policies||[]).filter(p=>p.status!=='EXPIRED' && p.owner===sellerId)
     .map(BANCA.commissionOfPolicy).filter(x=>x.state==='ACCRUED')
     .reduce((s,x)=>s+Math.round(x.base*rate),0);

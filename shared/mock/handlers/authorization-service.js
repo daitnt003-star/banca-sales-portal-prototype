@@ -4,10 +4,11 @@ BANCA.can = permission => {
   if (permission === 'PUBLIC') return true;
   if (p.status !== 'ACTIVE') return false;
   if (p.serviceError) return permission === 'VIEW_WORKSPACE';
-  if (permission === 'VIEW_TEAM_WORKSPACE') return !!p.isManager;
+  // Quyền xem Đội nhóm đọc từ hồ sơ tài khoản (nguồn chuẩn), không dùng cờ isManager rời.
+  if (permission === 'VIEW_TEAM_WORKSPACE') return BANCA.managerCapability(BANCA.current()).isManager;
   return true;
 };
-BANCA.isManager = () => !!BANCA.persona().isManager;
+BANCA.isManager = () => BANCA.managerCapability(BANCA.current()).isManager;
 BANCA.alerts = {
   'RM-01':['Motor và PA sẵn sàng bán.','APP-2026-104 cần bổ sung tài liệu trước 22/07.'],
   'RM-02':['Motor conditional: license còn 12 ngày.','Health blocked: cần hoàn thành training.','DRAFT-2026-007 cần tính phí lại (báo giá hết hạn).'],

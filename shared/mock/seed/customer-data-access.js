@@ -65,6 +65,19 @@ BANCA.fetchCustomerPII = function (externalCustomerRef) {
   };
 };
 
+// Data-sharing grant status (correction 2026-07-27) — consent/grant KHÔNG do seller tự cấp.
+// GRANTED_BY_SOURCE: ngân hàng đã xác lập căn cứ chia sẻ khi truyền context sang Portal.
+BANCA.DATA_SHARING_GRANT = {
+  NONE:                { id: 'NONE',                identified: false },
+  GRANTED_BY_SOURCE:   { id: 'GRANTED_BY_SOURCE',   identified: true  }, // Bank CRM/Core Banking
+  GRANTED_BY_CUSTOMER: { id: 'GRANTED_BY_CUSTOMER', identified: true  }  // customer session/OTP (Quick Advice convert)
+};
+// Stage suy ra từ grant (thao tác hệ thống, không phải bước seller bấm).
+BANCA.stageFromGrant = function (grant) {
+  var g = BANCA.DATA_SHARING_GRANT[grant];
+  return (g && g.identified) ? 'IDENTIFIED_CONTEXT' : 'ANONYMOUS_CONTEXT';
+};
+
 // Nguồn dữ liệu → nhãn cho DataSourceBadge (§4.2).
 BANCA.DATA_SOURCES = {
   BANK:   { label: 'Ngân hàng', cls: 'src-bank' },

@@ -97,13 +97,23 @@ BANCA.ui.channelSwitcher = function () {
 BANCA.appDataAccessStage = function (app) {
   app = app || {};
   if (app.dataAccessStage) return app.dataAccessStage;
-  // Anonymous gate là OPT-IN: chỉ áp cho phiên bán mới đánh dấu anonymousEntry
-  // (Banca integrated/standalone). Seed cũ / agent → coi như đã định danh.
-  if (app.anonymousEntry) {
-    var prof = BANCA.channelProfile ? BANCA.channelProfile() : null;
-    return (prof && prof.initialDataAccessStage) || 'ANONYMOUS_CONTEXT';
-  }
+  // (correction 2026-07-27) Grant từ nguồn (ngân hàng/khách) → IDENTIFIED ngay (thao tác hệ thống).
+  if (app.dataSharingGrantStatus && BANCA.stageFromGrant) return BANCA.stageFromGrant(app.dataSharingGrantStatus);
+  // Anonymous CHỈ khi phiên chưa định danh (Quick Advice) đánh dấu tường minh.
+  if (app.anonymousEntry) return 'ANONYMOUS_CONTEXT';
   return 'IDENTIFIED_CONTEXT';
+};
+// Thao tác HỆ THỐNG: khi đã IDENTIFIED mà chưa có PII → tự prefill từ nguồn (không phải bước seller, không reload).
+BANCA.ensureIdentifiedPrefill = function (app) {
+  if (!app || app.piiFields) return app;
+  if (BANCA.appIsAnonymous(app)) return app;
+  var ref = app.externalCustomerRef || app.customerId || (app.sourceReference && app.sourceReference.externalCustomerId);
+  if (!ref || !BANCA.fetchCustomerPII) return app;
+  var pii = BANCA.fetchCustomerPII(ref);
+  app.piiFields = pii.fields;
+  if (!app.customerName && pii.fields.fullName) app.customerName = pii.fields.fullName.value;
+  app.dataSourceOrigin = pii.source;
+  return app;
 };
 BANCA.appIsAnonymous = function (app) { return !BANCA.dataAccess.canShowPII(BANCA.appDataAccessStage(app)); };
 
@@ -137,4 +147,58 @@ BANCA.ui.consentGate = function (app) {
     BANCA.ui.customerContextCard(ctx) +
     '<button class="btn btn-primary" style="margin-top:12px;" onclick="BANCA.grantConsent(\'' + _esc(app.id) + '\')">Khách đồng ý chia sẻ dữ liệu → lấy thông tin</button>' +
     '</div>';
+};
+
+// ============================================================
+// OFFER_CONTEXT step (correction 2026-07-27 §2) — "Ngữ cảnh & phương án bảo hiểm".
+// 1 STEP trong journey (không phải popup). Part A context bank-prefill + Part B recommendation
+// tới cấp package. Dùng cùng component embed/new-tab (khác layout variant qua CSS).
+// ============================================================
+BANCA.ui.offerContextStep = function (app, opts) {
+  app = app || {}; opts = opts || {};
+  var e = _esc;
+  var pii = app.piiFields || {};
+  var identified = !BANCA.appIsAnonymous(app);
+  // Part A — Ngữ cảnh khách hàng (bank prefill, read-only + DataSourceBadge)
+  function row(k, v, source, ro) {
+    if (v == null || v === '') return '';
+    return '<div class="oc-row"><span class="oc-k">' + e(k) + '</span><span class="oc-v">' + e(v) +
+      (source ? ' ' + BANCA.ui.dataSourceBadge(source) : '') + (ro ? '<span class="ro-tag">chỉ đọc</span>' : '') + '</span></div>';
+  }
+  var name = identified ? ((pii.fullName && pii.fullName.value) || app.customerName || '—') : ('🔒 ' + (app.externalCustomerRef || app.customerId || app.id));
+  var partA = '<div class="oc-panel"><div class="oc-title">A · Ngữ cảnh khách hàng</div>' +
+    row('Khách hàng', name, identified ? 'BANK' : null, true) +
+    row('CIF / Mã tham chiếu', app.cif || app.externalCustomerRef || app.customerId, 'BANK', true) +
+    row('Phân khúc', app.segment, 'BANK', true) +
+    row('Chi nhánh', app.branch, 'BANK', true) +
+    row('RM phụ trách', app.rm || app.owner, 'BANK', true) +
+    row('Loại nhu cầu', app.insuranceNeed || (BANCA.needLabel ? BANCA.needLabel(app.adviceNeed) : app.adviceNeed), 'BANK') +
+    row('Khoản vay', app.loanType, 'BANK', true) +
+    row('Số tiền vay', app.loanAmount && BANCA.vnd ? BANCA.vnd(app.loanAmount) : app.loanAmount, 'BANK', true) +
+    row('Kỳ hạn vay', app.loanTerm, 'BANK', true) +
+    row('Tài sản liên quan', app.relatedAsset, 'BANK', true) +
+    (app.recommendReason ? '<div class="oc-why">💡 ' + e(app.recommendReason) + '</div>' : '') +
+    '</div>';
+
+  // Part B — Sản phẩm & package đề nghị (preselect nếu bank truyền; productLocked xử lý)
+  var locked = !!app.productLocked;
+  var prem = app.estimatedPremium || (app.quote && (app.quote.adjustedPremium || app.quote.premium));
+  var offer = '<div class="oc-offer selected">' +
+    '<div class="oc-offer-head"><span class="oc-badge-primary">Phương án đề nghị</span>' +
+    (opts.readiness ? '<span class="chip">' + e(opts.readiness) + '</span>' : '') + '</div>' +
+    '<div class="oc-prod">' + e(app.productName || 'Sản phẩm') + (app.package ? ' · <b>' + e(app.package) + '</b>' : '') + '</div>' +
+    (prem ? '<div class="oc-prem">Phí ước tính: <b>' + e(BANCA.vnd ? BANCA.vnd(prem) : prem) + '</b></div>' : '') +
+    (app.recommendReason ? '<div class="oc-reason">Lý do phù hợp: ' + e(app.recommendReason) + '</div>' : '') +
+    (opts.benefits ? '<ul class="oc-benefits">' + opts.benefits.map(function (b) { return '<li>' + e(b) + '</li>'; }).join('') + '</ul>' : '') +
+    (opts.verifyNote ? '<div class="oc-verify">⚠️ Cần xác minh: ' + e(opts.verifyNote) + '</div>' : '') +
+    '</div>';
+  var alts = (locked || !opts.alternatives || !opts.alternatives.length) ? '' :
+    '<details class="oc-alts"><summary>Xem phương án khác (' + opts.alternatives.length + ') · So sánh</summary>' +
+    opts.alternatives.map(function (a) { return '<div class="oc-alt">' + e(a.name) + (a.premium ? ' · ' + e(BANCA.vnd ? BANCA.vnd(a.premium) : a.premium) : '') + '</div>'; }).join('') + '</details>';
+  var lockNote = locked ? '<div class="oc-lock">🔒 Sản phẩm đã được khóa từ hệ thống nguồn — không đổi phương án.</div>' : '';
+
+  var partB = '<div class="oc-panel"><div class="oc-title">B · Sản phẩm & phương án đề nghị</div>' + offer + lockNote + alts + '</div>';
+
+  var cta = opts.nextHref ? '<div class="oc-actions"><a class="btn btn-primary" href="' + e(opts.nextHref) + '">Chọn phương án & tiếp tục →</a></div>' : '';
+  return '<div class="offer-context-step">' + partA + partB + cta + '</div>';
 };

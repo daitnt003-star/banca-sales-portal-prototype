@@ -58,7 +58,8 @@ if(isNew){
  const prodRec=(BANCA.products||[]).find(x=>x.id===ctx.productId)||{name:ctx.productName||'Bảo hiểm vật chất xe'};
  const rp = ctx.renewPrefill || null;
  // §12 — Tái tục: mở ngay ở bước Đối tượng bảo hiểm (xác nhận thay đổi), không nhập lại từ đầu.
- const firstStage = rp ? (ctx.productId==='motor'?'RISK_OBJECT':'INSURED_PARTY') : (ctx.sourceAdviceId ? (ctx.productId==='motor'?'RISK_OBJECT':'CUSTOMER_INFO') : 'CUSTOMER_INFO');
+ // (correction 2026-07-27 §2 AC05) Phiên bán mới bắt đầu tại "Ngữ cảnh & phương án"; tái tục giữ hành vi cũ.
+ const firstStage = rp ? (ctx.productId==='motor'?'RISK_OBJECT':'INSURED_PARTY') : 'OFFER_CONTEXT';
  app = { id:'DRAFT-2026-NEW', submissionState:'NOT_SUBMITTED', owner:me,
    customerId:ctx.customerId||null, customerName:ctx.customerName||null,
    productId:ctx.productId||'motor', productName:prodRec.name||ctx.productName, package:ctx.packageName||null,
@@ -68,8 +69,10 @@ if(isNew){
    mortgage: rp?rp.mortgage:null,
    renewalPolicyRef: ctx.renewalPolicyRef||null, renewPrevPremium: rp?rp.prevPremium:null,
    quote:null, isNewDemo:true,
-   // §4.2 — phiên bán mới Banca (không phải từ advice/tái tục) bắt đầu ẩn danh, PII lấy sau consent.
-   anonymousEntry: (!ctx.sourceAdviceId && !ctx.renewalPolicyRef && ['BANK_CUSTOMER','HANDOVER'].includes(ctx.mode||'BANK_CUSTOMER') && (BANCA.channel?BANCA.channel():'BANCA_INTEGRATED')!=='AGENT_BROKER'),
+   // (correction 2026-07-27) Vào workspace = đã định danh. Grant do NGUỒN xác lập (không phải seller bấm).
+   // Advice→YCBH: consent bởi khách (GRANTED_BY_CUSTOMER). Còn lại: bank truyền context (GRANTED_BY_SOURCE).
+   dataSharingGrantStatus: ctx.dataSharingGrantStatus || (ctx.sourceAdviceId ? 'GRANTED_BY_CUSTOMER' : 'GRANTED_BY_SOURCE'),
+   dataAccessStage: ctx.dataAccessStage || null, // HANDOVER resume có thể truyền stage phiên nguồn (AC10)
    externalCustomerRef: ctx.customerId||(ctx.sourceReference&&ctx.sourceReference.externalCustomerId)||null,
    sourceAdviceId:ctx.sourceAdviceId||null, sourceAdviceVersion:ctx.sourceAdviceVersion,
    adviceNeed:ctx.adviceNeed, adviceBudget:ctx.adviceBudget, adviceNote:ctx.adviceNote, adviceSessionId:ctx.adviceSessionId, leadId:ctx.leadId, campaign:ctx.campaign, leadNeed:ctx.leadNeed };
@@ -96,6 +99,8 @@ if(!canView || p.status!=='ACTIVE'){
  return;
 }
 const readOnly = app.owner!==me;
+// (correction 2026-07-27) Thao tác hệ thống: đã IDENTIFIED → tự prefill PII từ nguồn, không cần seller bấm.
+BANCA.ensureIdentifiedPrefill && BANCA.ensureIdentifiedPrefill(app);
 
 const cust = BANCA.customerById(app.customerId);
 const prod = BANCA.products.find(x=>x.id===app.productId);
@@ -468,7 +473,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
  // Motor vẫn ẩn INSURED_PARTY (định nghĩa trong journey.hiddenStages) → 6 bước hiển thị như cũ.
  // PA/sản phẩm khác có stepper riêng theo registry, không hard-code.
  const AUTO_STAGES = (BANCA.journeyFor(app.productId).hiddenStages)||['INSURED_PARTY'];
- const steps = (BANCA.journeyEditStages ? BANCA.journeyEditStages(app.productId) : BANCA.STAGES.filter(s=>!AUTO_STAGES.includes(s.id)));
+ let steps = (BANCA.journeyEditStages ? BANCA.journeyEditStages(app.productId) : BANCA.STAGES.filter(s=>!AUTO_STAGES.includes(s.id)));
+ // (correction 2026-07-27 §2) Bước đầu "Ngữ cảnh & phương án bảo hiểm" cho phiên bán mới (thay popup nhiều tầng).
+ if(isNew) steps = [{id:'OFFER_CONTEXT', label:'Ngữ cảnh & phương án'}].concat(steps);
  let reqStep = qs.get('step')||app.currentStage;
  if(AUTO_STAGES.includes(reqStep)) reqStep='CUSTOMER_INFO';
  let curIdx = steps.findIndex(s=>s.id===reqStep); if(curIdx<0) curIdx=0;
@@ -497,7 +504,23 @@ if(app.submissionState==='NOT_SUBMITTED'){
  const buyerInsuredToggle = (checked, opts) => { opts=opts||{}; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" ${checked?'checked':''} ${opts.disabled?'disabled':''}${opts.onchange?` onchange="${opts.onchange}"`:''}> ${opts.label||'Bên mua đồng thời là người được bảo hiểm chính'}</label>`; };
 
  let stepBody='';
- if(cur.id==='CUSTOMER_INFO'){
+ if(cur.id==='OFFER_CONTEXT'){
+  // §2 — Part A ngữ cảnh (bank prefill) + Part B recommendation tới cấp package. Deep-link/resume qua ?step=OFFER_CONTEXT.
+  const nextStage = (steps.find(s=>s.id!=='OFFER_CONTEXT')||{id:'CUSTOMER_INFO'}).id;
+  const nextHref = `?id=${app.id}&step=${nextStage}${isNew?'&new=1':''}`;
+  app.productLocked = (BANCA.ENTRY_MODES[entryMode]||{}).productLocked || !!app.renewalPolicyRef;
+  app.recommendReason = app.recommendReason || (app.adviceNeed && BANCA.needLabel?('Phù hợp nhu cầu '+BANCA.needLabel(app.adviceNeed)):(app.loanType?('Bảo vệ khoản vay '+app.loanType):'Đề xuất theo ngữ cảnh ngân hàng'));
+  app.estimatedPremium = app.estimatedPremium || (app.quote && (app.quote.adjustedPremium||app.quote.premium)) || (app.adviceBudget||null);
+  stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Đây là bước quyết định nghiệp vụ — ngữ cảnh & phương án đứng trong workspace (không popup). Dữ liệu ngân hàng đã prefill & gắn nguồn.</div>`
+   + BANCA.ui.offerContextStep(app, {
+      nextHref,
+      readiness: (BANCA.sellerReadinessLabel?BANCA.sellerReadinessLabel(app.productId):'Đủ điều kiện bán'),
+      benefits: (app.productId==='motor'?['Vật chất xe','Trách nhiệm dân sự','Cứu hộ 24/7']:app.productId==='health'?['Nội trú','Ngoại trú','Tai nạn']:['Tử vong/thương tật','Trợ cấp nằm viện']),
+      verifyNote: (app.productId==='health'?'khai báo sức khỏe':app.productId==='motor'?'giá trị xe (IDV)':'tuổi & nghề nghiệp'),
+      alternatives: (app.productLocked?[]:[{name:'Gói Cơ bản',premium:(app.estimatedPremium?Math.round(app.estimatedPremium*0.8):null)},{name:'Gói Nâng cao',premium:(app.estimatedPremium?Math.round(app.estimatedPremium*1.25):null)}])
+    });
+ }
+ else if(cur.id==='CUSTOMER_INFO'){
   const bankFed = entryMode==='BANK_CUSTOMER' || entryMode==='INSURANCE_CUSTOMER' || entryMode==='RENEWAL';
   // Header: nguồn + phương thức nhập (config-driven theo customerDocumentPolicy)
   const srcKind = app.sourceAdviceId?'ADVICE':app.leadId?'REFERRAL':entryMode==='BANK_CUSTOMER'?'BANK':entryMode==='INSURANCE_CUSTOMER'?'BANK':'PORTAL';

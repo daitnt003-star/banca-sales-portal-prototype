@@ -161,7 +161,7 @@ function personalPane(){
       <div class="kpi"><span>Yêu cầu bảo hiểm đã nộp</span><b>${ms}</b></div>
       <div class="kpi"><span>Premium</span><b style="font-size:14px;">${BANCA.vnd(k.premium)}</b></div>
       <div class="kpi"><span>Tỷ lệ chuyển đổi</span><b>${k.conversion||'—'}</b></div>
-      ${showComm?`<div class="kpi"><span>Hoa hồng</span><b style="font-size:14px;">${BANCA.vnd(k.commission)}</b></div>`:''}
+      ${showComm?`<div class="kpi"><span>Hoa hồng trực tiếp</span><b style="font-size:14px;">${BANCA.vnd(k.commission)}</b></div>`:''}
       <div class="kpi"><span>Readiness</span><b style="font-size:13px;">${rd.R}R/${rd.C}C/${rd.B}B</b></div>
     </div>
     ${P.sellingEnabled?`<a class="btn btn-primary btn-sm" href="${r}modules/seller-workspace/index.html">Mở không gian bán hàng →</a>`:''}`;
@@ -249,8 +249,14 @@ function cockpitSummary(scope){
     {label:'Hợp đồng phát hành', value:kpi.policies, delta:delta(kpi.policiesDelta,' HĐ'), onclick:"drill('policies','"+scope+"')"}
   ], 3);
   const diag=[['Tỷ lệ chuyển đổi',kpi.conversion,'conv',delta(kpi.convDelta,' điểm')],['Tuân thủ SLA',kpi.sla,'sla',''],['Việc cần xử lý',items.length,'support','']];
-  if(showComm) diag.splice(2,0,['Hoa hồng dự kiến',BANCA.vnd(kpi.commission),'comm','']);
-  const diagBlock=`<div class="kpi-strip" style="margin-bottom:8px;">${diag.slice(0,4).map(([l,v,k,d])=>`<div class="kpi" style="cursor:pointer;" onclick="drill('${k}','${scope}')"><span>${l}</span><b style="font-size:14px;${k==='support'&&v?'color:var(--red-600);':''}">${v}</b>${d?`<div>${d}</div>`:''}</div>`).join('')}</div>`;
+  // §13.3 — hoa hồng TRỰC TIẾP và THỨ CẤP hiển thị TÁCH BIỆT, không cộng thành 1 số.
+  if(showComm){
+    const cs=BANCA.commissionSplit(me);
+    diag.splice(2,0,['Hoa hồng trực tiếp',BANCA.vnd(cs.direct.amount),'comm','']);
+    diag.splice(3,0,['Hoa hồng thứ cấp (override)',BANCA.vnd(cs.override.amount),'commOverride','']);
+  }
+  // Hiển thị ĐỦ chỉ số chẩn đoán (trước đây cắt 4 → khi tách hoa hồng sẽ mất "Việc cần xử lý").
+  const diagBlock=`<div class="kpi-strip" style="margin-bottom:8px;">${diag.map(([l,v,k,d])=>`<div class="kpi" style="cursor:pointer;" onclick="drill('${k}','${scope}')"><span>${l}</span><b style="font-size:14px;${k==='support'&&v?'color:var(--red-600);':''}">${v}</b>${d?`<div>${d}</div>`:''}</div>`).join('')}</div>`;
   const kpiBlock=`<div class="section-title" style="margin-top:18px;"><h2>Hiệu quả kinh doanh</h2><span class="subtitle">Chỉ số chính + chẩn đoán · so kỳ trước & khoảng cách chỉ tiêu · bấm để drill-down</span></div>${primary}${diagBlock}${metricNote()}`;
   // ---- Pipeline: tách draft vs submitted + phát hiện điểm nghẽn (aging/SLA) ----
   const st=(...s)=>subs.filter(a=>s.includes(a.status));
@@ -541,16 +547,33 @@ function teamPerf(scope,members){
     const verdict = issue.level>0
       ? `<div style="font-size:12px;font-weight:600;color:${issue.tone};">${issue.label}</div><a class="btn btn-secondary btn-sm" style="margin-top:4px;" href="?view=seller&seller=${s.id}&scope=${scope}" onclick="event.stopPropagation()">Xem chi tiết</a>`
       : `<div style="font-size:12px;color:var(--teal-600);">Ổn định</div>`;
+    // §13.2 — bảng nhân viên phải nêu đủ định danh tổ chức + readiness + 2 loại hoa hồng.
+    const per=BANCA.personas[s.id]||{};
+    const rdS=readiness(s.id);
+    const offers=sApps.length;                       // số bản chào (mọi trạng thái)
+    const cDirect=BANCA.directCommissionOf(s.id);    // hoa hồng trực tiếp của nhân viên
+    const cOverride=BANCA.overrideCommissionFrom(me, s.id); // phần override NGƯỜI XEM nhận từ nhân viên này
     return `<tr style="cursor:pointer;" onclick="location.href='?view=seller&seller=${s.id}&scope=${scope}'">
      <td><b style="font-size:12px;">${s.name}</b>${s.status!=='ACTIVE'?' <span class="badge badge-blocked" style="font-size:9px;">Ngừng HĐ</span>':''}</td>
-     <td style="font-size:12px;">${BANCA.vnd(prem)}</td><td>${issued}</td><td>${subm}</td>
-     <td>${k.conversion||'Chưa có dữ liệu'}</td><td>${k.target||'Chưa đặt'}</td>
+     <td style="font-size:11px;" class="code">${per.rm||'—'}</td>
+     <td style="font-size:11px;">${per.role||'—'}</td>
+     <td style="font-size:11px;">${BANCA.regionOf?BANCA.regionOf(per.branch)||'—':'—'}</td>
+     <td style="font-size:11px;">${per.branch||'—'}</td>
+     <td style="font-size:11px;">${per.department||'—'}</td>
+     <td style="font-size:11px;">${per.team||'—'}</td>
+     <td style="font-size:11px;">${rdS.R}R/${rdS.C}C/${rdS.B}B</td>
+     <td style="font-size:12px;">${BANCA.vnd(prem)}</td>
+     <td>${k.conversion||'Chưa có dữ liệu'}</td>
+     <td>${offers}</td><td>${issued}</td>
+     <td style="font-size:12px;">${BANCA.vnd(cDirect)}</td>
+     <td style="font-size:12px;">${cOverride?BANCA.vnd(cOverride):'—'}</td>
      <td style="${ovd?'color:var(--red-600);':''}">${ovd||'Không phát sinh'}</td>
-     <td style="font-size:11px;color:var(--ink-300);">${(sApps[0]||{}).updatedAt||'Không phát sinh'}</td>
      <td onclick="event.stopPropagation();">${verdict}</td></tr>`;
   }).join('');
+  const cols=['Nhân viên','Mã NV','Vai trò','Khu vực','Chi nhánh','Phòng ban','Team','Readiness','Doanh số','Tỷ lệ chuyển đổi','Số bản chào','Số hợp đồng','Hoa hồng trực tiếp','Hoa hồng thứ cấp','Quá hạn','Nhận định / Hành động'];
   return `<div class="section-title"><h2>Hiệu suất thành viên</h2><span class="subtitle">Kỳ Tháng 07/2026 · hiển thị ${members.length} thành viên trong phạm vi hiện tại</span></div>
-  <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nhân viên</th><th>Premium</th><th>Đã phát hành</th><th>Đã nộp</th><th>Tỷ lệ chuyển đổi</th><th>Tiến độ chỉ tiêu</th><th>Quá hạn</th><th>Hoạt động gần nhất</th><th>Nhận định / Hành động</th></tr></thead><tbody>${rows||'<tr><td colspan="9"><div class="empty-state">Không có thành viên trong phạm vi hiện tại.</div></td></tr>'}</tbody></table></div>`;
+  <div style="font-size:11px;color:var(--ink-500);margin-bottom:6px;">Hoa hồng <b>trực tiếp</b> = hợp đồng nhân viên tự bán · <b>thứ cấp</b> = phần override bạn nhận từ nhân viên này. Hai loại KHÔNG cộng gộp.</div>
+  <div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${cols.length}"><div class="empty-state">Không có thành viên trong phạm vi hiện tại.</div></td></tr>`}</tbody></table></div>`;
 }
 function teamCases(scope){
   const apps=appsOf(scope); const flt=qs.get('filter')||''; const stage=qs.get('stage')||'';

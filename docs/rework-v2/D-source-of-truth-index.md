@@ -68,17 +68,16 @@
 | 1 | Foundation: channel-profiles, customer-data-access, status-mappings, quote-version, navigation-config + shared components lõi | ✅ Xong — nav & payment gate đã **được page tiêu thụ** (trước đó config tồn tại nhưng không ai gọi) |
 | 2 | Banca entry + anonymous context + consent | ✅ Xong (CustomerContextCard/consentGate; BANCA_INTEGRATED bỏ qua chọn khách hàng) |
 | 3 | Quick Advice + recommendation cấp package | 🟡 Phần lớn — CTA primary + offerContextStep xong; `PackageComparison`/`FitScore` chưa đóng gói riêng |
-| 4 | Quote/Application Workspace + versioning | 🟡 Model versioning + gate xong (đã sửa lỗi re-rate vẫn cho thanh toán); **UI QuoteVersionSelector/ReRateNotice chưa dựng** |
-| 5 | Underwriting + OTP + Payment | 🟡 Component đã đóng gói & payment/fee/history đã dùng; **OtpVerificationPanel + UnderwritingStatusPanel chưa thay thế markup inline cũ** |
+| 4 | Quote/Application Workspace + versioning | ✅ Xong — UI hiển thị phiên bản hiện tại/lịch sử chỉ đọc, cảnh báo tính phí lại, khóa thanh toán và CTA theo quyền; tương thích dữ liệu canonical + legacy |
+| 5 | Underwriting + OTP + Payment | ✅ Xong — OTP, thẩm định, payment, fee và history dùng shared component; Health giữ trạng thái/xác nhận riêng theo từng người được bảo hiểm |
 | 6 | Policy Cockpit + post-sale | ✅ Xong — 6 tab dùng chung Motor/Health/PA + Yêu cầu dịch vụ + Tổn thất/Bồi thường |
-| 7 | Dashboard/lists + Manager Workspace | 🟡 Hoa hồng tách 2 loại + bảng nhân viên 16 cột xong; `OrganizationScopeFilter` chưa hợp nhất |
+| 7 | Dashboard/lists + Manager Workspace | 🟡 Hoa hồng tách 2 loại + bảng nhân viên 16 cột xong; quyền Đội nhóm đã thống nhất theo capability/phạm vi quản lý của hồ sơ tài khoản (RM-01 có `TEAM`); `OrganizationScopeFilter` chưa hợp nhất |
 | 8 | Customer self-service + regression toàn hệ thống | ⏳ Chưa |
 
 ## 7. Nợ kỹ thuật đã biết (không ẩn)
 | Việc | Vì sao chưa làm |
 |---|---|
-| `OtpVerificationPanel` / `UnderwritingStatusPanel` đã viết nhưng chưa thay markup inline trong `app-workspace.js` | Vùng xác nhận Health per-member phức tạp; thay nóng dễ vỡ luồng đã nghiệm thu. Component sẵn sàng, adopt-on-touch. |
-| `QuoteVersionSelector` / `ReRateNotice` (UI) | Model + gate đã chặn đúng; phần UI chọn version cần quyết định UX (drawer hay dropdown trong case header). |
+| `OtpVerificationPanel` / `UnderwritingStatusPanel` | ✅ Đã được Application Workspace sử dụng cho Motor/PA/Health; permission, STP/manual và Health per-member đã có regression guard. |
+| `QuoteVersionSelector` / `ReRateNotice` (UI) | ✅ Đã đóng bằng dropdown trong case header + cảnh báo inline; phiên bản cũ chỉ để xem, không ghi đè phiên bản hiện hành. |
 | `OrganizationScopeFilter` hợp nhất (§13.2) | team-workspace đang có selfTab/mgmtTab + scope dropdown riêng cho manager ≥3 cấp. |
-| `BANCA.can('VIEW_TEAM_WORKSPACE')` đọc `persona.isManager` trong khi `manager-profiles` mới là nguồn capability | 2 nguồn sự thật về quyền quản lý — cần thống nhất, ảnh hưởng điều hướng nhiều persona. |
-| RM-01 là player-coach (`availableScopes` có TEAM) nhưng không có `isManager` → không thấy "Đội nhóm" | Hệ quả của mục trên. |
+| Quyền “Xem Đội nhóm” | ✅ Đã chốt: lấy capability/phạm vi quản lý trong `manager-profiles` làm nguồn chuẩn; RM-01 có `TEAM` nên được thấy và truy cập Đội nhóm. `persona.isManager` không còn là điều kiện quyết định riêng. |

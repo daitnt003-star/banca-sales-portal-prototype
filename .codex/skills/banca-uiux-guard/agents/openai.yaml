@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca UIUX Guard"
+  short_description: "Bảo vệ cấu trúc và tính nhất quán UIUX"
+  default_prompt: "Use $banca-uiux-guard to assess this UI change without breaking existing patterns."

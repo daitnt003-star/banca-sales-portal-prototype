@@ -112,17 +112,18 @@ BANCA.ProductJourneyDefinitions = {
     paymentMode:      'STANDARD',
     issueMode:        'STP_OR_REFERRAL',
     reviewLayout:     'motorReview',
-    reviewSections:   ['customer','vehicle','package','riskDeclaration','documents','quote'],
+    reviewSections:   ['customer','vehicle','riskDeclaration','package','documents','quote'],
     certificateTemplate:'motorCertificate@1',
     supportedEntryModes:['BANK_CUSTOMER','REFERRAL','RENEWAL','PRODUCT_FIRST','NEW_PROSPECT','HANDOVER','QUICK_ADVICE_CONVERSION'],
     effectiveFrom:    '2026-01-01',
     effectiveTo:      null,
     hiddenStages:     ['INSURED_PARTY'],
+    // §corrective §2 — Khai báo rủi ro TRƯỚC Gói & phí cuối cùng (thứ tự nghiệp vụ: rủi ro → định phí).
     stages: _stages([
       'CUSTOMER_INFO',
       {id:'RISK_OBJECT', label:'Đối tượng bảo hiểm', component:'motorVehicle'},
-      {id:'PACKAGE_AND_QUOTE', label:'Gói & phí dự kiến', component:'motorPackage'},
       {id:'RISK_DECLARATION', component:'motorDeclaration'},
+      {id:'PACKAGE_AND_QUOTE', label:'Gói & phí dự kiến', component:'motorPackage'},
       {id:'DOCUMENTS', component:'motorDocuments'},
       {id:'REVIEW_AND_SUBMIT', label:'Review'},
       'UNDERWRITING',
@@ -149,17 +150,18 @@ BANCA.ProductJourneyDefinitions = {
     paymentMode:      'STANDARD',
     issueMode:        'AUTO_ISSUE',
     reviewLayout:     'paReview',
-    reviewSections:   ['customer','insuredPerson','package','riskDeclaration','quote'],
+    reviewSections:   ['customer','insuredPerson','riskDeclaration','package','quote'],
     certificateTemplate:'paCertificate@1',
     supportedEntryModes:['PRODUCT_FIRST','NEW_PROSPECT','BANK_CUSTOMER','REFERRAL','QUICK_ADVICE_CONVERSION'],
     effectiveFrom:    '2026-01-01',
     effectiveTo:      null,
     hiddenStages:     [],
+    // §corrective §2 — Khai báo rủi ro TRƯỚC Gói & báo giá cuối cùng.
     stages: _stages([
       'CUSTOMER_INFO',
       {id:'INSURED_PARTY', label:'Đối tượng bảo hiểm', component:'paInsuredPerson'},
-      {id:'PACKAGE_AND_QUOTE', label:'Gói & báo giá', component:'paPackage'},
       {id:'RISK_DECLARATION', component:'paDeclaration'},
+      {id:'PACKAGE_AND_QUOTE', label:'Gói & báo giá', component:'paPackage'},
       {id:'REVIEW_AND_SUBMIT', label:'Review'},
       'PAYMENT',
       {id:'ISSUANCE', label:'Phát hành'}
@@ -184,7 +186,7 @@ BANCA.ProductJourneyDefinitions = {
     paymentMode:      'STANDARD',
     issueMode:        'STP_OR_REFERRAL',
     reviewLayout:     'healthReview',
-    reviewSections:   ['customer','insuredPerson','package','riskDeclaration','quote'],
+    reviewSections:   ['customer','insuredPerson','riskDeclaration','package','quote'],
     certificateTemplate:'healthCertificate@1',
     supportedEntryModes:['BANK_CUSTOMER','PRODUCT_FIRST','NEW_PROSPECT','REFERRAL','QUICK_ADVICE_CONVERSION','RENEWAL'],
     // §14 — Multi-insured (HEALTH_RETAIL_FAMILY; INDIVIDUAL = family với 1 người).
@@ -208,11 +210,12 @@ BANCA.ProductJourneyDefinitions = {
     effectiveFrom:    '2026-01-01',
     effectiveTo:      null,
     hiddenStages:     [],
+    // §corrective §2 — Khai báo rủi ro TRƯỚC Gói & phí cuối cùng.
     stages: _stages([
       'CUSTOMER_INFO',
       {id:'INSURED_PARTY', label:'Đối tượng bảo hiểm', component:'healthInsuredPerson'},
-      {id:'PACKAGE_AND_QUOTE', label:'Gói & phí', component:'healthPackage'},
       {id:'RISK_DECLARATION', component:'healthDeclaration'},
+      {id:'PACKAGE_AND_QUOTE', label:'Gói & phí', component:'healthPackage'},
       {id:'DOCUMENTS', component:'healthDocuments'},
       {id:'REVIEW_AND_SUBMIT', label:'Review'},
       'UNDERWRITING',
@@ -311,22 +314,55 @@ BANCA.makeQuoteSnapshot = function(o){
 /* ---------------------------------------------------------------
  * P0.1 — ApplicationRoutingResult (G1: đầy đủ + displayable)
  * ------------------------------------------------------------- */
+// Mỗi routing code map sang routingResult canonical (§Checkpoint 4) + chế độ thẩm định mặc định.
+//   STP_PASS | MANUAL_REVIEW | MORE_INFORMATION_REQUIRED | DECLINED
 BANCA.ROUTING = {
-  APPROVED_FOR_BIND:     {label:'Đủ điều kiện phát hành', nextStage:'PAYMENT',           nextAction:'PAYMENT',            appStatus:'PENDING_PAYMENT'},
-  UW_REQUIRED:           {label:'Cần thẩm định',          nextStage:'UNDERWRITING',      nextAction:'AWAIT_UNDERWRITING', appStatus:'PENDING_UW'},
-  NEED_MORE_INFORMATION: {label:'Cần bổ sung',            nextStage:'REVIEW_AND_SUBMIT', nextAction:'SUPPLEMENT',         appStatus:'NEED_MORE_INFO'},
-  REJECTED:              {label:'Từ chối',                nextStage:null,                nextAction:'END',               appStatus:'REJECTED'}
+  APPROVED_FOR_BIND:     {label:'Đủ điều kiện phát hành', nextStage:'PAYMENT',           nextAction:'PAYMENT',            appStatus:'PENDING_PAYMENT', routingResult:'STP_PASS',                  defaultMode:'STP'},
+  UW_REQUIRED:           {label:'Cần thẩm định',          nextStage:'UNDERWRITING',      nextAction:'AWAIT_UNDERWRITING', appStatus:'PENDING_UW',      routingResult:'MANUAL_REVIEW',             defaultMode:'MANUAL'},
+  NEED_MORE_INFORMATION: {label:'Cần bổ sung',            nextStage:'REVIEW_AND_SUBMIT', nextAction:'SUPPLEMENT',         appStatus:'NEED_MORE_INFO',  routingResult:'MORE_INFORMATION_REQUIRED', defaultMode:'STP'},
+  REJECTED:              {label:'Từ chối',                nextStage:null,                nextAction:'END',               appStatus:'REJECTED',        routingResult:'DECLINED',                  defaultMode:'STP'}
+};
+// Bí danh dùng trực tiếp routingResult canonical → routing code nội bộ (đối xứng).
+BANCA.ROUTING_RESULT_TO_CODE = {
+  STP_PASS:'APPROVED_FOR_BIND', MANUAL_REVIEW:'UW_REQUIRED',
+  MORE_INFORMATION_REQUIRED:'NEED_MORE_INFORMATION', DECLINED:'REJECTED'
 };
 
 BANCA.makeRoutingResult = function(code, o){
   o = o || {};
+  // Cho phép truyền thẳng routingResult canonical.
+  if(BANCA.ROUTING_RESULT_TO_CODE[code]) code = BANCA.ROUTING_RESULT_TO_CODE[code];
   const base = BANCA.ROUTING[code] || BANCA.ROUTING.APPROVED_FOR_BIND;
+  const now = o.generatedAt || o.evaluatedAt || new Date().toISOString();
+  // ruleSetCode/ruleVersion: ưu tiên option, fallback theo product underwritingDefinition.
+  let ruleSetCode = o.ruleSetCode || null, ruleVersion = o.ruleVersion || null;
+  if((!ruleSetCode || !ruleVersion) && o.productId){
+    const def = BANCA.underwritingDefinitionFor(o.productId);
+    if(def && !def.error){ ruleSetCode = ruleSetCode || def.ruleSetCode; ruleVersion = ruleVersion || def.ruleVersion; }
+  }
+  // decision mặc định suy từ code khi caller không truyền.
+  const decision = o.decision || (code==='APPROVED_FOR_BIND' ? 'APPROVED_STP' : code==='REJECTED' ? 'DECLINED' : null);
+  const internalReasonCodes = o.internalReasonCodes || (o.internalReasonCode ? [o.internalReasonCode] : []);
+  const publicReasons = o.publicReasons || o.reasons || [];
   return {
     code:          code,
     label:         base.label,
     nextStage:     base.nextStage,
     nextAction:    base.nextAction,
     appStatus:     base.appStatus,
+    // ---- Contract routing canonical (§Checkpoint 4) ----
+    routingResult:    base.routingResult,
+    underwritingMode: o.underwritingMode || base.defaultMode,   // STP | MANUAL
+    decision:         decision,
+    ruleHits:         o.ruleHits || [],
+    publicReasons:    publicReasons,
+    internalReasonCodes: internalReasonCodes,
+    exclusions:       o.exclusions || [],
+    loading:          o.loading != null ? o.loading : null,
+    ruleSetCode:      ruleSetCode,
+    ruleVersion:      ruleVersion,
+    evaluatedAt:      now,
+    // ---- Trường cũ giữ nguyên cho code hiện có ----
     // reasons: chia sẻ được cho nhân viên tư vấn (displayable=true).
     reasons:       o.reasons || [],
     blockingIssues:o.blockingIssues || [],
@@ -338,7 +374,7 @@ BANCA.makeRoutingResult = function(code, o){
     internalReasonCode: o.internalReasonCode || null,
     displayReason: o.displayReason || null,
     displayable:   o.displayable!=null ? o.displayable : true,
-    generatedAt:   o.generatedAt || new Date().toISOString()
+    generatedAt:   now
   };
 };
 
@@ -380,6 +416,10 @@ BANCA.PAYMENT_METHODS = BANCA.PAYMENT_CHANNELS; // alias tương thích
 // Payment intent — CHỈ tạo sau khi nhân viên tư vấn chọn phương thức (§3).
 BANCA.makePayment = function(o){
   o = o || {};
+  // §9.3 — thu hộ trên thiết bị RM/đại lý → payerType canonical SELLER_OR_AGENT.
+  // QR/link do KHÁCH tự thanh toán dù seller khởi tạo → vẫn CUSTOMER.
+  var _sellerAssisted = /SELLER_ASSISTED|SELLER_DEVICE_ASSISTED/.test(o.paymentExperience || '');
+  var _payerType = o.payerType || (_sellerAssisted ? 'SELLER_OR_AGENT' : 'CUSTOMER');
   return {
     paymentId:      o.paymentId || ('PAY-'+Math.floor(100000+Math.random()*899999)),
     applicationId:  o.applicationId || null,
@@ -389,7 +429,7 @@ BANCA.makePayment = function(o){
     paymentInstrument: o.paymentInstrument || o.paymentChannel || o.method || null,
     paymentExperience: o.paymentExperience || null,
     paymentInitiator: o.paymentInitiator || null,   // SELLER / CUSTOMER
-    payerType:      o.payerType || null,            // CUSTOMER
+    payerType:      _payerType,                     // CUSTOMER | SELLER_OR_AGENT
     payerName:      o.payerName || null,
     recipientPhone: o.recipientPhone || null,
     recipientEmail: o.recipientEmail || null,
@@ -496,7 +536,43 @@ BANCA.makePolicy = function(o){
     effectiveFrom: o.effectiveFrom || null,
     effectiveTo:   o.effectiveTo || null,
     status:        o.status || 'ACTIVE',
+    // Policy reference (Data contract) — HĐ trỏ đúng phiên báo giá KHÁCH đã xác nhận (§7.3/§8.3).
+    quoteId:              o.quoteId || (o.approvedQuoteSnapshot && (o.approvedQuoteSnapshot.quoteId || o.approvedQuoteSnapshot.id)) || null,
+    quoteVersion:         o.quoteVersion || (o.approvedQuoteSnapshot && (o.approvedQuoteSnapshot.quoteVersion || o.approvedQuoteSnapshot.version)) || null,
+    approvedQuoteSnapshot: o.approvedQuoteSnapshot || null,
     documentRefs:  o.documentRefs || []
+  };
+};
+// Policy reference chuẩn từ application đã có báo giá duyệt — NGUỒN DUY NHẤT để issue trỏ đúng version.
+BANCA.policyQuoteRef = function(app){
+  app = app || {};
+  var av = BANCA.quoteVersion ? BANCA.quoteVersion.active(app) : null;
+  var q = app.quote || {};
+  return {
+    quoteId:      q.quoteId || q.id || null,
+    quoteVersion: (av && av.version) || q.quoteVersion || q.version || 1,
+    approvedQuoteSnapshot: app.quote ? JSON.parse(JSON.stringify(app.quote)) : null
+  };
+};
+// Bank callback (Data contract) — NGUỒN DUY NHẤT dựng payload trả kết quả phát hành về ngân hàng.
+// Trỏ đúng external reference + quote version khách đã xác nhận (§Checkpoint 5).
+BANCA.makeBankCallback = function(o){
+  o = o || {};
+  var app = o.app || {};
+  var qref = BANCA.policyQuoteRef ? BANCA.policyQuoteRef(app) : {};
+  var src = app.sourceReference || {};
+  return {
+    externalCustomerRef: o.externalCustomerRef || app.externalCustomerRef || src.externalCustomerId || null,
+    externalJourneyRef:  o.externalJourneyRef || app.externalJourneyRef || src.externalJourneyId || app.adviceId || null,
+    quoteId:             o.quoteId || qref.quoteId || null,
+    quoteVersion:        o.quoteVersion || qref.quoteVersion || null,
+    policyNumber:        o.policyNumber || app.policyId || null,
+    certificateNumbers:  o.certificateNumbers || [],
+    issueStatus:         o.issueStatus || 'ISSUED',
+    effectiveFrom:       o.effectiveFrom || null,
+    effectiveTo:         o.effectiveTo || null,
+    paymentStatus:       o.paymentStatus || (app.payment && app.payment.status) || 'SUCCESS',
+    callbackTimestamp:   o.callbackTimestamp || new Date().toISOString()
   };
 };
 BANCA.genPolicyNo = function(productId){

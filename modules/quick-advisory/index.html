@@ -1,4 +1,4 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tư vấn nhanh — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=44"></script></head><body><script>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tư vấn nhanh — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=46"></script></head><body><script>
 const p = BANCA.persona(), me = BANCA.current(), r = rel();
 const qs = new URLSearchParams(location.search);
 const fTab = qs.get('tab') || 'ALL';
@@ -31,8 +31,8 @@ const groupOf = s => (BANCA.ADVICE_STATUS[s]||{}).group || 'CLOSED';
 const tabs = [
   ['ALL','Tất cả', a=>true],
   ['ACTIVE','Đang thực hiện', a=>groupOf(a.status)==='ACTIVE'],
-  ['SAVED','Đã lưu', a=>groupOf(a.status)==='SAVED'],
   ['FOLLOW_UP','Cần theo dõi', a=>groupOf(a.status)==='FOLLOW_UP'],
+  ['SHARED','Đã gửi khách', a=>groupOf(a.status)==='SHARED'],
   ['CONVERTED','Đã chuyển bán', a=>groupOf(a.status)==='CONVERTED']
 ];
 const activeTabDef = tabs.find(t=>t[0]===fTab) || tabs[0];
@@ -45,26 +45,37 @@ const tabBar = BANCA.ui.tabBar(tabs.map(t=>({id:t[0],label:t[1],href:'?tab='+t[0
 // Hành động theo trạng thái (theo ý định, không dùng "Xem" chung chung)
 function adviceActions(a){
   const wsUrl = `${r}modules/advisory-workspace/index.html?id=${a.id}`;
-  const s = a.status;
-  if(groupOf(s)==='ACTIVE'){
+  const s = a.status, g = groupOf(s);
+  const more = html => html?`<details class="table-action-more"><summary class="btn btn-secondary btn-sm" aria-label="Các hành động khác">Khác</summary><div class="table-action-more__menu">${html}</div></details>`:'';
+  if(g==='ACTIVE'){
     const canDelete = s==='IN_PROGRESS' && !a.selectedOffer;
-    return `<a class="btn btn-primary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a>${canDelete?` <button class="btn btn-secondary btn-sm" style="color:var(--red-600);" onclick="advDeleteDraft('${a.id}')">Xoá nháp</button>`:''}`;
+    return `<div class="table-action-stack"><a class="btn btn-primary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a>${more(canDelete?`<button class="btn btn-secondary btn-sm" style="color:var(--red-600);" onclick="advDeleteDraft('${a.id}')">Xoá nháp</button>`:'')}</div>`;
   }
-  if(s==='SAVED'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo bản chào từ tư vấn này</a>`:''}`;
+  if(g==='FOLLOW_UP'){
+    const primary=a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo bản chào từ tư vấn này</a>`:`<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a>`;
+    return `<div class="table-action-stack">${primary}${more(a.selectedOffer?`<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a>`:'')}</div>`;
   }
-  if(s==='FOLLOW_UP_LATER'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}">Tiếp tục tư vấn</a> ${a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo bản chào từ tư vấn này</a>`:''}`;
+  if(g==='SHARED'){
+    const primary=a.selectedOffer?`<a class="btn btn-primary btn-sm" href="${wsUrl}&step=result&convert=1">Tạo bản chào từ tư vấn này</a>`:`<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a>`;
+    return `<div class="table-action-stack">${primary}${more(a.selectedOffer?`<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a>`:'')}</div>`;
   }
-  if(s==='CONVERTED_TO_SALE'){
-    return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a> ${a.convertedCaseId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}">Mở yêu cầu</a>`:''}`;
+  if(g==='CONVERTED'){
+    const primary=a.convertedCaseId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}">Mở bản chào</a>`:`<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a>`;
+    return `<div class="table-action-stack">${primary}${more(a.convertedCaseId?`<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a>`:'')}</div>`;
   }
-  return `<a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a>`;
+  return `<div class="table-action-stack"><a class="btn btn-secondary btn-sm" href="${wsUrl}&step=result">Xem bản tư vấn</a></div>`;
 }
 
 const dash = v => (v==null||v===''||v==='null')?'—':v;
 const MODE_LABEL = {ANONYMOUS:'Ẩn danh', BANK_CUSTOMER:'KH ngân hàng', NEW_PROSPECT:'Prospect', REFERRAL:'Referral', INSURANCE_CUSTOMER:'KH bảo hiểm'};
 const personaName = pid => (BANCA.personas&&BANCA.personas[pid]?BANCA.personas[pid].name:pid)||'—';
+const adviceNextStep = a => {
+  const g=groupOf(a.status);
+  if(g==='ACTIVE') return 'Tiếp tục hoàn thiện tư vấn';
+  if((g==='FOLLOW_UP'||g==='SHARED')&&a.selectedOffer) return 'Tạo bản chào từ phương án đã chọn';
+  if(g==='CONVERTED'&&a.convertedCaseId) return 'Theo dõi Bản chào đã liên kết';
+  return 'Xem lại nội dung tư vấn';
+};
 
 const rowHtml = rows.map(a=>{
   const offer = a.selectedOffer;
@@ -72,22 +83,17 @@ const rowHtml = rows.map(a=>{
   const cust = anon ? '<span class="chip" style="background:#eef0f4;color:var(--ink-500);">Ẩn danh</span>' : dash(a.customerName||a.customerRef);
   const needTxt = (a.primaryNeed && BANCA.needLabel(a.primaryNeed)) ? BANCA.needLabel(a.primaryNeed) : 'Chưa xác định';
   return `<tr>
-    <td><a href="${r}modules/advisory-workspace/index.html?id=${a.id}" style="font-weight:600;color:var(--brand-600);">${a.id}</a>${a.version>1?` <span class="badge badge-version">v${a.version}</span>`:''}</td>
-    <td>${cust}</td>
-    <td><span class="chip" style="background:${anon?'#eef0f4':'var(--brand-100)'};color:${anon?'var(--ink-500)':'var(--brand-700)'};">${MODE_LABEL[a.mode]||'—'}</span></td>
-    <td style="font-size:13px;">${needTxt}</td>
-    <td style="font-size:13px;">${offer?dash(offer.productName)+' · '+dash(offer.packageName):'<span style="color:var(--ink-300);">Chưa chọn</span>'}</td>
-    <td style="font-size:13px;">${offer&&offer.premiumBand?offer.premiumBand+' <span class="help-hint" tabindex="0" title="Ph\u00ed minh h\u1ecda (indicative), ch\u01b0a ph\u1ea3i b\u00e1o gi\u00e1 cam k\u1ebft.">?</span>':'—'}</td>
-    <td>${BANCA.adviceStatusBadge(a.status)}</td>
-    <td style="font-size:12px;">${personaName(a.createdBy)}</td>
+    <td><a href="${r}modules/advisory-workspace/index.html?id=${a.id}" style="font-weight:600;color:var(--brand-600);">${a.id}</a>${a.version>1?` <span class="badge badge-version">v${a.version}</span>`:''}<div class="operational-list__meta">${cust} · ${MODE_LABEL[a.mode]||'—'}</div></td>
+    <td><b>${needTxt}</b><div class="operational-list__meta">${offer?dash(offer.productName)+' · '+dash(offer.packageName):'Chưa chọn phương án'}${offer&&offer.premiumBand?' · '+offer.premiumBand+' <span class="help-hint" tabindex="0" title="Ph\u00ed minh h\u1ecda (indicative), ch\u01b0a ph\u1ea3i b\u00e1o gi\u00e1 cam k\u1ebft.">?</span>':''}</div></td>
+    <td>${BANCA.adviceStatusBadge(a.status)}<div class="operational-list__meta">${adviceNextStep(a)}</div></td>
     <td>${a.convertedCaseId?`<a href="${r}modules/application-workspace/index.html?id=${a.convertedCaseId}" class="chip" style="text-decoration:none;background:var(--teal-100);color:var(--teal-600);">${a.convertedCaseId}</a>`:'<span style="color:var(--ink-300);">—</span>'}</td>
-    <td style="font-size:12px;color:var(--ink-500);">${dash(a.updatedAt)}</td>
-    <td style="white-space:nowrap;">${adviceActions(a)}</td>
+    <td>${dash(a.updatedAt)}<div class="operational-list__meta">Tư vấn viên: ${personaName(a.createdBy)}</div></td>
+    <td class="table-action-cell">${adviceActions(a)}</td>
   </tr>`;
 }).join('');
 
 const listBody = rows.length
-  ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable adv-table"><thead><tr><th>Mã tư vấn</th><th>Khách hàng</th><th>Nguồn</th><th>Nhu cầu</th><th>Gói quan tâm</th><th>Phí minh họa</th><th>Trạng thái</th><th>Tư vấn viên</th><th>Yêu cầu</th><th>Cập nhật</th><th style="text-align:right;">Thao tác</th></tr></thead><tbody>${rowHtml}</tbody></table></div>`
+  ? `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable adv-table operational-list"><thead><tr><th scope="col">Phiên tư vấn & khách hàng</th><th scope="col">Nhu cầu & phương án</th><th scope="col">Trạng thái & việc tiếp theo</th><th scope="col">Bản chào liên kết</th><th scope="col">Cập nhật</th><th scope="col" class="table-action-cell">Hành động</th></tr></thead><tbody>${rowHtml}</tbody></table></div>`
   : `<div class="card"><div class="empty-state" style="padding:28px;">Chưa có phiên tư vấn nào ở nhóm này. Bấm <b>💡 Tư vấn nhanh</b> ở góc trên để bắt đầu một phiên mới — không tạo yêu cầu hay báo giá.</div></div>`;
 
 // Toolbar gọn — nút bắt đầu tư vấn đã có ở thanh CTA phía trên (💡 Tư vấn nhanh), không lặp ở đây.
@@ -101,6 +107,11 @@ const toolbar = `<div style="display:flex;justify-content:space-between;align-it
 window.advSearch=function(){ const v=(document.getElementById('adv-search').value||'').trim(); const u=new URL(location.href); if(v)u.searchParams.set('q',v); else u.searchParams.delete('q'); location.href=u.toString(); };
 window.advDeleteDraft=function(id){ if(confirm('Xoá phiên nháp '+id+'? (chỉ xoá nháp chưa có phương án)')){ try{ localStorage.removeItem('banca_advice_'+id); }catch(e){} const i=(BANCA.adviceSessions||[]).findIndex(a=>a.id===id); if(i>=0)BANCA.adviceSessions.splice(i,1); location.reload(); } };
 
-shell('Tư vấn nhanh','Tư vấn nhanh', toolbar + tabBar + listBody, {startSale:false});
+const pageHeader = BANCA.ui.pageHeader({
+  title:'Tư vấn nhanh',
+  description:'Theo dõi các phiên khám phá nhu cầu, phương án đã chia sẻ và kết quả chuyển bán.',
+  metaHtml:`Hiển thị <b>${rows.length}</b> / ${all.length} phiên`
+});
+shell('Tư vấn nhanh','Tư vấn nhanh', pageHeader + toolbar + tabBar + listBody, {startSale:false,headerActionMode:'QUICK_ADVICE'});
 }
 </script></body></html>

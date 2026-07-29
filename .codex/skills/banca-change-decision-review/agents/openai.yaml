@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca Change Decision Review"
+  short_description: "Phản biện yêu cầu và đề xuất giải pháp đúng"
+  default_prompt: "Use $banca-change-decision-review to challenge this change request and recommend the most appropriate solution."

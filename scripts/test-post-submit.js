@@ -13,6 +13,8 @@ require('../shared/mock/seed/product-schemas.js');
 require('../shared/mock/seed/status-mappings.js');
 require('../shared/mock/seed/quote-version.js');
 require('../shared/mock/seed/case-state-resolver.js');
+// Gate thanh toán cần danh mục phương thức để biết còn cách thu nào khả dụng (§9.2/§17).
+require('../shared/mock/seed/payment-method-config.js');
 const B = global.BANCA;
 B.current = function(){return 'RM-01';};
 

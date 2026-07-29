@@ -1,4 +1,4 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hợp đồng — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=44"></script></head><body><script>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hợp đồng — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=46"></script></head><body><script>
 const p = BANCA.persona(), me = BANCA.current(), r = rel();
 const qs = new URLSearchParams(location.search);
 const view = qs.get('view') || 'list';
@@ -65,7 +65,8 @@ if(p.status!=='ACTIVE'){
    ];
    return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative;">
     <button class="btn btn-primary btn-sm" type="button" onclick="policyOpenDocuments()">Tài liệu & gửi khách</button>
-    ${canClaim?`<button class="btn btn-secondary btn-sm" type="button" onclick="policyDemoToast('Đã mở luồng khai báo tổn thất demo.')">Khai báo tổn thất</button>`:''}
+    ${canClaim?`<button class="btn btn-secondary btn-sm" type="button" onclick="BANCA.ui.postSale.openClaim('${pol.id}','${pol.productId||(pol.id.indexOf('HEALTH')>0?'health':(pol.id.indexOf('PA')>0?'pa':'motor'))}')">Khai báo tổn thất</button>`:''}
+    <button class="btn btn-secondary btn-sm" type="button" onclick="BANCA.ui.postSale.openService('${pol.id}','${pol.productId||(pol.id.indexOf('HEALTH')>0?'health':(pol.id.indexOf('PA')>0?'pa':'motor'))}')">Yêu cầu dịch vụ</button>
     ${canRenew?`<button class="btn btn-secondary btn-sm" type="button" onclick="policyDemoToast('Đã mở luồng tái tục demo.')">Tạo tái tục</button>`:''}
     <button class="btn btn-secondary btn-sm" type="button" onclick="const m=document.getElementById('policy-more-actions');m.style.display=m.style.display==='none'?'block':'none'">Khác ▾</button>
     <div id="policy-more-actions" style="display:none;position:absolute;right:0;top:38px;min-width:260px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(10,25,60,.18);z-index:90;padding:8px;">
@@ -288,45 +289,122 @@ if(p.status!=='ACTIVE'){
    const actionBar = renderDocActionBar(pol.status==='ACTIVE', false);
    const docAuditRows = policyDocEvents().map(ev=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:0px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(ev.timelineText||ev.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(ev.at)} · ${docEsc(ev.by)}</div></div></div>`).join('');
    const historyTree = `<section id="history" class="pc-card" style="scroll-margin-top:90px;"><h2>Dòng thời gian hợp đồng</h2><div id="policy-doc-timeline">${docAuditRows}</div>${(pol.audit||[]).map(a2=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:0px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(a2.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(a2.at)} · ${docEsc(a2.by)}</div></div></div>`).join('') || (docAuditRows?'':'<div style="font-size:12px;color:var(--ink-300);">—</div>')}</section>`;
+   // Quyền lợi ở tầng hợp đồng — loại trừ/điều kiện đặc biệt tách sang khối Điều khoản, không nhồi vào bảng.
    const benefitRows = [
-    ['Gói',pkg.name||pol.package||'—'],
-    ['Quyền lợi nội trú',money(pkg.inpatientLimit)],
-    ['Quyền lợi ngoại trú',pkg.outpatientLimit?money(pkg.outpatientLimit):'Không bao gồm'],
-    ['Nha khoa',pkg.dentalLimit?money(pkg.dentalLimit):'Không bao gồm'],
-    ['Thai sản',pkg.maternityLimit?money(pkg.maternityLimit):'Không bao gồm'],
-    ['Giới hạn/năm',money(pkg.annualLimit)],
-    ['Đồng chi trả',pkg.copayPercent!=null?pkg.copayPercent+'%':'—'],
-    ['Thời hạn',(pkg.termMonths||12)+' tháng'],
-    ['Phạm vi lãnh thổ',pol.territorialScope||pkg.territory||'Việt Nam'],
-    ['Loại trừ chính',(pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm sức khỏe']).join('; ')],
-    ['Điều kiện đặc biệt',(pol.specialConditions||[]).length?pol.specialConditions.join('; '):'Không']
-   ].map(([k,v])=>kv(k,v)).join('');
+    ['Gói', pkg.name||pol.package||'—'],
+    ['Quyền lợi nội trú', money(pkg.inpatientLimit)],
+    ['Quyền lợi ngoại trú', pkg.outpatientLimit?money(pkg.outpatientLimit):'Không bao gồm'],
+    ['Nha khoa', pkg.dentalLimit?money(pkg.dentalLimit):'Không bao gồm'],
+    ['Thai sản', pkg.maternityLimit?money(pkg.maternityLimit):'Không bao gồm'],
+    ['Giới hạn/năm', money(pkg.annualLimit)],
+    ['Đồng chi trả', pkg.copayPercent!=null?pkg.copayPercent+'%':'—', 'Phần khách tự chi trả trên mỗi yêu cầu bồi thường'],
+    ['Thời hạn', (pkg.termMonths||12)+' tháng'],
+    ['Phạm vi lãnh thổ', pol.territorialScope||pkg.territory||'Việt Nam']
+   ];
    const memberBenefits = function(mPkgCode){
     const mp = (BANCA.healthPackages||{})[mPkgCode] || pkg;
-    return [['Nội trú',money(mp.inpatientLimit)],['Ngoại trú',mp.outpatientLimit?money(mp.outpatientLimit):'Không bao gồm'],['Nha khoa',mp.dentalLimit?money(mp.dentalLimit):'Không bao gồm'],['Thai sản',mp.maternityLimit?money(mp.maternityLimit):'Không bao gồm'],['Giới hạn/năm',money(mp.annualLimit)],['Đồng chi trả',mp.copayPercent!=null?mp.copayPercent+'%':'—'],['Thời gian chờ','30 ngày (chung); bệnh đặc biệt 12 tháng'],['Loại trừ',(mp.exclusions||['Theo quy tắc']).slice(0,2).join('; ')]];
+    return [['Nội trú',money(mp.inpatientLimit)],['Ngoại trú',mp.outpatientLimit?money(mp.outpatientLimit):'Không bao gồm'],['Nha khoa',mp.dentalLimit?money(mp.dentalLimit):'Không bao gồm'],['Giới hạn/năm',money(mp.annualLimit)],['Đồng chi trả',mp.copayPercent!=null?mp.copayPercent+'%':'—'],['Thời gian chờ','30 ngày']];
    };
-   const memberRows = members.map(function(m, idx){
+   // Mỗi người được bảo hiểm hiển thị đầy đủ, không gập lại.
+   const insureds = members.map(function(m, idx){
     const gcn = m.certificateNumber || ((pol.certificate||pol.certificateNumber||'GCN')+'-'+String(idx+1).padStart(2,'0'));
     const mPkg = (BANCA.healthPackages||{})[m.package] || pkg;
-    return `<details style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
-      <summary style="cursor:pointer;font-weight:700;font-size:13px;">${idx+1}. ${m.name||'—'} <span class="chip" style="font-size:9px;">${gcn}</span>${m.isChild?' <span class="chip" style="font-size:9px;">trẻ em</span>':''}</summary>
-      <div style="font-size:12px;color:var(--ink-500);margin:6px 0;">DOB ${m.dob||'—'} · ${m.age!=null?m.age+' tuổi':'—'} · Quan hệ ${m.relationship||'—'}${m.identityNumber?' · '+m.identityNumber:''} · Gói ${mPkg.name||m.package||'—'}${m.memberStatus?' · '+m.memberStatus:''}</div>
-      <table style="width:100%;font-size:12px;">${memberBenefits(m.package).map(function(b){return '<tr><td style="color:var(--ink-500);padding:2px 0;">'+b[0]+'</td><td style="text-align:right;font-weight:600;">'+b[1]+'</td></tr>';}).join('')}</table>
-     </details>`;
-   }).join('');
-   // §11 — dùng CHUNG BANCA.ui.policyCockpit (6 tab). Health chỉ truyền khối riêng
-   // của sản phẩm vào overview; thanh toán/timeline/yêu cầu DV/bồi thường/tài liệu là dùng chung.
+    return {
+     name: m.name||'—',
+     badges: [gcn, mPkg.name||m.package||'—'].concat(m.isChild?['Trẻ em']:[]),
+     meta: [m.relationship||'—', m.age!=null?m.age+' tuổi':null, m.dob?'Sinh '+m.dob:null, m.identityNumber||null, m.memberStatus||null].filter(Boolean).join(' · '),
+     facts: memberBenefits(m.package)
+    };
+   });
+   const ov = BANCA.ui.policyOverview(pol, {
+    insureds: insureds,
+    benefits: benefitRows,
+    terms: {
+     exclusions: pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm sức khỏe'],
+     special: pol.specialConditions||[]
+    },
+    parties: [
+     ['Bên mua bảo hiểm', holder.name||'—', (holder.cif||'prospect')+(holder.phone?' · '+holder.phone:'')],
+     ['Số định danh', holder.identityNumber||'—'],
+     ['Nhân viên tư vấn / kênh bán', (BANCA.personas[pol.owner]||{}).name||pol.owner, 'Banca · Janus Bank']
+    ]
+   });
+   // §12 CS Workspace — Health dùng nhánh csWorkspace: RM-first, nghiệp vụ chi tiết đẩy xuống drawer.
+   // Chip quyền lợi (lớp 1) + drawer chi tiết (lớp 2)
+   const benefitChips = [
+    {label:'Nội trú', on: !!pkg.inpatientLimit},
+    {label:'Ngoại trú', on: !!pkg.outpatientLimit},
+    {label:'Nha khoa', on: !!pkg.dentalLimit},
+    {label:'Thai sản', on: !!pkg.maternityLimit}
+   ];
+   const benefitDetailHtml = '<div class="pc-card" style="border:none;padding:0;">'+
+    benefitRows.map(r=>`<div class="pc-kv"><div class="k">${r[0]}</div><div class="v">${r[1]==null||r[1]===''?'—':r[1]}${r[2]?`<span class="note">${r[2]}</span>`:''}</div></div>`).join('')+'</div>';
+   // Thông tin sản phẩm (lớp 2): điều khoản + loại trừ + tài liệu
+   const productInfoHtml =
+    (((pol.exclusions||pkg.exclusions||[]).length)?('<div class="pc-sub-h">Loại trừ</div>'+(pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm sức khỏe']).map(x=>`<div class="pc-excl">✕ ${x}</div>`).join('')):'')+
+    (((pol.specialConditions||[]).length)?('<div class="pc-sub-h">Điều kiện đặc biệt</div>'+(pol.specialConditions||[]).map(x=>`<div class="pc-excl">• ${x}</div>`).join('')):'')+
+    '<div class="pc-sub-h">Tài liệu hợp đồng</div>'+renderDocumentCenter(policyDocs);
+   // Payment summary suy từ billing
+   const _bills = pol.billing||[];
+   const _paidN = _bills.filter(b=>b.status==='PAID').length;
+   const _od = _bills.find(b=>b.status==='OVERDUE');
+   const _next = _bills.find(b=>b.status==='PENDING'||b.status==='DUE'||b.status==='UNPAID');
+   const _paidBill = _bills.find(b=>b.status==='PAID') || paid;
+   const _isInstallment = _bills.length>1;
+   const paymentSummary = {
+    paidPct: _bills.length?Math.round(_paidN/_bills.length*100):(payment.paidAt?100:0),
+    overdueDays: _od?(_od.overdueDays||null):0,
+    installment: _isInstallment?(_paidN+'/'+_bills.length+' kỳ'):null,
+    amount: BANCA.vnd(pol.premium),
+    paidAt: payment.paidAt || _paidBill.date || pol.effectiveFrom || null,
+    method: (BANCA.PAYMENT_INSTRUMENTS && BANCA.PAYMENT_INSTRUMENTS[payment.paymentInstrument] || {}).label || _paidBill.method || 'Chuyển khoản',
+    txn: payment.gatewayTransactionId || payment.gatewayReference || _paidBill.ref || null,
+    nextDue: _next?(_next.dueDate||_next.date||'—'):null,
+    nextAmount: _next?BANCA.vnd(_next.amount):null
+   };
+   const benefitHighlights = [
+    ['Nội trú', money(pkg.inpatientLimit)],
+    ['Ngoại trú', pkg.outpatientLimit?money(pkg.outpatientLimit):'Không'],
+    ['Giới hạn/năm', money(pkg.annualLimit)],
+    ['Đồng chi trả', pkg.copayPercent!=null?pkg.copayPercent+'%':'—']
+   ];
+   const pid = pol.productId||'health';
+   const beneficiary = (pol.beneficiary&&pol.beneficiary.name) ? pol.beneficiary.name+(pol.beneficiary.relationship?' · '+pol.beneficiary.relationship:'') : (srcApp&&srcApp.loanBeneficiary? 'Janus Bank (người thụ hưởng khoản vay)':'Người được bảo hiểm / người thừa kế hợp pháp');
+   const branchName = (BANCA.orgUnitById && BANCA.orgUnitById(pol.branchId||(BANCA.personas[pol.owner]||{}).branchId)||{}).name || (BANCA.personas[pol.owner]||{}).branch || 'CN Janus Bank';
+   const partiesFull = [
+    ['Bên mua bảo hiểm', holder.name||'—', (holder.cif||'prospect')+(holder.phone?' · '+holder.phone:'')],
+    ['Người được bảo hiểm', members.length>1?(members[0].name+' +'+(members.length-1)):(members[0]&&members[0].name||'—')],
+    ['Người thụ hưởng', beneficiary],
+    ['RM phụ trách', (BANCA.personas[pol.owner]||{}).name||pol.owner],
+    ['Chi nhánh', branchName],
+    ['Đối tác phân phối', 'Banca · Janus Bank'],
+    ['Nguồn hợp đồng', pol.appId?('Cấp mới từ '+pol.appId):'Banca'],
+    ['Phụ trách tái tục', (BANCA.personas[pol.owner]||{}).name||pol.owner]
+   ];
+   const quickActions = [
+    {label:'⬇ Download Policy', js:"BANCA.ui.pcOpenDrawer('pc-dw-product')"},
+    {label:'📧 Gửi lại Email', js:"BANCA.toast&&BANCA.toast('Đã gửi lại hợp đồng qua email cho khách (demo).')"},
+    {label:'📱 Gửi lại SMS', js:"BANCA.toast&&BANCA.toast('Đã gửi lại SMS thông báo cho khách (demo).')"},
+    {label:'📝 Yêu cầu sửa đổi', js:`BANCA.ui.postSale.openService('${pol.id}','${pid}')`, disabled: pol.status!=='ACTIVE'},
+    {label:'🧾 Khai báo tổn thất', js:`BANCA.ui.postSale.openClaim('${pol.id}','${pid}')`, disabled: pol.status!=='ACTIVE'}
+   ];
    shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,
    renderDocStyles()+
    BANCA.ui.policyCockpit(pol, {
+    csWorkspace:true,
     productId:'health',
     packageName: pkg.name||pol.package||'—',
     actionBar: actionBar,
-    kpis: [['Số GCN',pol.certificate||'—'],['Hiệu lực',pol.effectiveFrom||'—'],['Hết hiệu lực',pol.effectiveTo||'—'],['Còn lại',remainingDays+' ngày'],['Phí năm',BANCA.vnd(pol.premium)]],
-    overview:{
-     main: card('Người được bảo hiểm',memberRows)+card('Quyền lợi sức khỏe',benefitRows),
-     rail: card('Các bên liên quan',kv('Bên mua bảo hiểm',`${holder.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${holder.cif||'prospect'} · ${holder.phone||''}</span>`)+kv('Số định danh',holder.identityNumber||'—')+kv('Nhân viên tư vấn / kênh bán',`${(BANCA.personas[pol.owner]||{}).name||pol.owner}<br><span style="font-weight:400;color:var(--ink-500);">Banca · Janus Bank</span>`))
-       +card('Tóm tắt giấy chứng nhận',`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--paper);"><div class="label">Giấy chứng nhận sức khỏe</div><div style="font-size:13px;margin-top:6px;"><b>${members.length}</b> người được bảo hiểm theo ${pkg.name||pol.package||'—'} từ ${pol.effectiveFrom||'—'} đến ${pol.effectiveTo||'—'}.</div><div style="font-size:12px;color:var(--ink-500);margin-top:6px;">Nội trú ${money(pkg.inpatientLimit)} · Ngoại trú ${pkg.outpatientLimit?money(pkg.outpatientLimit):'không bao gồm'} · Đồng chi trả ${pkg.copayPercent!=null?pkg.copayPercent+'%':'—'}</div></div>`)
+    kpis: [['Còn hiệu lực',remainingDays+' ngày',(pol.effectiveFrom||'—')+' → '+(pol.effectiveTo||'—')+(pol.appId?' · cấp mới từ '+pol.appId:'')],['Phí năm',BANCA.vnd(pol.premium)],['Nội trú',money(pkg.inpatientLimit)],['Ngoại trú',pkg.outpatientLimit?money(pkg.outpatientLimit):'Không'],['Đồng chi trả',pkg.copayPercent!=null?pkg.copayPercent+'%':'—']],
+    overviewCS: {
+     insureds: insureds,
+     rail: BANCA.ui.policyOverview(pol,{parties:partiesFull}).rail,
+     benefitChips: benefitChips,
+     benefitHighlights: benefitHighlights,
+     benefitDetailHtml: benefitDetailHtml,
+     productInfoHtml: productInfoHtml,
+     paymentSummary: paymentSummary,
+     quickActions: quickActions
     },
     timelineEvents: policyTimelineEvents(pol),
     documentsHtml: renderDocumentCenter(policyDocs)
@@ -351,17 +429,34 @@ if(p.status!=='ACTIVE'){
    const docAuditRows = policyDocEvents().map(ev=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:0px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(ev.timelineText||ev.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(ev.at)} · ${docEsc(ev.by)}</div></div></div>`).join('');
    const historyTree = `<section id="history" class="pc-card" style="scroll-margin-top:90px;"><h2>Dòng thời gian hợp đồng</h2><div id="policy-doc-timeline">${docAuditRows}</div>${(pol.audit||[]).map(a2=>`<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;margin-bottom:12px;"><div style="width:16px;height:16px;border-radius:50%;background:var(--teal-600);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:0px;">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--ink-800);line-height:1.25;">${docEsc(a2.action)}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${docEsc(a2.at)} · ${docEsc(a2.by)}</div></div></div>`).join('') || (docAuditRows?'':'<div style="font-size:12px;color:var(--ink-300);">—</div>')}</section>`;
    const benefitRows = [
-    ['Gói',pkg.name||pol.package||'—'],
+    ['Gói', pkg.name||pol.package||'—'],
     ['Thời hạn', (pkg.termMonths||12)+' tháng'],
-    ['Tử vong do tai nạn',money(pkg.deathSumInsured)],
-    ['Thương tật toàn bộ vĩnh viễn',money(pkg.permanentDisability)],
-    ['Thương tật bộ phận vĩnh viễn',pkg.permanentPartialDisability||'Theo tỷ lệ thương tật'],
-    ['Chi phí y tế',money(pkg.medicalExpenseLimit)],
-    ['Trợ cấp nằm viện/ngày',pkg.dailyHospitalAllowance?BANCA.vnd(pkg.dailyHospitalAllowance):'Không bao gồm'],
-    ['Phạm vi lãnh thổ',pol.territorialScope||pkg.territory||'Việt Nam'],
-    ['Loại trừ chính',(pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm PA']).join('; ')],
-    ['Điều kiện đặc biệt',(pol.specialConditions||[]).length?pol.specialConditions.join('; '):'Không']
-   ].map(([k,v])=>kv(k,v)).join('');
+    ['Tử vong do tai nạn', money(pkg.deathSumInsured)],
+    ['Thương tật toàn bộ vĩnh viễn', money(pkg.permanentDisability)],
+    ['Thương tật bộ phận vĩnh viễn', pkg.permanentPartialDisability||'Theo tỷ lệ thương tật'],
+    ['Chi phí y tế', money(pkg.medicalExpenseLimit)],
+    ['Trợ cấp nằm viện/ngày', pkg.dailyHospitalAllowance?BANCA.vnd(pkg.dailyHospitalAllowance):'Không bao gồm'],
+    ['Phạm vi lãnh thổ', pol.territorialScope||pkg.territory||'Việt Nam']
+   ];
+   const ov = BANCA.ui.policyOverview(pol, {
+    insureds: [{
+     name: insured.name||'—',
+     badges: [pol.certificate||pol.certificateNumber||'—', pkg.name||pol.package||'—'],
+     meta: [insured.relationship||'—', insured.dob?'Sinh '+insured.dob:null, insured.identityNumber||null].filter(Boolean).join(' · '),
+     facts: [['Nhóm nghề nghiệp',occ],['Mã nghề nghiệp',insured.occupationCode||'—'],['Liên hệ',insured.contact||holder.phone||'—'],['Người thụ hưởng',pol.beneficiary||'—']]
+    }],
+    benefits: benefitRows,
+    terms: {
+     exclusions: pol.exclusions||pkg.exclusions||['Theo quy tắc bảo hiểm tai nạn cá nhân'],
+     special: pol.specialConditions||[]
+    },
+    parties: [
+     ['Bên mua bảo hiểm', holder.name||'—', (holder.cif||'prospect')+(holder.phone?' · '+holder.phone:'')],
+     ['Người được bảo hiểm', insured.name||'—', 'Quan hệ: '+(insured.relationship||'—')],
+     ['Người thụ hưởng', pol.beneficiary||'—'],
+     ['Nhân viên tư vấn / kênh bán', (BANCA.personas[pol.owner]||{}).name||pol.owner, 'Banca · Janus Bank']
+    ]
+   });
    // §11 — PA dùng CHUNG policyCockpit. Chỉ khối "Tổng quan" là riêng theo sản phẩm.
    shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,
    renderDocStyles()+
@@ -369,12 +464,8 @@ if(p.status!=='ACTIVE'){
     productId:'pa',
     packageName: pkg.name||pol.package||'—',
     actionBar: actionBar,
-    kpis: [['Số GCN',pol.certificate||'—'],['Hiệu lực',pol.effectiveFrom||'—'],['Hết hiệu lực',pol.effectiveTo||'—'],['Còn lại',remainingDays+' ngày'],['Phí năm',BANCA.vnd(pol.premium)]],
-    overview:{
-     main: card('Quyền lợi bảo hiểm',benefitRows),
-     rail: card('Các bên liên quan',kv('Bên mua bảo hiểm',`${holder.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${holder.cif||'prospect'} · ${holder.phone||''}</span>`)+kv('Người được bảo hiểm',insured.name||'—')+kv('Quan hệ',insured.relationship||'—')+kv('Người thụ hưởng',pol.beneficiary||'—')+kv('Ngày sinh',insured.dob||'—')+kv('Số định danh',insured.identityNumber||'—')+kv('Mã nghề nghiệp',insured.occupationCode||'—')+kv('Nhóm nghề nghiệp',occ)+kv('Liên hệ',insured.contact||holder.phone||'—'))
-       +card('Tóm tắt giấy chứng nhận',`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--paper);"><div class="label">Giấy chứng nhận PA</div><div style="font-size:13px;margin-top:6px;"><b>${insured.name||'—'}</b> được bảo hiểm theo ${pkg.name||pol.package||'—'} từ ${pol.effectiveFrom||'—'} đến ${pol.effectiveTo||'—'}.</div><div style="font-size:12px;color:var(--ink-500);margin-top:6px;">Tử vong ${money(pkg.deathSumInsured)} · Y tế ${money(pkg.medicalExpenseLimit)}</div></div>`)
-    },
+    kpis: [['Còn hiệu lực',remainingDays+' ngày',(pol.effectiveFrom||'—')+' → '+(pol.effectiveTo||'—')+(pol.appId?' · cấp mới từ '+pol.appId:'')],['Phí năm',BANCA.vnd(pol.premium)],['Tử vong do tai nạn',money(pkg.deathSumInsured)],['Chi phí y tế',money(pkg.medicalExpenseLimit)],['Thời hạn',(pkg.termMonths||12)+' tháng']],
+    overview: ov,
     timelineEvents: policyTimelineEvents(pol),
     documentsHtml: renderDocumentCenter(policyDocs)
    })+renderDocScript(policyDocs, cust),{startSale:false});
@@ -414,6 +505,9 @@ if(p.status!=='ACTIVE'){
    ['<b>= Phí thực</b>','<b>'+BANCA.vnd(q.totalPremium)+'</b>']
   ] : [['Phí năm',BANCA.vnd(pol.premium)]];
   const mgP=pol.mortgage;
+  // Chủ xe theo đăng ký — lấy từ dữ liệu hợp đồng/yêu cầu nguồn; KHÔNG mặc định là bên mua.
+  const vehicleOwner = pol.vehicleOwner || (pol.vehicle&&pol.vehicle.owner) || (srcApp&&srcApp.vehicleOwner)
+    || (srcApp&&srcApp.insuredName) || 'Chưa ghi nhận trên hợp đồng';
   const daysLeft = Math.max(0, Math.ceil((new Date(pol.effectiveTo+'T00:00:00')-new Date('2026-07-20T00:00:00'))/86400000));
   const summaryCards = `<div class="card" style="padding:0;margin:10px 0 14px;overflow:hidden;">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);">
@@ -471,37 +565,54 @@ if(p.status!=='ACTIVE'){
         ${pol.ncdTier?`<div style="text-align:right;background:var(--paper-card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;"><div style="font-size:11px;color:var(--ink-300);">BẬC NCD</div><b style="font-size:20px;color:${pol.ncdTier.percent?'var(--teal-600)':'var(--ink-500)'};">${pol.ncdTier.percent}%</b><div style="font-size:11px;color:var(--ink-300);">${pol.ncdTier.yearsNoClaim} năm không claim</div></div>`:''}
       </div>
     </section>
-    <div class="kpi-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:14px;">
-      ${miniCard('Còn hiệu lực',daysLeft+' ngày','Hết hạn '+pol.effectiveTo,daysLeft<=45?'var(--amber-600)':'var(--teal-600)')}
+    <div class="kpi-strip" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px;">
+      ${miniCard('Còn hiệu lực',daysLeft+' ngày',`${pol.effectiveFrom} → ${pol.effectiveTo}${srcApp?' · cấp mới từ '+pol.appId:''}`,daysLeft<=45?'var(--amber-600)':'var(--teal-600)')}
       ${miniCard('Tổng phí / năm',BANCA.vnd(pol.premium),'Đã thu · 1 lần','var(--brand-600)')}
       ${miniCard('Số tiền BH (IDV)',pol.idv?BANCA.vnd(pol.idv):'Theo giá trị xe','Mức trần bồi thường','var(--brand-600)')}
       ${miniCard('Mức khấu trừ',pol.deductible?BANCA.vnd(pol.deductible):'Theo gói','Khách tự chịu / vụ','var(--amber-600)')}
       ${miniCard('NCD',(pol.ncdTier&&pol.ncdTier.percent!=null?pol.ncdTier.percent+'%':'0%'),(pol.ncdTier?pol.ncdTier.yearsNoClaim+' năm không claim':'—'),'var(--teal-600)')}
-      ${commission?miniCard('Hoa hồng tạm tính',BANCA.vnd(commission.amount),'Accrued · sync '+commission.syncAt,'var(--teal-600)'):miniCard('Hoa hồng','Không hiển thị','Theo phân quyền','var(--ink-400)')}
     </div>`;
 
   const motorFeeDetail = `<section class="pc-card"><h2>Breakdown phí (rating)</h2>${feeRows.map(([k,val])=>`<div class="pc-kv"><div class="k">${k}</div><div class="v" style="text-align:right;">${val}</div></div>`).join('')}<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Kỳ đóng: một lần · Hóa đơn VAT: ${pol.vatInvoice||'chưa phát hành'}</div></section>`;
 
-  const motorMain = `
-        <section class="pc-card"><h2>Quyền lợi bảo hiểm</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">${benefitCards}</div></section>
-        <section class="pc-card"><h2>Điều khoản & loại trừ</h2><div style="font-size:12px;color:var(--ink-500);margin-bottom:8px;">Bộ quy tắc: <button class="btn btn-secondary btn-sm" type="button" onclick="policyPreviewDoc('wording-current')">${pol.wordingRef||'QT-BH-VCX-2025'}</button></div>${(pol.exclusions||['Theo quy tắc bảo hiểm chuẩn']).map(x=>`<div style="font-size:12px;color:var(--ink-700);padding:4px 0;">✕ ${x}</div>`).join('')}</section>`;
-
-  const motorRail = `
-        <section class="pc-card"><h2>Định danh & các bên</h2>${sideKv('Số hợp đồng / GCN',pol.id+' · '+pol.certificate)}${sideKv('Nguồn cấp',srcApp?`Cấp mới — <a href="${r}modules/application-workspace/index.html?id=${pol.appId}" style="color:var(--brand-600);">${pol.appId}</a>`:'—')}${sideKv('Bên mua bảo hiểm',`${cust.name||'—'}<br><span style="font-weight:400;color:var(--ink-500);">${cust.cif||'prospect'} · ${BANCA.maskPhone?BANCA.maskPhone(cust.phone):cust.phone||''}</span>`)}${sideKv('Người được BH','Chính chủ (= bên mua)')}${sideKv('Nhân viên tư vấn / kênh bán',`${(BANCA.personas[pol.owner]||{}).name||pol.owner}<br><span style="font-weight:400;color:var(--ink-500);">Banca · Janus Bank</span>`)}</section>
-        ${(()=>{ const d=BANCA.policyDistributionOf?BANCA.policyDistributionOf(pol.id,pol.owner):null; if(!d)return ''; const nm=uid=>uid?`${BANCA.pName(uid)}<br><span style="font-weight:400;color:var(--ink-500);">${BANCA.pLine(uid)}</span>`:'—';
-          return `<section class="pc-card"><h2>Phân phối & người tham gia</h2>
-          ${sideKv('Người giới thiệu', nm(d.referrer))}
-          ${sideKv('Người tư vấn', nm(d.advisor))}
-          ${sideKv('Người phục vụ hiện tại', nm(d.servicingSeller))}
-          ${sideKv('Nguồn / Campaign', `${d.campaign||'—'}`)}
-          ${sideKv('External reference', d.externalRef||'—')}
-          ${sideKv('Ngày ghi nhận hiệu lực', d.effectiveDate||pol.effectiveFrom||'—')}
-          ${d._fallback?'<div style="font-size:11px;color:var(--ink-300);">Chưa có snapshot phân phối — hiển thị theo người phụ trách.</div>':''}
-          <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Nhân viên phụ trách (ở mục Định danh & các bên) & người phục vụ là hai vai trò khác nhau; chuyển phục vụ không đổi người bán.</div></section>`; })()}
-        <section class="pc-card"><h2>Xe & thời hạn</h2>${sideKv('Xe',`${v.brand||''} ${v.model||''} ${v.year||''}`)}${sideKv('Biển số / VIN',`${v.plate||'—'} · ${v.vin||'—'}`)}${sideKv('Số máy / số chỗ',`${v.engineNo||'—'} · ${v.seats||'—'} chỗ`)}${sideKv('Hiệu lực',pol.effectiveFrom+' → '+pol.effectiveTo)}${sideKv('Tình trạng thế chấp',mgP&&mgP.mortgaged?'Có — xe là tài sản bảo đảm':'Không')}</section>
-        <section class="pc-card"><h2>Bên thụ hưởng / NTH</h2><div style="font-size:13px;color:${mgP&&mgP.mortgaged?'var(--amber-600)':'var(--ink-700)'};font-weight:700;">${mgP&&mgP.mortgaged?`${mgP.bank||'—'}${mgP.branch?' · '+mgP.branch:''}`:'Chủ xe (xe không thế chấp)'}</div>${mgP&&mgP.mortgaged?`<div style="font-size:11px;color:var(--ink-500);margin-top:4px;">HĐ tín dụng ${mgP.creditContract||'—'}</div>`:'<div style="font-size:11px;color:var(--ink-500);margin-top:4px;">Không kích hoạt điều khoản thụ hưởng.</div>'}</section>
-        ${commission?`<section class="pc-card"><h2>Hoa hồng</h2>${sideKv('Hoa hồng dự kiến',`<b style="color:var(--teal-600);font-size:16px;">${BANCA.vnd(commission.amount)}</b>`)}${sideKv('Cơ sở tính HH',BANCA.vnd(commission.base))}${sideKv('Tỷ lệ',(commission.rate*100).toFixed(0)+'% · '+pol.package)}${sideKv('Trạng thái',`<span class="badge badge-ready">${commission.stateLabel}</span>`)}<div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Read-only · sync ${commission.syncAt}</div></section>`:''}
-        <section class="pc-card"><h2>Ghi chú vận hành</h2><div style="font-size:12px;color:var(--ink-500);line-height:1.5;">Sales Portal chỉ đọc policy master từ Core. Tái tục = đơn mới; endorsement = đổi nội dung cùng số đơn; hủy = chấm dứt trước hạn.</div></section>`;
+  // Motor dùng CHUNG bố cục Tổng quan như Health/PA — chỉ khác dữ liệu truyền vào.
+  const motorOv = BANCA.ui.policyOverview(pol, {
+    insuredsTitle: 'Đối tượng bảo hiểm',
+    insureds: [{
+      name: `${v.brand||''} ${v.model||''} ${v.year||''}`.trim()||'Xe được bảo hiểm',
+      badges: [v.plate||'—', pol.package||'—'],
+      meta: [v.vin?'VIN '+v.vin:null, v.engineNo?'Số máy '+v.engineNo:null, v.seats?v.seats+' chỗ':null].filter(Boolean).join(' · '),
+      facts: [
+        ['Số tiền bảo hiểm (IDV)', pol.idv?BANCA.vnd(pol.idv):'Theo giá trị xe'],
+        ['Mức khấu trừ', pol.deductible?BANCA.vnd(pol.deductible)+'/vụ':'Theo gói'],
+        ['Mục đích sử dụng', (v.usage||'—')],
+        ['Garage', pol.garage||'Thường'],
+        ['Thế chấp', mgP&&mgP.mortgaged?('Có — '+(mgP.bank||'ngân hàng')):'Không']
+      ]
+    }],
+    benefits: benefitRows.map(([k,val])=>[k,val]),
+    terms: {
+      wordingRef: pol.wordingRef||'QT-BH-VCX-2025',
+      wordingOnClick: "policyPreviewDoc('wording-current')",
+      exclusions: pol.exclusions||['Theo quy tắc bảo hiểm chuẩn']
+    },
+    parties: [
+      ['Bên mua bảo hiểm', cust.name||'—', (cust.cif||'prospect')+' · '+(BANCA.maskPhone?BANCA.maskPhone(cust.phone):cust.phone||'')],
+      ['Chủ xe theo đăng ký', vehicleOwner, 'Chủ xe không bắt buộc trùng bên mua bảo hiểm'],
+      ['Bên thụ hưởng / người nhận tiền bồi thường', mgP&&mgP.mortgaged?`${mgP.bank||'—'}${mgP.branch?' · '+mgP.branch:''}`:'Chủ xe (xe không thế chấp)', mgP&&mgP.mortgaged?('HĐ tín dụng '+(mgP.creditContract||'—')):'Không kích hoạt điều khoản thụ hưởng'],
+      ['Nhân viên tư vấn / kênh bán', (BANCA.personas[pol.owner]||{}).name||pol.owner, 'Banca · Janus Bank']
+    ],
+    railExtra: `${(()=>{ const d=BANCA.policyDistributionOf?BANCA.policyDistributionOf(pol.id,pol.owner):null; if(!d)return ''; const nm=uid=>uid?`${BANCA.pName(uid)}<br><span style="font-weight:400;color:var(--ink-500);">${BANCA.pLine(uid)}</span>`:'—';
+      return `<section class="pc-card"><h2>Phân phối & người tham gia</h2>
+      ${sideKv('Người giới thiệu', nm(d.referrer))}
+      ${sideKv('Người tư vấn', nm(d.advisor))}
+      ${sideKv('Người phục vụ hiện tại', nm(d.servicingSeller))}
+      ${sideKv('Nguồn / Campaign', `${d.campaign||'—'}`)}
+      ${sideKv('Ngày ghi nhận hiệu lực', d.effectiveDate||pol.effectiveFrom||'—')}
+      ${d._fallback?'<div class="pc-mini">Chưa có snapshot phân phối — hiển thị theo người phụ trách.</div>':''}
+      <div class="pc-mini">Nhân viên phụ trách và người phục vụ là hai vai trò khác nhau; chuyển phục vụ không đổi người bán.</div></section>`; })()}
+      ${commission?`<section class="pc-card"><h2>Hoa hồng</h2>${sideKv('Hoa hồng dự kiến',`<b style="color:var(--teal-600);font-size:16px;">${BANCA.vnd(commission.amount)}</b>`)}${sideKv('Cơ sở tính HH',BANCA.vnd(commission.base))}${sideKv('Tỷ lệ',(commission.rate*100).toFixed(0)+'% · '+pol.package)}${sideKv('Trạng thái',`<span class="badge badge-ready">${commission.stateLabel}</span>`)}<div class="pc-mini">Chỉ xem · đồng bộ ${commission.syncAt}</div></section>`:''}`
+  });
 
   shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,
    renderDocStyles()+
@@ -509,7 +620,7 @@ if(p.status!=='ACTIVE'){
     productId:'motor',
     actionBar: actionBar,
     heroHtml: motorHero,
-    overview:{ main: motorMain, rail: motorRail },
+    overview: motorOv,
     paymentExtraHtml: motorFeeDetail,
     timelineEvents: policyTimelineEvents(pol),
     documentsHtml: renderDocumentCenter(policyDocs)
@@ -563,43 +674,51 @@ if(p.status!=='ACTIVE'){
    ${fd.button}
  </div>`;
  const filterBar=searchRow+quickFilters+fd.tags+fd.drawer;
- // ---- Bảng gộp cột: Khách/HĐ | Nhân viên phụ trách | Sản phẩm | Hiệu lực | Phí | Trạng thái | Hành động ----
+ // ---- Bảng vận hành 6 cột; owner/participants là metadata khi xem ngoài SELF. ----
  const bankBadge = `<span class="chip" style="background:var(--brand-100);color:var(--brand-700);font-size:11px;">Janus Bank</span>`;
  const rows=pols.map(x=>{
   const c=BANCA.customerById(x.customerId)||{};
+  const distribution=BANCA.policyDistributionOf?BANCA.policyDistributionOf(x.id,x.owner):{};
   const dLeft=daysTo(x);
   const effTone = x.status!=='ACTIVE'?'var(--ink-300)':dLeft<=45?'var(--amber-600)':'var(--ink-500)';
   const effNote = x.status!=='ACTIVE'?stLabel(x.status):dLeft<=0?'Đã hết hạn':dLeft<=45?('Còn '+dLeft+' ngày'):('Còn '+dLeft+' ngày');
+  const nextStep=x.isNew?'Gửi giấy chứng nhận cho khách hàng':x.renewalStatus==='RENEWAL_DUE'?'Chuẩn bị Bản chào tái tục':x.status==='ACTIVE'?'Theo dõi hiệu lực và quyền lợi':'Xem lý do kết thúc hiệu lực';
+  const ownerMeta=isMgr?`<div class="operational-list__meta">${BANCA.sellerCell(distribution._fallback?null:distribution.referrer,distribution._fallback?null:distribution.advisor,distribution.sellingProducer||x.owner)}</div>`:'';
   return `<tr style="cursor:pointer;" data-policy-id="${x.id}">
-  <td>${BANCA.customerCell(c)}<div style="font-size:11px;color:var(--ink-300);margin-top:2px;"><a href="?view=detail&id=${x.id}" data-policy-link="${x.id}" style="font-weight:600;color:var(--brand-600);text-decoration:none;">${x.id}</a> · GCN ${x.certificate} ${bankBadge}</div>${isMgr&&x.owner!==me?`<div style="font-size:11px;color:var(--ink-300);">${(BANCA.personas[x.owner]||{}).name||x.owner}</div>`:''}</td>
-  <td style="font-size:12px;">${(()=>{const d=BANCA.policyDistributionOf?BANCA.policyDistributionOf(x.id,x.owner):{}; return BANCA.sellerCell(d._fallback?null:d.referrer, d._fallback?null:d.advisor, d.sellingProducer||x.owner);})()}</td>
-  <td style="font-size:12px;">${x.productName} · ${((BANCA.paPackages||{})[x.package]||(BANCA.healthPackages||{})[x.package]||{}).name||x.package}${(x.vehicle&&x.vehicle.plate)?`<div style="font-size:11px;color:var(--ink-300);">${x.vehicle.brand||''} ${x.vehicle.model||''} · ${x.vehicle.plate}</div>`:''}</td>
-  <td style="font-size:11px;">${x.effectiveFrom} → ${x.effectiveTo}<div style="font-size:11px;color:${effTone};font-weight:600;">${effNote}</div></td>
-  <td style="font-size:12px;">${BANCA.vnd(x.premium)}</td>
-  <td>${BANCA.policyBadge(x.status)}${x.renewalStatus==='RENEWAL_DUE'?' <span class="badge badge-conditional">Sắp tái tục</span>':''}${x.isNew?' <span class="badge badge-ready">Mới</span>':''}</td>
-  <td style="white-space:nowrap;" data-no-row-nav="1">${policyActions(x)}</td>
+  <td>${BANCA.customerCell(c)}<div class="operational-list__meta"><a href="?view=detail&id=${x.id}" data-policy-link="${x.id}" style="font-weight:600;color:var(--brand-600);text-decoration:none;">${x.id}</a> · GCN ${x.certificate} ${bankBadge}</div>${ownerMeta}</td>
+  <td>${x.productName} · ${((BANCA.paPackages||{})[x.package]||(BANCA.healthPackages||{})[x.package]||{}).name||x.package}${(x.vehicle&&x.vehicle.plate)?`<div class="operational-list__meta">${x.vehicle.brand||''} ${x.vehicle.model||''} · ${x.vehicle.plate}</div>`:''}</td>
+  <td>${BANCA.policyBadge(x.status)}${x.renewalStatus==='RENEWAL_DUE'?' <span class="badge badge-conditional">Sắp tái tục</span>':''}${x.isNew?' <span class="badge badge-ready">Mới</span>':''}<div class="operational-list__meta">${nextStep}</div></td>
+  <td>${x.effectiveFrom} → ${x.effectiveTo}<div class="operational-list__meta" style="color:${effTone};font-weight:600;">${effNote}</div></td>
+  <td class="op-money">${BANCA.vnd(x.premium)}</td>
+  <td class="table-action-cell" data-no-row-nav="1">${policyActions(x)}</td>
  </tr>`;}).join('');
- // Action chuẩn hóa theo trạng thái: mỗi dòng 1 action CHÍNH + Chi tiết phụ.
+ // Action chuẩn hóa theo trạng thái: tối đa một action chính; ID là link Chi tiết.
  function policyActions(x){
-   const detail=`<a class="btn btn-secondary btn-sm" href="?view=detail&id=${x.id}">Chi tiết</a>`;
+   const claim=`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();BANCA.ui.postSale.openClaim('${x.id}','${x.productId||'motor'}')">Khai báo tổn thất</button>`;
+   const more=html=>html?`<details class="table-action-more"><summary class="btn btn-secondary btn-sm" aria-label="Các hành động khác">Khác</summary><div class="table-action-more__menu">${html}</div></details>`:'';
+   if(x.isNew) return `<div class="table-action-stack"><button class="btn btn-primary btn-sm" onclick="alert('Gửi GCN cho khách (demo)')">Gửi GCN</button>${more(x.status==='ACTIVE'?claim:'')}</div>`;
    if(x.renewalStatus==='RENEWAL_DUE'){
      const renew = x.renewalDraftId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="alert('Tạo yêu cầu tái tục (demo)')">Tái tục</button>`;
-     return renew+' '+detail;
+     return `<div class="table-action-stack">${renew}${more(x.status==='ACTIVE'?claim:'')}</div>`;
    }
-   if(x.isNew) return `<button class="btn btn-primary btn-sm" onclick="alert('Gửi GCN cho khách (demo)')">Gửi GCN</button> `+detail;
-   if(x.status!=='ACTIVE') return detail+` <button class="btn btn-secondary btn-sm" onclick="alert('Lý do hủy: ${(x.cancelReason||'Khách yêu cầu chấm dứt trước hạn').replace(/'/g,'')} (demo)')">Xem lý do hủy</button>`;
+   if(x.status!=='ACTIVE') return `<div class="table-action-stack">${more(`<button class="btn btn-secondary btn-sm" onclick="alert('Lý do hủy: ${(x.cancelReason||'Khách yêu cầu chấm dứt trước hạn').replace(/'/g,'')} (demo)')">Xem lý do hủy</button>`)}</div>`;
    // Đang hiệu lực
-   return detail+` <button class="btn btn-secondary btn-sm" onclick="alert('Tạo yêu cầu bồi thường (demo)')">Tạo bồi thường</button>`;
+   return `<div class="table-action-stack"><button class="btn btn-primary btn-sm" onclick="alert('Tạo yêu cầu bồi thường (demo)')">Tạo bồi thường</button></div>`;
  }
  const scopeLabelOf=s=>({SELF:'Của tôi',TEAM:'Đội nhóm',BRANCH:'Chi nhánh',REGION:'Khu vực'}[s]||s);
  // Dùng chung DataScopeSelector (đồng bộ với danh sách Bản chào) — không tự dựng scope tab riêng.
  const scopeBar = `<div style="margin-bottom:12px;">${BANCA.ui.dataScopeSelector(me, fScope, qs.get('unit'), r)}</div>`;
+ const pageHeader = BANCA.ui.pageHeader({
+  title:'Hợp đồng',
+  description:'Quản lý hợp đồng đã phát hành, hiệu lực và các kỳ tái tục.',
+  metaHtml:`Hiển thị <b>${pols.length}</b> / ${all.length} hợp đồng · phạm vi <b>${scopeLabelOf(fScope)}</b>`
+ });
  shell('Hợp đồng','Hợp đồng',
- scopeBar+`
- ${BANCA.uxListHeader('Danh sách hợp đồng','Theo dõi hợp đồng đã phát hành, tái tục và hiệu lực',`Hiển thị <b>${pols.length}</b> / ${all.length} hợp đồng · phạm vi <b>${scopeLabelOf(fScope)}</b>`,filterBar)}
- ${pols.length?`<div class="card" style="padding:0;"><table class="dtable"><thead><tr><th>Khách hàng / Hợp đồng</th><th>Nhân viên phụ trách</th><th>Sản phẩm</th><th>Hiệu lực</th><th>Phí</th><th>Trạng thái</th><th>Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>`
+ pageHeader+scopeBar+`
+ ${filterBar}
+ ${pols.length?`<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable operational-list"><thead><tr><th scope="col">Khách hàng & hợp đồng</th><th scope="col">Sản phẩm</th><th scope="col">Trạng thái & việc tiếp theo</th><th scope="col">Hiệu lực</th><th scope="col" class="op-money">Phí</th><th scope="col" class="table-action-cell">Hành động</th></tr></thead><tbody>${rows}</tbody></table></div>`
   :`<div class="card"><div class="empty-state">Không có hợp đồng khớp bộ lọc. <a href="?">Xóa bộ lọc</a></div></div>`}
- `);
+ `,{headerActionMode:'POLICIES'});
  setTimeout(function(){
   document.addEventListener('click', function(ev){
    if(ev.target.closest('[data-no-row-nav]')) return;

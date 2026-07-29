@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca Change Impact Gate"
+  short_description: "Đánh giá tác động trước mọi thay đổi hệ thống"
+  default_prompt: "Use $banca-change-impact-gate to assess the impact of this proposed system change before implementation."

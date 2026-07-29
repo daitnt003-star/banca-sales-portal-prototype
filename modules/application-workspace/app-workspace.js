@@ -21,8 +21,15 @@ if(isNew){
   if(fromAdvice){
    sourceAdvice = (BANCA.adviceById && BANCA.adviceById(adviceId)) || null;
    const off = sourceAdvice && sourceAdvice.selectedOffer || {};
-   ctx = { mode:'ADVICE', customerId:(sourceAdvice&&sourceAdvice.customerRef)||null, customerName:(sourceAdvice&&sourceAdvice.customerName)||null,
+   // Ngân hàng đã truyền ngữ cảnh khách hàng khi mở phiên tư vấn → bản chào điền sẵn
+   // khách hàng, ngữ cảnh ngân hàng và ĐÚNG mã gói đã chọn ở tư vấn nhanh.
+   const advPkgCode = (BANCA.adviceSelection && BANCA.adviceSelection.productPackageCode)
+     ? BANCA.adviceSelection.productPackageCode(off.productRef, off.packageRef || qs.get('pkg'))
+     : null;
+   ctx = { mode:'ADVICE', customerId:(sourceAdvice&&sourceAdvice.customerRef)||qs.get('customer')||null, customerName:(sourceAdvice&&sourceAdvice.customerName)||null,
      productId: off.productRef||'motor', productName: off.productName||'Bảo hiểm vật chất xe', packageName: off.packageName||null,
+     packageCode: advPkgCode,
+     bankingContext: (sourceAdvice&&sourceAdvice.bankingContext)||qs.get('ctx')||null,
      sourceAdviceId:adviceId, sourceAdviceVersion:(sourceAdvice&&sourceAdvice.version)||1,
      adviceNeed:(sourceAdvice&&sourceAdvice.primaryNeed)||null, adviceBudget:(sourceAdvice&&sourceAdvice.budgetBand)||null,
      adviceNote:(sourceAdvice&&sourceAdvice.advisorNote)||null, adviceSessionId:adviceId,
@@ -62,7 +69,8 @@ if(isNew){
  const firstStage = rp ? (ctx.productId==='motor'?'RISK_OBJECT':'INSURED_PARTY') : 'CUSTOMER_INFO';
  app = { id:'DRAFT-2026-NEW', submissionState:'NOT_SUBMITTED', owner:me,
    customerId:ctx.customerId||null, customerName:ctx.customerName||null,
-   productId:ctx.productId||'motor', productName:prodRec.name||ctx.productName, package:ctx.packageName||null,
+   productId:ctx.productId||'motor', productName:prodRec.name||ctx.productName, package:ctx.packageCode||ctx.packageName||null,
+   bankingContext:ctx.bankingContext||null,
    currentStage: qs.get('step')||firstStage, progress:rp?55:12, warnings:[], updatedAt:'vừa tạo',
    source: ctx.sourceAdviceId?'ADVICE':(ctx.mode||'BANK_CUSTOMER'),
    vehicle: ctx.productId==='motor'&&rp&&rp.vehicle?Object.assign({value:rp.idv}, rp.vehicle):null,
@@ -263,6 +271,9 @@ const ageOnDate = function(dob, eff){
 };
 const paPkg = code => (BANCA.paPackages||{})[code] || {};
 const paPkgName = code => (paPkg(code).name || code || '—');
+const resolvePackageCode = (a, extras) => BANCA.offer&&BANCA.offer.resolvePackageCode
+ ? BANCA.offer.resolvePackageCode(a, extras)
+ : ((extras||[]).find(Boolean)||a.packageCode||a.package||a.selectedPackageId||null);
 const paBenefitRows = function(code){
  const pk=paPkg(code);
  return [
@@ -275,6 +286,33 @@ const paBenefitRows = function(code){
 };
 const healthPkg = code => (BANCA.healthPackages||{})[code] || {};
 const healthPkgName = code => (healthPkg(code).name || code || '—');
+
+// §corrective §3 — Phân cấp gói: gói ĐÃ CHỌN là primary (hiện đầy đủ ở trên);
+// các phương án khác thu gọn sau CTA "Xem phương án khác / thay đổi gói" (secondary disclosure).
+// KHÔNG hiển thị nhiều gói ngang hàng mặc định. Dùng <details>/<summary> (accessible, giữ focus).
+// cardsArr: [{isSel, html}]. gridCols: số cột lưới cho phương án khác.
+function renderPackageChoice(cardsArr, gridCols, opts){
+ opts = opts || {};
+ const cols = gridCols || 3;
+ const sel = cardsArr.find(c=>c.isSel);
+ const alts = cardsArr.filter(c=>!c.isSel);
+ const altGrid = `<div class="kpi-row" style="grid-template-columns:repeat(${cols},1fr);margin-top:10px;">${alts.map(c=>c.html).join('')}</div>`;
+ if(!sel){
+  // Chưa chọn gói → chưa có "gói đã chọn" để làm primary; mở danh sách để chọn.
+  return `<div class="kpi-row" style="grid-template-columns:repeat(${cols},1fr);">${alts.map(c=>c.html).join('')}</div>`;
+ }
+ // Gói đã chọn = primary summary/card (full-width). Alternatives sau CTA.
+ return `<div class="section-title"><h2>Phương án đã chọn</h2></div><div class="pkg-primary" style="margin-bottom:12px;">${sel.html}</div>`
+   + (alts.length? `<details class="pkg-alternatives" style="margin-bottom:4px;">
+       <summary style="cursor:pointer;font-weight:700;color:var(--brand-600);font-size:13px;padding:6px 0;">${opts.ctaLabel||'Xem phương án khác / thay đổi gói'} (${alts.length})</summary>
+       ${altGrid}
+      </details>` : '');
+}
+function productChangeAction(){
+ const entryLocked=!!((BANCA.ENTRY_MODES[entryMode]||{}).productLocked)||!!app.renewalPolicyRef||!!app.productLocked;
+ const editable=app.submissionState!=='SUBMITTED'&&!readOnly&&caps.includes('can_quote')&&!entryLocked;
+ return editable?`<div style="text-align:right;"><a class="btn btn-secondary btn-sm" href="?id=${app.id}&step=CUSTOMER_INFO${isNew?'&new=1':''}">Đổi sản phẩm</a></div>`:'';
+}
 const healthMembersOf = function(a){
  const c=BANCA.customerById(a.customerId)||{};
  const eff=a.effectiveDate||dateOnly(new Date().toISOString());
@@ -482,13 +520,96 @@ if(app.submissionState==='NOT_SUBMITTED'){
  let curIdx = steps.findIndex(s=>s.id===reqStep); if(curIdx<0) curIdx=0;
  const cur = steps[curIdx];
  const doneIdx = steps.findIndex(s=>s.id===app.currentStage);
+ const quoteVersionEsc = (BANCA.ui&&BANCA.ui._esc) ? BANCA.ui._esc : function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); };
+ function quoteVersionStatusLabel(status){
+  return {DRAFT:'Đang soạn',CURRENT:'Đang soạn',APPROVED:'Đã duyệt',SUPERSEDED:'Đã thay thế'}[String(status||'').toUpperCase()] || 'Đang soạn';
+ }
+ function quoteVersionModel(a){
+  const canonical=Array.isArray(a.quoteVersions)&&a.quoteVersions.length ? a.quoteVersions : null;
+  const legacy=(!canonical&&a.quote&&Array.isArray(a.quote.versions)&&a.quote.versions.length) ? a.quote.versions : null;
+  let versions=(canonical||legacy||[]).map(function(v,idx){
+   const version=Number(v.version||v.v||idx+1);
+   const canonicalActive=canonical&&v.id===a.activeQuoteVersionId;
+   const legacyActive=!canonical&&(String(v.status||'').toUpperCase()==='CURRENT'||version===Number((a.quote||{}).version));
+   return {
+    id:v.id||('LEGACY-V'+version), version:version,
+    status:String(v.status||((canonicalActive||legacyActive)?'DRAFT':'SUPERSEDED')).toUpperCase(),
+    premium:v.premium!=null?v.premium:((canonicalActive||legacyActive)&&a.quote?(a.quote.totalPremium||a.quote.adjustedPremium):null),
+    at:v.ratedAt||v.createdAt||v.approvedAt||v.supersededAt||'—',
+    by:v.createdBy||v.ratedBy||a.owner||'—',
+    reason:v.reRateReason||null,
+    active:!!(canonicalActive||legacyActive)
+   };
+  });
+  if(!versions.length&&a.quote){
+   versions=[{id:'LEGACY-V'+(a.quote.version||1),version:Number(a.quote.version||1),status:'DRAFT',premium:a.quote.totalPremium||a.quote.adjustedPremium||a.quote.premium||null,at:a.quote.ratedAt||'—',by:a.owner||'—',reason:null,active:true}];
+  }
+  if(versions.length&&!versions.some(function(v){return v.active;})){
+   versions.slice().sort(function(x,y){return y.version-x.version;})[0].active=true;
+  }
+  versions.sort(function(x,y){return y.version-x.version;});
+  return {versions:versions,active:versions.find(function(v){return v.active;})||null,canonical:!!canonical};
+ }
+ const quoteVersionVM=quoteVersionModel(app);
+ function quoteVersionOption(v){
+  const suffix=v.active?' · Hiện tại':'';
+  return 'Phiên bản V'+v.version+' · '+quoteVersionStatusLabel(v.status)+suffix;
+ }
+ function quoteVersionControl(){
+  if(!app.quote||!quoteVersionVM.active) return '';
+  if(quoteVersionVM.versions.length===1) return `<span class="badge badge-version">Phiên bản V${quoteVersionEsc(quoteVersionVM.active.version)}</span>`;
+  return `<label style="display:flex;flex:1 1 100%;flex-direction:column;">
+   <span>Phiên bản</span>
+   <select id="quote-version-select" aria-label="Chọn phiên bản Bản chào" onchange="previewQuoteVersion(this.value)" style="min-width:calc(var(--space-4xl) * 4);max-width:100%;">
+    ${quoteVersionVM.versions.map(function(v){return `<option value="${quoteVersionEsc(v.id)}" ${v.active?'selected':''}>${quoteVersionEsc(quoteVersionOption(v))}</option>`;}).join('')}
+   </select>
+  </label>`;
+ }
+ function rerateReason(){
+  const active=quoteVersionVM.active||{};
+  const fromWarning=(app.warnings||[]).concat(app.warningFlags||[]).find(function(w){return w&&typeof w==='object'&&(w.code==='QUOTE_NEED_RERATE'||w.type==='QUOTE_NEED_RERATE');});
+  return active.reason||app.reRateReason||(fromWarning&&(fromWarning.reason||fromWarning.message))||null;
+ }
+ function needsRerateNotice(){
+  if(!app.quote) return false;
+  const flags=(app.warnings||[]).concat(app.warningFlags||[]).map(function(w){return typeof w==='string'?w:(w&&(w.code||w.type));});
+  const quoteState=BANCA.quoteStatus?BANCA.quoteStatus(app.quote,null):app.quote.quoteStatus;
+  const canonicalDraftAfterSuperseded=quoteVersionVM.canonical&&quoteVersionVM.active&&quoteVersionVM.active.status==='DRAFT'&&quoteVersionVM.versions.some(function(v){return v.status==='SUPERSEDED';});
+  return flags.indexOf('QUOTE_NEED_RERATE')>=0||canonicalDraftAfterSuperseded||['STALE','EXPIRED'].includes(quoteState);
+ }
+ function rerateNotice(){
+  if(!needsRerateNotice()) return '';
+  const reason=rerateReason();
+  const body=reason
+   ? `Dữ liệu ảnh hưởng phí đã thay đổi: ${quoteVersionEsc(reason)}. Phiên bản hiện tại chưa được duyệt nên thanh toán đang tạm khóa.`
+   : 'Dữ liệu ảnh hưởng phí đã thay đổi. Phiên bản hiện tại chưa được duyệt nên thanh toán đang tạm khóa.';
+  const next=readOnly?'Liên hệ người phụ trách để tính phí lại và gửi duyệt.':'Tính phí lại để cập nhật phí và tiếp tục quy trình duyệt.';
+  const action=(!readOnly&&caps.includes('can_quote'))
+   ? (cur.id==='PACKAGE_AND_QUOTE'
+      ? '<button class="btn btn-primary btn-sm" id="header-rerate-btn" onclick="rerate()">Tính phí lại</button>'
+      : `<a class="btn btn-primary btn-sm" href="?id=${quoteVersionEsc(app.id)}&step=PACKAGE_AND_QUOTE${isNew?'&new=1':''}">Tính phí lại</a>`)
+   : '';
+  return `<div class="alert2 warn" id="quote-rerate-notice" style="margin-bottom:var(--space-md);">
+   <div>
+    <div><b>Bản chào cần tính phí lại</b><div style="font-size:var(--text-sm);margin-top:var(--space-2xs);">${body}</div><div style="font-size:var(--text-xs);margin-top:var(--space-2xs);">${next}</div></div>${action}
+   </div>
+  </div>`;
+ }
+ function quoteVersionPreview(){
+  if(quoteVersionVM.versions.length<2) return '';
+  return `<div id="quote-version-preview" class="card" hidden style="padding:var(--space-sm);margin-bottom:var(--space-md);"></div>`;
+ }
 
- const stepLink = (s,i)=>{
-  const done = doneIdx>=0 && i < doneIdx;
-  const active = i===curIdx;
-  return `<a href="?id=${app.id}&step=${s.id}${isNew?'&new=1':''}" style="text-decoration:none;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;${active?'background:var(--brand-600);color:#fff;font-weight:600;':done?'background:var(--teal-100);color:var(--teal-600);':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}"><span style="width:17px;height:17px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;${active?'background:rgba(255,255,255,.25);':done?'background:var(--teal-600);color:#fff;':'background:var(--line);'}">${done?'✓':i+1}</span>${s.label}</a>`;
- };
- const stepper = `<div style="display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;">${steps.map(stepLink).join('')}</div>`;
+ const stepper = BANCA.ui.progressStepper(steps.map(function(s,i){
+  const done=doneIdx>=0&&i<doneIdx;
+  const active=i===curIdx;
+  return {
+   id:s.id,label:s.label,ordinal:i+1,
+   href:'?id='+encodeURIComponent(app.id)+'&step='+encodeURIComponent(s.id)+(isNew?'&new=1':''),
+   state:active?'current':done?'complete':'available',
+   selected:active
+  };
+ }),{ariaLabel:'Tiến trình tạo Bản chào',currentTone:'brand',className:'progress-stepper--draft'});
 
  const input=(l,v,ro,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">${l}${ro?' <span class="chip" style="font-size:9px;">Ngân hàng</span>':''}</label><input value="${v==null?'':v}" ${ro||readOnly?'readonly style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink-500);"':'style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;" onblur="autosave()"'}>${extra?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${extra}</div>`:''}</div>`;
  const inputId=(id,l,v,extra)=>`<div class="field" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--ink-500);display:block;margin-bottom:2px;">${l}</label><input id="${id}" value="${v==null?'':v}" ${readOnly?'readonly':''} style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;" onblur="autosave()">${extra?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${extra}</div>`:''}</div>`;
@@ -505,6 +626,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
  const buyerInsuredToggle = (checked, opts) => { opts=opts||{}; return `<label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ink-700);margin-bottom:12px;"><input type="checkbox" ${checked?'checked':''} ${opts.disabled?'disabled':''}${opts.onchange?` onchange="${opts.onchange}"`:''}> ${opts.label||'Bên mua đồng thời là người được bảo hiểm chính'}</label>`; };
 
  let stepBody='';
+ let reviewSubmitAction='';
  if(cur.id==='OFFER_CONTEXT'){
   // §2 — Part A ngữ cảnh (bank prefill) + Part B recommendation tới cấp package. Deep-link/resume qua ?step=OFFER_CONTEXT.
   const nextStage = (steps.find(s=>s.id!=='OFFER_CONTEXT')||{id:'CUSTOMER_INFO'}).id;
@@ -655,8 +777,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const occ = (BANCA.paOccupationClasses||{})[app.occupationClass||'CLASS_1']||{};
   const eligibilityTone = occ.eligibility==='BLOCKED'?'danger':(occ.eligibility==='REFERRED'?'warn':'info');
   const eligibilityText = occ.eligibility==='BLOCKED'?'Không đủ điều kiện STP do nhóm nghề bị loại trừ.':(occ.eligibility==='REFERRED'?'Cần chuyển thẩm định do nhóm nghề rủi ro.':'Đủ điều kiện STP theo nhóm nghề.');
-  stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Người được bảo hiểm (Bảo hiểm tai nạn cá nhân) — journey riêng, không dùng lại field/tài liệu xe.</div>
-   <div class="card" style="padding:16px;">
+  stepBody = `<div class="card" style="padding:16px;">
     <div class="label" style="margin-bottom:10px;">Thông tin người được bảo hiểm</div>
     ${buyerInsuredToggle(buyerIsInsured, {disabled:readOnly, onchange:`paSetField('${app.id}','buyerIsInsured',this.checked)`})}
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
@@ -681,25 +802,25 @@ if(app.submissionState==='NOT_SUBMITTED'){
  } else if(cur.id==='PACKAGE_AND_QUOTE' && BANCA.journeyStageComponent(app.productId,'PACKAGE_AND_QUOTE')==='healthPackage'){
   const unit = healthCurUnit(app);
   const curUnitId = unit ? unit.insuredUnitId : null;
-  const sel = unit ? unit.package : null;
+  const sel = resolvePackageCode(app, unit ? [unit.package] : []);
   const inactive = unit && unit.active===false;
   const cards = Object.values(BANCA.healthPackages||{}).map(function(pk){
     const rt = unit && unit.age!=null ? BANCA.rateHealth({packageCode:pk.code, members:[{name:unit.name, age:unit.age, relationship:unit.relationship}]}) : null;
     const isSel = sel===pk.code;
     const benefits = healthBenefitRows(pk.code).map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><b style="text-align:right;">${v}</b></div>`).join('');
-    return `<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
+    return {isSel, html:`<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
      <div style="display:flex;justify-content:space-between;"><b style="font-size:13px;">${pk.name}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
      <div style="font-size:11px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
      <div style="font-size:11px;color:var(--ink-300);">Thời hạn ${(pk.termMonths||12)} tháng · Phạm vi ${pk.territory||'Việt Nam'}</div>
-     <div style="margin-top:8px;">${benefits}</div>
-     <div style="font-size:11px;color:var(--ink-500);margin-top:8px;">Loại trừ chính: ${(pk.exclusions||[]).slice(0,2).join('; ')}</div>
+     <div class="label" style="margin-top:var(--space-sm);">Quyền lợi và hạn mức</div><div style="margin-top:var(--space-xs);">${benefits}</div>
+     <div class="label" style="margin-top:var(--space-sm);">Điều khoản và loại trừ</div><div class="oc-reason">${(pk.exclusions||[]).join('; ')}</div>
      <div style="font-size:14px;font-weight:700;color:var(--brand-600);margin-top:6px;">${rt?BANCA.vnd(rt.totalPremium):'—'}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (phí thành viên)</span></div>
      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
       ${!readOnly&&!inactive?`<button class="btn ${isSel?'btn-secondary':'btn-primary'} btn-sm" onclick="healthUnitPickPackage('${app.id}','${curUnitId}','${pk.code}')" ${isSel?'disabled':''}>${isSel?'Đang chọn':'Chọn cho thành viên này'}</button>`:''}
       <button class="btn btn-secondary btn-sm" onclick="showHealthPackageDetail('${pk.code}')">Xem quyền lợi chi tiết</button>
      </div>
-    </div>`;
-  }).join('');
+    </div>`};
+  });
   const fam = BANCA.healthFamilyRating(app);
   const famRows = fam.lines.map(function(l){return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${l.name} · ${healthPkgName(l.package)}</span><b>${l.eligible?BANCA.vnd(l.premium):'—'}</b></div>`;}).join('');
   const famBlock = `<div class="card" style="padding:14px;">
@@ -732,13 +853,12 @@ if(app.submissionState==='NOT_SUBMITTED'){
      <button class="btn btn-secondary btn-sm" onclick="showHealthCompare()">So sánh gói</button>
      <button class="btn btn-secondary btn-sm" onclick="healthApplyPackageToAll('${app.id}','${sel}')">Áp dụng gói này cho thành viên đủ điều kiện</button>
     </div>` : `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="showHealthCompare()">So sánh gói</button></div>`;
-  const main = `<div class="alert2 info" style="margin-bottom:12px;">Gói Bảo hiểm sức khỏe theo từng thành viên (${(BANCA.journeyFor('health').packageSchemaId)}) — packageMode PER_MEMBER, phí tổng hợp sau (PER_MEMBER_THEN_AGGREGATE).</div>
-   ${header}${applyAll}
-   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">${cards}</div>${famBlock}${beneBlock}`;
+  const main = `${productChangeAction()}${header}${applyAll}
+   ${renderPackageChoice(cards,3,{ctaLabel:'Xem gói khác / đổi gói cho thành viên này', emptyHint:'Chọn gói sức khỏe cho thành viên này — có thể so sánh các phương án.'})}${famBlock}${beneBlock}`;
   stepBody = healthWithNav(app, curUnitId, 'PACKAGE_AND_QUOTE', main);
  } else if(cur.id==='PACKAGE_AND_QUOTE' && BANCA.journeyStageComponent(app.productId,'PACKAGE_AND_QUOTE')==='paPackage'){
   // P0.5 — PA package & báo giá (ratePA). Dispatch theo component id trong registry (không hard-code productId).
-  const sel = app.package || null;
+  const sel = resolvePackageCode(app);
   const cards = Object.values(BANCA.paPackages).map(function(pk){
     const c0=BANCA.customerById(app.customerId)||{};
     const calcAge=ageOnDate((app.buyerIsInsured!==false)?c0.dob:app.insuredDob, app.effectiveDate||dateOnly(new Date().toISOString()));
@@ -746,28 +866,44 @@ if(app.submissionState==='NOT_SUBMITTED'){
     const isSel = sel===pk.code;
     const prem = rt&&!rt.ineligible ? BANCA.vnd(rt.totalPremium) : '—';
     const benefits = paBenefitRows(pk.code).map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:2px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><b style="text-align:right;">${v}</b></div>`).join('');
-    return `<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
+    return {isSel, html:`<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
      <div style="display:flex;justify-content:space-between;"><b style="font-size:13px;">${pk.name}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
      <div style="font-size:11px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
      <div style="font-size:11px;color:var(--ink-300);">Thời hạn ${(pk.termMonths||12)} tháng · Phạm vi ${pk.territory||'Việt Nam'}</div>
-     <div style="margin-top:8px;">${benefits}</div>
-     <div style="font-size:11px;color:var(--ink-500);margin-top:8px;">Loại trừ chính: ${(pk.exclusions||[]).slice(0,2).join('; ')}</div>
+     <div class="label" style="margin-top:var(--space-sm);">Quyền lợi và hạn mức</div><div style="margin-top:var(--space-xs);">${benefits}</div>
+     <div class="label" style="margin-top:var(--space-sm);">Điều khoản và loại trừ</div><div class="oc-reason">${(pk.exclusions||[]).join('; ')}</div>
      <div style="font-size:14px;font-weight:700;color:var(--brand-600);margin-top:6px;">${prem}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (phí dự kiến)</span></div>
      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
       ${!readOnly?`<button class="btn ${isSel?'btn-secondary':'btn-primary'} btn-sm" onclick="paPickPackage('${app.id}','${pk.code}')" ${isSel?'disabled':''}>${isSel?'Đang chọn':'Chọn gói'}</button>`:''}
       <button class="btn btn-secondary btn-sm" onclick="showPaPackageDetail('${pk.code}')">Xem quyền lợi chi tiết</button>
      </div>
-    </div>`;
-  }).join('');
+    </div>`};
+  });
   const q = app.quote;
+  const selectedPa=sel&&BANCA.paPackages[sel];
+  const selectedPaRate=selectedPa?BANCA.ratePA({packageCode:sel,sumInsured:selectedPa.sumInsured,age:app.insuredAge||30,occupationClass:app.occupationClass||'CLASS_1'}):null;
+  const selectedPaValidation=selectedPa?BANCA.validatePA({age:app.insuredAge||30,occupationClass:app.occupationClass||'CLASS_1',sumInsured:selectedPa.sumInsured,riskAnswers:app.riskAnswers||{},buyerIsInsured:app.buyerIsInsured}):null;
+  const paReferral=selectedPaValidation&&selectedPaValidation.warnings&&selectedPaValidation.warnings.length;
+  const paFeeDetail=selectedPaRate?`<div class="card" style="padding:var(--space-md);margin-top:var(--space-md);">
+    <div class="label">Chi tiết phí</div>
+    <div class="sos-line"><span>Phí cơ bản</span><span>${BANCA.vnd(selectedPaRate.base)}</span></div>
+    ${(selectedPaRate.lines||[]).map(function(l){return `<div class="sos-line"><span>${l.label}</span><span>${l.amount>=0?'+':''}${BANCA.vnd(l.amount)}</span></div>`;}).join('')}
+    <div class="sos-line"><span>Thuế</span><span>${BANCA.vnd(selectedPaRate.vatAmount)}</span></div>
+    <div class="sos-total"><span>Phí sau khai báo rủi ro</span><b>${BANCA.vnd(selectedPaRate.totalPremium)}</b></div>
+   </div>`:'';
+  const paRiskImpact=selectedPaValidation?`<div class="card" style="padding:var(--space-md);margin-top:var(--space-md);">
+    <div class="label">Tác động từ khai báo rủi ro</div>
+    ${(selectedPaValidation.errors||[]).map(function(x){return `<div class="alert2 danger">${x.msg}</div>`;}).join('')}
+    ${(selectedPaValidation.warnings||[]).map(function(x){return `<div class="alert2 warn">${x.msg}</div>`;}).join('')}
+    ${paReferral?'<div class="alert2 warn">Cần thẩm định trước khi chốt phí. Phí hiện tại chưa bao gồm điều chỉnh sau thẩm định.</div>':'<div style="font-size:var(--text-sm);">Chưa ghi nhận tác động làm thay đổi phí hoặc yêu cầu thẩm định.</div>'}
+   </div>`:'';
   const quoteBlock = q ? `<div class="card" style="padding:14px;">
     <div class="label">Báo giá — ${q.quoteId||q.id||''} <span class="chip" style="font-size:9px;">${q.quoteType||'INDICATIVE'}</span></div>
     <div style="font-size:18px;font-weight:700;color:var(--brand-600);margin-top:6px;">${BANCA.vnd(q.premium||q.adjustedPremium)}<span style="font-size:12px;color:var(--ink-300);font-weight:400;">/năm</span></div>
     <div style="font-size:11px;color:var(--ink-300);margin-top:6px;">Biểu phí minh họa (DEMO_TARIFF). Phí có thể đổi sau khai báo rủi ro.</div>
-   </div>` : '<div class="alert2 info">Chọn gói để tính phí dự kiến.</div>';
-  stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Gói Bảo hiểm tai nạn cá nhân theo số tiền bảo hiểm — phí tính theo tuổi × nhóm nghề (${(BANCA.journeyFor('pa').packageSchemaId)}).</div>
-   <div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="showPaCompare()">So sánh các gói</button></div>
-   <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">${cards}</div>${quoteBlock}`;
+   </div>` : '';
+  stepBody = `${productChangeAction()}<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="showPaCompare()">So sánh các gói</button></div>
+   ${renderPackageChoice(cards,3,{ctaLabel:'Xem phương án khác / thay đổi gói', emptyHint:'Chọn gói tai nạn cá nhân — có thể so sánh các phương án.'})}${paFeeDetail}${paRiskImpact}${quoteBlock}`;
  } else if(cur.id==='RISK_OBJECT' && BANCA.journeyStageComponent(app.productId,'RISK_OBJECT')==='motorVehicle'){
   const v=app.vehicle||{};
   const brands=Object.keys(BANCA.vehicleMaster.brands);
@@ -874,7 +1010,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const q=app.quote;
   const snap=(q&&q.inputsSnapshot)||{};
   const val=(app.vehicle&&app.vehicle.value)||600000000;
-  const curPkgCode = snap.packageCode || (app.package||'').toUpperCase() || null;
+  const curPkgCode = resolvePackageCode(app, [snap.packageCode]);
   const qStatus = q? BANCA.quoteStatus(q, null) : null;
   const pkg = BANCA.motorPackages[curPkgCode]||null;
   // "(đã tùy chỉnh)" khi add-on/khấu trừ lệch mặc định gói
@@ -883,14 +1019,15 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const pkgCards = Object.values(BANCA.motorPackages).map(pk=>{
    const rt=BANCA.rateMotor({packageCode:pk.code,sumInsured:val,termMonths:12,addOns:pk.defaultAddOns,deductible:pk.defaultDeductible,ncdPercent:snap.ncdPercent||0,vehicleAgeYears:snap.vehicleAgeYears||0});
    const isSel=curPkgCode===pk.code;
-   return `<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
+   return {isSel, html:`<div class="card" style="margin:0;padding:14px;${isSel?'border:2px solid var(--brand-600);':''}">
     <div style="display:flex;justify-content:space-between;"><b style="font-size:13px;">${pk.name}${isSel&&customized?' <span style="font-size:11px;color:var(--amber-600);font-weight:600;">(đã tùy chỉnh)</span>':''}</b>${isSel?'<span class="badge badge-ready">Đã chọn</span>':''}</div>
     <div style="font-size:11px;color:var(--ink-500);margin:6px 0;">${pk.desc}</div>
-    <div style="font-size:11px;color:var(--ink-300);">Quyền lợi lõi: ${pk.coverageList.map(c=>BANCA.coverageLabels[c]).join(', ')}</div>
+    <div class="label" style="margin-top:var(--space-sm);">Quyền lợi và hạn mức</div><div class="oc-reason">${pk.coverageList.map(c=>BANCA.coverageLabels[c]).join(', ')}</div>
+    <div class="label" style="margin-top:var(--space-sm);">Điều khoản và loại trừ</div><div class="oc-reason">Khấu trừ mặc định ${BANCA.vnd(pk.defaultDeductible)}/vụ · theo quy tắc sản phẩm hiện hành.</div>
     <div style="font-size:14px;font-weight:700;color:var(--brand-600);margin-top:6px;">${BANCA.vnd(rt.totalPremium)}<span style="font-size:11px;color:var(--ink-300);font-weight:400;">/năm (tham khảo, mặc định gói)</span></div>
     ${!readOnly&&caps.includes('can_quote')?`<button class="btn ${isSel?'btn-secondary':'btn-primary'} btn-sm" style="margin-top:8px;" onclick="pickPackage('${pk.code}')" ${isSel?'disabled style="margin-top:8px;opacity:.6;"':''}>${isSel?'Đang chọn':'Chọn gói'}</button>`:''}
-   </div>`;
-  }).join('');
+   </div>`};
+  });
 
   const dedSel = BANCA.deductibleOptions.map(d=>`<option value="${d}" ${(snap.deductible||2000000)===d?'selected':''}>${BANCA.vnd(d)}/vụ</option>`).join('');
   // Add-on: hiện SỐ TIỀN (không chỉ %) — tính trên OD base hiện tại
@@ -934,8 +1071,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
    </div><div id="quote-history"></div>`;
   })() : '<div class="alert2 info" id="quote-block">Chưa có báo giá — chọn gói, chỉnh tùy chọn và bấm "Tính phí".'+((!readOnly&&caps.includes('can_quote'))?' <button class="btn btn-primary btn-sm" onclick="rerate()">Tính phí</button>':'')+'</div>';
 
-  stepBody = `
-  <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">${pkgCards}</div>
+  stepBody = `${productChangeAction()}
+  ${renderPackageChoice(pkgCards,3,{ctaLabel:'Xem phương án khác / thay đổi gói', emptyHint:'Chọn gói vật chất xe — có thể so sánh các phương án.'})}
   <div class="card" style="padding:14px;margin-bottom:12px;">
    <div class="label" style="margin-bottom:10px;">Tùy chọn báo giá</div>
    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
@@ -1018,8 +1155,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
     </div>
     <div class="alert2 warn" style="margin-top:10px;">Khai báo này kích hoạt referral/loading result. Nếu là hoạt động chuyên nghiệp hoặc tần suất cao, yêu cầu chuyển thẩm định.</div>
    </div>` : '';
-  stepBody = `<div class="alert2 info" style="margin-bottom:12px;">Câu hỏi động theo sản phẩm (${(BANCA.journeyFor(app.productId).declarationSchemaId)||'schema'}). Chỉ gồm yếu tố ảnh hưởng xác suất tổn thất & định phí. Đổi câu trả lời có thể kích hoạt <b>referral/thẩm định</b> và <b>tính lại phí chính thức</b>.</div>
-  ${mgLine}${qHtml}${paBranch}
+  stepBody = `${mgLine}${qHtml}${paBranch}
  <div id="firm-quote-panel" style="margin-top:6px;">${window.firmQuotePanelHtml?window.firmQuotePanelHtml(app):''}</div>`;
  } else if(cur.id==='DOCUMENTS'){
   if(app.productId==='health'){
@@ -1278,6 +1414,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
       <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Bấm ô lỗi để mở đúng thành viên + đúng mục cần bổ sung. Xác nhận/OTP thực hiện per-member sau khi nộp.</div>
      </div>`;
   })() : '';
+  const submitDisabledReason=missing.length?('Chưa thể nộp: '+missing.join(' · ')):'Cần tick đủ 2 xác nhận';
+  reviewSubmitAction=!readOnly?`<button class="btn btn-primary" id="submit-btn" style="opacity:.5;" disabled data-okdata="${okData?'1':'0'}" data-disabled-reason="${submitDisabledReason}" title="${submitDisabledReason}" onclick="submitApp('${app.id}')">Nộp yêu cầu bảo hiểm</button>`:'';
   stepBody = blockerBanner + `<div class="card" style="padding:16px;">
    <div class="label">Tóm tắt yêu cầu <span class="chip" style="font-size:9px;">${jrn.reviewLayout||'review'}</span></div>
    <table class="dtable"><tbody>${reviewRows}</tbody></table>
@@ -1285,14 +1423,13 @@ if(app.submissionState==='NOT_SUBMITTED'){
   <div class="card" style="padding:16px;margin-top:12px;">
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;"><input type="checkbox" id="c1" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ.</label>
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-top:8px;"><input type="checkbox" id="c2" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Tôi (nhân viên tư vấn) xác nhận đã tư vấn đầy đủ quyền lợi, điều khoản loại trừ.</label>
-   ${!readOnly?`<button class="btn btn-primary" id="submit-btn" style="margin-top:14px;opacity:.5;" disabled data-okdata="${okData?'1':'0'}" title="${missing.length?('Chưa thể nộp: '+missing.join(' · ')):'Cần tick đủ 2 xác nhận'}" onclick="submitApp('${app.id}')">Nộp yêu cầu bảo hiểm</button>`:''}
   </div>`;
  }
 
- const hdr = `<div class="card" id="ws-summary" style="padding:14px 18px;margin-bottom:14px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(10,25,60,.06);">
+ const hdr = `<div class="card" id="ws-summary" style="padding:14px 18px;margin-bottom:14px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(10,25,60,.06);min-width:calc(var(--space-4xl) * 5);">
   <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
-   <div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:22px;font-weight:700;color:var(--ink-900);line-height:1.15;">${app.id}</span><span class="badge badge-draft">Chưa nộp</span>${warnBadges(app.warnings)}${app.sourceAdviceId?`<a href="${r}modules/advisory-workspace/index.html?id=${app.sourceAdviceId}&step=result" class="chip" style="text-decoration:none;background:var(--purple-100);color:var(--purple-600);">💡 Từ tư vấn ${app.sourceAdviceId}</a>`:''}</div>
+   <div style="min-width:0;max-width:100%;flex:1 1 auto;">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:22px;font-weight:700;color:var(--ink-900);line-height:1.15;">${app.id}</span><span class="badge badge-draft">Bản chào · nháp</span>${quoteVersionControl()}${warnBadges(app.warnings)}${app.sourceAdviceId?`<a href="${r}modules/advisory-workspace/index.html?id=${app.sourceAdviceId}&step=result" class="chip" style="text-decoration:none;background:var(--purple-100);color:var(--purple-600);">💡 Từ tư vấn ${app.sourceAdviceId}</a>`:''}</div>
     <div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${BANCA.appIsAnonymous(app)?('🔒 '+(app.externalCustomerRef||app.customerId||app.id)+' · <i>định danh chưa chia sẻ</i>'):(cust?cust.name:(app.customerName||'—'))} · ${app.productName}${app.package?' · '+app.package:''} · Nguồn ${app.source==='ADVICE'?'Tư vấn nhanh':BANCA.label('source',app.source)}</div>
    </div>
    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-left:auto;">
@@ -1332,16 +1469,19 @@ if(app.submissionState==='NOT_SUBMITTED'){
    + `<div class="oc-title" style="margin:16px 0 6px;">Phương án bảo hiểm</div>`
    + (BANCA.ui.offerSelectionWorkspace?BANCA.ui.offerSelectionWorkspace(app):'');
  }
- shell('Bản chào','Lập yêu cầu bảo hiểm', hdr + consentGate + adviceRefBanner + renewalBanner + stepper + stepBody + `
-  <div class="ux-bottom-actions">
+ shell('Bản chào','Quote Workspace · Bản chào', hdr + rerateNotice() + quoteVersionPreview() + consentGate + adviceRefBanner + renewalBanner + stepper + stepBody + `
+  <div class="ux-bottom-actions workspace-action-bar workspace-action-bar--draft">
+   <div class="workspace-action-bar__meta">${readOnly?'<span class="chip">Chỉ xem</span>':`<span>Bước ${curIdx+1}/${steps.length} · ${cur.label}</span>`}</div>
+   <div class="workspace-action-group">
    ${(()=>{ // P0-7: điều hướng bỏ qua bước auto
     const visible = steps.filter(s=>!AUTO_STAGES.includes(s.id));
     const vIdx = visible.findIndex(s=>s.id===cur.id);
     const prev = vIdx>0? visible[vIdx-1]:null;
     const next = vIdx<visible.length-1? visible[vIdx+1]:null;
-    return `${prev?`<a class="btn btn-secondary" href="?id=${app.id}&step=${prev.id}${isNew?'&new=1':''}">&larr; ${prev.label}</a>`:'<span></span>'}
-     ${next?`<a class="btn btn-primary" href="?id=${app.id}&step=${next.id}${isNew?'&new=1':''}">${next.label} &rarr;</a>`:''}`;
+    return `${prev?`<a class="btn btn-secondary" href="?id=${app.id}&step=${prev.id}${isNew?'&new=1':''}">&larr; ${prev.label}</a>`:''}
+     ${reviewSubmitAction||(next?`<a class="btn btn-primary" href="?id=${app.id}&step=${next.id}${isNew?'&new=1':''}">${next.label} &rarr;</a>`:'')}`;
    })()}
+   </div>
   </div>`, {startSale:false});
 
  window.autosave = function(manual){
@@ -1350,12 +1490,35 @@ if(app.submissionState==='NOT_SUBMITTED'){
   el.textContent='Đang lưu…'; el.style.color='var(--amber-600)';
   setTimeout(()=>{el.textContent='✓ Đã lưu vừa xong'; el.style.color='var(--teal-600)';}, 500);
  };
+ window.__quoteVersionPreview=quoteVersionVM.versions;
+ window.previewQuoteVersion=function(id){
+  const box=document.getElementById('quote-version-preview');
+  const selected=window.__quoteVersionPreview.find(function(v){return String(v.id)===String(id);});
+  if(!box||!selected) return;
+  if(selected.active){ box.hidden=true; box.textContent=''; return; }
+  const who=(BANCA.personas[selected.by]||{}).name||selected.by||'—';
+  box.hidden=false;
+  box.innerHTML='<div class="label">Xem lịch sử · chỉ đọc</div>';
+  const title=document.createElement('div');
+  title.style.marginTop='var(--space-2xs)';
+  title.innerHTML='<b>Phiên bản V'+quoteVersionEsc(selected.version)+'</b> · '+quoteVersionEsc(quoteVersionStatusLabel(selected.status));
+  const detail=document.createElement('div');
+  detail.style.cssText='font-size:var(--text-xs);color:var(--ink-500);margin-top:var(--space-2xs);';
+  detail.textContent='Phí: '+(selected.premium!=null?BANCA.vnd(selected.premium):'—')+' · Thời điểm: '+selected.at+' · Người thực hiện: '+who;
+  box.appendChild(title); box.appendChild(detail);
+  if(selected.reason){
+   const reason=document.createElement('div');
+   reason.style.cssText='font-size:var(--text-xs);color:var(--ink-500);margin-top:var(--space-2xs);';
+   reason.textContent='Lý do tính lại: '+selected.reason;
+   box.appendChild(reason);
+  }
+ };
  window.refreshSubmitBtn = function(){
   const b=document.getElementById('submit-btn'); if(!b) return;
   const c1=document.getElementById('c1'), c2=document.getElementById('c2');
   const ok = b.dataset.okdata==='1' && c1.checked && c2.checked;
   b.disabled=!ok; b.style.opacity=ok?'1':'.5';
-  if(ok) b.title='Sẵn sàng nộp yêu cầu bảo hiểm';
+  b.title=ok?'Sẵn sàng nộp yêu cầu bảo hiểm':(b.dataset.disabledReason||'Cần tick đủ 2 xác nhận');
  };
  // Dirty state (chốt 16:35): vừa chỉnh add-on/khấu trừ/gói → quote cũ MỜ + GẠCH tổng cũ + dòng nhắc + nút Tính phí nổi bật. KHÔNG reload.
  window.markStale = function(){
@@ -1389,13 +1552,28 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const oldQ=app.quote;
   const newVer=(oldQ?oldQ.version:0)+1;
   const versions=[{version:newVer,premium:rt.totalPremium,createdAt:now,createdBy:me,status:'CURRENT'},...((oldQ&&oldQ.versions)||[]).map(v=>({...v,status:'SUPERSEDED'}))];
-  BANCA.patchApp(app.id,{package:BANCA.motorPackages[inputs.packageCode].name,
+  const canonicalPatch={};
+  if(Array.isArray(app.quoteVersions)){
+   const canonicalApp={
+    quoteVersions:app.quoteVersions.map(function(v){return Object.assign({},v);}),
+    activeQuoteVersionId:app.activeQuoteVersionId,
+    activeQuoteApproved:app.activeQuoteApproved,
+    warningFlags:(app.warningFlags||[]).slice()
+   };
+   if(!canonicalApp.quoteVersions.length&&BANCA.quoteVersion) BANCA.quoteVersion.init(canonicalApp,rt.totalPremium);
+   else if(BANCA.quoteVersion) BANCA.quoteVersion.reRate(canonicalApp,rt.totalPremium,rerateReason()||'Thay đổi dữ liệu ảnh hưởng phí');
+   canonicalPatch.quoteVersions=canonicalApp.quoteVersions;
+   canonicalPatch.activeQuoteVersionId=canonicalApp.activeQuoteVersionId;
+   canonicalPatch.activeQuoteApproved=canonicalApp.activeQuoteApproved;
+   canonicalPatch.warningFlags=(canonicalApp.warningFlags||[]).filter(function(w){return w!=='QUOTE_NEED_RERATE';});
+  }
+  BANCA.patchApp(app.id,Object.assign({package:BANCA.motorPackages[inputs.packageCode].name,
    quote:{id:(oldQ&&oldQ.id)||('QT-2026-'+Math.floor(Math.random()*9000+1000)),version:newVer,ratedAt:now,validUntil:'2026-07-23',
     inputsSnapshot:inputs,inputHash:BANCA.inputHashOf(inputs),
     basePremium:rt.basePremium,adjustedPremium:rt.adjustedPremium,adjustments:rt.adjustments,
     tplPremium:rt.tplPremium,odBase:rt.odBase,lines:rt.lines,subtotal:rt.subtotal,ncdPct:rt.ncdPct,ncdAmount:rt.ncdAmount,odAfterNcd:rt.odAfterNcd,vatAmount:rt.vatAmount,odTotal:rt.odTotal,totalPremium:rt.totalPremium,
     versions,premium:rt.totalPremium},
-   warnings:(app.warnings||[]).filter(w=>!['QUOTE_NEED_RERATE','QUOTE_EXPIRING'].includes(w))});
+   warnings:(app.warnings||[]).filter(w=>!['QUOTE_NEED_RERATE','QUOTE_EXPIRING'].includes(typeof w==='string'?w:(w&&(w.code||w.type))))},canonicalPatch));
   if(note) alert(note);
   location.reload();
  }
@@ -1847,9 +2025,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
 
 // ================================================================ TRACKING MODE
 const st = app.status;
-const activeTab = qs.get('tab')||'overview';
-const tabs=[['overview','Tổng quan'],['customer','Khách hàng'],['quote','Gói & phí'],['declaration','Khai báo'],['documents','Tài liệu'],['uw','Thẩm định'],['confirm','Xác nhận KH'],['payment','Thanh toán'],['policy','Hợp đồng'],['history','Lịch sử']];
-if(st==='NEED_MORE_INFO') tabs.splice(1,0,['supplement','⚠ Bổ sung']);
+const legacyTabRequest = qs.get('tab')||'';
 
 // ---- Không gian theo dõi yêu cầu đã nộp: status → phase / actions / next-action (view-only) ----
 function casePhase(status){
@@ -1872,7 +2048,8 @@ const caseFlow = (function(){
  const cancelled = s.applicationStatus==='CANCELLED' || app.status==='CANCELLED';
  const uwDecided = approved || declined || s.underwritingStatus==='DECIDED' || !!app.uw;
  const confirmComplete = BANCA.confirmationComplete(app);
- const needConfirm = ['APPROVED_WITH_CONDITION','APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION'].includes(s.underwritingDecision)
+ // Mọi quyết định chấp thuận (kể cả STP sạch) đều cần khách xác nhận (OTP) trước thanh toán → luôn có bước xác nhận.
+ const needConfirm = approved
    || !!app.confirm
    || (Array.isArray(app.insuredMembers) && app.insuredMembers.some(function(m){return m && m.confirmation;}));
  const paySuccess = s.paymentStatus==='SUCCESS';
@@ -1881,6 +2058,74 @@ const caseFlow = (function(){
  return {s, approved, declined, cancelled, dead:(declined||cancelled), uwDecided,
    needConfirm, confirmComplete, confirmDone:(!needConfirm||confirmComplete), paySuccess, payProcessing, issued};
 })();
+const SUBMITTED_STAGE_IDS=['created','underwriting','confirmation-payment','policy'];
+const LEGACY_TAB_STAGE={
+ overview:'created',customer:'created',quote:'created',declaration:'created',documents:'created',
+ supplement:'underwriting',uw:'underwriting',
+ confirmpay:'confirmation-payment',confirm:'confirmation-payment',payment:'confirmation-payment',comm:'confirmation-payment',
+ policy:'policy'
+};
+function latestEnabledSubmittedStage(){
+ if(caseFlow.paySuccess&&!caseFlow.dead) return 'policy';
+ if(caseFlow.approved&&!caseFlow.dead) return 'confirmation-payment';
+ return 'underwriting';
+}
+const requestedStage=(function(){
+ const direct=qs.get('stage');
+ if(SUBMITTED_STAGE_IDS.includes(direct)) return direct;
+ if(legacyTabRequest==='history') return latestEnabledSubmittedStage();
+ return LEGACY_TAB_STAGE[legacyTabRequest]||latestEnabledSubmittedStage();
+})();
+function submittedStageLockedReason(id){
+ if(id==='confirmation-payment') return caseFlow.dead
+  ? 'Bản chào đã kết thúc tại bước Thẩm định.'
+  : 'Chỉ mở sau khi Thẩm định chấp thuận.';
+ if(id==='policy') return caseFlow.dead
+  ? 'Bản chào đã kết thúc tại bước Thẩm định.'
+  : 'Chỉ mở sau khi thanh toán thành công.';
+ return '';
+}
+const submittedStageModel=[
+ {id:'created',label:'Bản chào đã tạo',completedLabel:'Bản chào đã tạo',enabled:true,complete:true},
+ {id:'underwriting',label:'Thẩm định',completedLabel:'Đã thẩm định',enabled:true,complete:caseFlow.uwDecided},
+ // Presentation monotonicity for legacy records: downstream payment/issuance proves this combined stage was passed.
+ // Unlocking remains canonical and unchanged for active cases.
+ {id:'confirmation-payment',label:'Xác nhận & thanh toán',completedLabel:'Đã xác nhận & thanh toán',enabled:caseFlow.approved&&!caseFlow.dead,complete:caseFlow.paySuccess||caseFlow.issued},
+ {id:'policy',label:'Phát hành hợp đồng',completedLabel:'Đã phát hành hợp đồng',enabled:caseFlow.paySuccess&&!caseFlow.dead,complete:caseFlow.issued}
+].map(function(stage){
+ return Object.assign(stage,{
+  current:false,
+  selected:false,
+  href:'?id='+encodeURIComponent(app.id)+'&stage='+stage.id,
+  lockedReason:stage.enabled?'':submittedStageLockedReason(stage.id)
+ });
+});
+const requestedStageModel=submittedStageModel.find(function(stage){return stage.id===requestedStage;});
+const activeSubmittedStage=(requestedStageModel&&requestedStageModel.enabled)?requestedStage:latestEnabledSubmittedStage();
+const businessCurrentSubmittedStage=caseFlow.issued?null:
+ caseFlow.dead||!caseFlow.uwDecided?'underwriting':
+ !caseFlow.paySuccess?'confirmation-payment':'policy';
+submittedStageModel.forEach(function(stage){
+ stage.current=stage.id===businessCurrentSubmittedStage;
+ stage.selected=stage.id===activeSubmittedStage;
+});
+const lockedStageNotice=(requestedStageModel&&!requestedStageModel.enabled)
+ ? `<div class="alert2 warning submitted-stage-recovery" role="status"><b>Chưa thể mở bước “${requestedStageModel.label}”.</b> ${requestedStageModel.lockedReason} Đã chuyển về bước khả dụng gần nhất.</div>`
+ : '';
+function renderSubmittedStageStepper(){
+ return BANCA.ui.progressStepper(submittedStageModel.map(function(stage,index){
+  return {
+   id:stage.id,
+   label:stage.complete&&!stage.current?stage.completedLabel:stage.label,
+   href:stage.href,
+   ordinal:index+1,
+   state:stage.current?'current':stage.complete?'complete':stage.enabled?'available':'disabled',
+   selected:stage.selected,
+   helper:stage.lockedReason,
+   selectedLabel:'Đang xem'
+  };
+ }),{ariaLabel:'Tiến trình Bản chào đã nộp',currentTone:'warning',className:'progress-stepper--submitted'});
+}
 function caseNextAction(){
  return [caseView.nextActionLabel||'Đang xử lý — theo dõi trạng thái.', caseView.statusTone||'wait'];
 }
@@ -1904,17 +2149,21 @@ function getSubmittedCaseActions(){
  A.chooseMethod=`<a class="btn btn-primary btn-sm" href="?id=${app.id}&tab=confirmpay">Khởi tạo thanh toán</a>`;
  // §X — actions từ canonical resolver: primary + secondary theo action key.
  const btn=(act,primary)=>{
-  const cls=primary?'btn-primary':'btn-secondary';
+ const cls=primary?'btn-primary':'btn-secondary';
   const tab=act.tab||'overview';
   // confirm/chooseMethod mở tab confirmpay group.
   // chooseMethod/trackPay/retryPay → thẳng sub-tab PAYMENT (nơi có nút); confirm → sub-tab confirm.
   const t=(act.key==='chooseMethod'||act.key==='trackPay'||act.key==='retryPay')?'payment':(act.key==='confirm'?'confirm':tab);
-  return `<a class="btn ${cls} btn-sm" href="?id=${app.id}&tab=${t}">${act.label}</a>`;
+  const stage=LEGACY_TAB_STAGE[t]||latestEnabledSubmittedStage();
+  return `<a class="btn ${cls} btn-sm" href="?id=${app.id}&stage=${stage}">${act.label}</a>`;
  };
  // Hợp đồng đã phát hành: gộp action ở header — "Xem hợp đồng" là hyperlink mở chi tiết hợp đồng,
  // kèm nút Tải hợp đồng + Gửi cho khách. Ẩn "Xem lịch sử" và các nhóm nút trùng trong panel.
  if(st==='ISSUED' && app.policyId){
   const detailHref=`${r}modules/policies/index.html?view=detail&id=${app.policyId}`;
+  if(readOnly) return [
+   `<a href="${detailHref}" class="btn btn-secondary btn-sm">Xem hợp đồng</a>`
+  ];
   return [
    `<a href="${detailHref}" style="font-size:12px;color:var(--brand-600);text-decoration:underline;align-self:center;padding:6px 4px;">Xem hợp đồng</a>`,
    `<button class="btn btn-primary btn-sm" onclick="alert('Tải hợp đồng PDF (demo)')">Tải hợp đồng</button>`,
@@ -1927,29 +2176,25 @@ function getSubmittedCaseActions(){
  out.push(A.hist);
  return out;
 }
+function renderSubmittedCommandBar(actions,nextLabel,slaContext){
+ const list=(actions||[]).slice();
+ let primary='';
+ const secondary=[];
+ list.forEach(function(html){
+  if(!primary && html.indexOf('btn-primary')>=0) primary=html;
+  else secondary.push(html.indexOf('btn-primary')>=0?html.replace('btn-primary','btn-secondary'):html);
+ });
+ const more=secondary.length
+  ? `<details class="workspace-action-more"><summary class="btn btn-secondary btn-sm">Khác</summary><div class="workspace-action-more__menu">${secondary.join('')}</div></details>`
+  : '';
+ return `<div class="workspace-command-bar">
+  <div class="workspace-action-bar__meta"><span>Việc tiếp theo: <b>${nextLabel}</b></span>${slaContext?`<span>SLA: <b>${slaContext}</b></span>`:''}${readOnly?'<span class="chip">Chỉ xem</span>':''}</div>
+  <div class="workspace-action-group">${primary}${more}</div>
+ </div>`;
+}
 
-// ---- 7-tab nav (Không gian theo dõi yêu cầu đã nộp) ----
-const SNAP_SUB=[['customer','Thông tin khách hàng'],['quote','Gói & phí'],['declaration','Nội dung khai báo'],['documents','Tài liệu đã nộp']];
-// §confirmpay — GỘP 1 trang dọc: xác nhận + phí + thanh toán + lịch sử (BỎ sub-tab & tab "Liên hệ").
+// Legacy ?tab= links remain accepted; submitted navigation now emits canonical ?stage= links.
 const CONFIRMPAY_ALIASES=['confirmpay','confirm','payment','comm'];
-const snapIds=SNAP_SUB.map(x=>x[0]);
-const showSupTab = supCount>0 || casePh==='NEED_MORE_INFORMATION';
-const topActive = activeTab==='overview'?'overview' : snapIds.includes(activeTab)?'snapshot' : (CONFIRMPAY_ALIASES.includes(activeTab))?'confirmpay' : activeTab;
-const topTabs=[
- ['overview','Tổng quan xử lý','overview'],
- ['snapshot','Yêu cầu đã nộp','customer'],
- ...(showSupTab?[['supplement','Yêu cầu bổ sung'+(supCount?` <span class="badge badge-blocked" style="font-size:9px;">${supCount}</span>`:''),'supplement']]:[]),
- ['uw','Thẩm định','uw'],
- ['confirmpay','Xác nhận & thanh toán','confirmpay'],
- ['policy','Hợp đồng','policy'],
- ['history','Lịch sử','history']
-];
-const topLink=([key,label,target])=>`<a href="?id=${app.id}&tab=${target}" class="tab" style="text-decoration:none;display:inline-block;padding:8px 12px;font-size:13px;${topActive===key?'border-bottom:2px solid var(--brand-600);color:var(--brand-600);font-weight:600;':'color:var(--ink-500);'}">${label}</a>`;
-const subLink=([id,label])=>`<a href="?id=${app.id}&tab=${id}" style="text-decoration:none;padding:6px 12px;border-radius:6px;font-size:12px;${activeTab===id?'background:var(--brand-600);color:#fff;font-weight:600;':'background:var(--paper-card);color:var(--ink-500);border:1px solid var(--line);'}">${label}</a>`;
-const subSet = topActive==='snapshot'?SNAP_SUB : null;
-const subNav = subSet ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${subSet.map(subLink).join('')}</div>` : '';
-const viewOnlyBanner = '';
-const tabBar=`<div class="tabbar" style="margin-bottom:14px;overflow-x:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;">${topTabs.map(topLink).join('')}</div>${subNav}${viewOnlyBanner}`;
 
 // P2-3: SLA countdown màu theo mức khẩn (mốc demo NOW = 2026-07-20 15:30)
 function slaHtml(sla){
@@ -2028,13 +2273,13 @@ function submittedDocTable(){
   const up=uploaded.includes(d.code);
   const dot = rr.status==='REQUIRED'?['●','var(--red-600)','#fdecec']:rr.status==='INHERITED'?['↻','#2563eb','#eaf1fe']:rr.active?['◐','var(--amber-600)','#fdf3e3']:['○','var(--ink-300)','var(--paper)'];
   const chips=[];
-  chips.push(up?'<span class="badge badge-ready">Đã nộp</span>':(need?'<span class="badge badge-blocked">Còn thiếu</span>':'<span class="badge badge-version">Tùy chọn</span>'));
+  chips.push(up?'<span class="badge badge-ready">Đã tải lên</span>':(need?'<span class="badge badge-blocked">Còn thiếu</span>':'<span class="badge badge-version">Tùy chọn</span>'));
   if(ocrCodes[d.code]&&up) chips.push('<span class="badge badge-ready">Đã bóc tách</span>');
   const stv=st(d.code); if(stv==='REJECTED') chips.push('<span class="badge badge-blocked">Bị từ chối</span>'); else if(stv==='CHECKING') chips.push('<span class="badge badge-pending">Đang kiểm tra</span>');
   return `<div class="doc-item">
     <div><span style="display:inline-flex;width:40px;height:40px;border-radius:8px;align-items:center;justify-content:center;font-weight:800;background:${dot[2]};color:${dot[1]};">${dot[0]}</span></div>
     <div><div style="font-weight:600;font-size:13px;">${d.name}</div><div style="font-size:12px;color:var(--ink-500);">${d.sub||''}${rr.note?' · '+rr.note:''}</div><div class="doc-item-statuses">${chips.join(' ')}</div>${up?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${fileOf[d.code]||''}</div>`:''}</div>
-    <div class="doc-item-actions">${up?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Xem tài liệu (demo)\')">Xem</button>':'<span style="font-size:11px;color:var(--ink-300);">Chưa nộp</span>'}</div>
+    <div class="doc-item-actions">${up?'<button class="btn btn-secondary btn-sm" onclick="alert(\'Xem tài liệu (demo)\')">Xem</button>':'<span style="font-size:11px;color:var(--ink-300);">Chưa tải lên</span>'}</div>
   </div>`;
  };
  // §10 — 1 danh sách tài liệu duy nhất; tài liệu đã OCR KHÔNG tách section riêng,
@@ -2120,68 +2365,82 @@ function cpConfirmInner(){
   const units = BANCA.healthUnitsOf(app).filter(function(u){return u.active!==false;});
   const cards = units.map(function(u){
    const cf=u.confirmation||{status:'PENDING'};
-   const badge = cf.status==='CONFIRMED'?'<span class="badge badge-ready">Đã xác nhận</span>':cf.status==='SENT'?'<span class="badge badge-pending">Đã gửi — chờ khách</span>':'<span class="badge badge-conditional">Chưa gửi</span>';
    const who = u.isChild ? `Người đại diện: <b>${u.guardianName||'(chưa nhập)'}</b> (${u.guardianRelationship||'cha/mẹ'}) · ${u.guardianPhone||'—'}` : `SĐT thành viên: <b>${u.phone||(cust&&u.relationship==='Bản thân'?BANCA.maskPhone(cust.phone):'—')}</b>`;
-   return `<div class="card" style="padding:14px;margin-bottom:10px;border-left:3px solid ${cf.status==='CONFIRMED'?'var(--teal-600)':'var(--brand-600)'};">
-     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b>${badge}</div>
+   const otpStatus=cf.status==='CONFIRMED'?'VERIFIED':cf.status==='SENT'?'SENT':cf.status==='EXPIRED'?'EXPIRED':'PENDING';
+   // Phiên đã gửi và nhân viên phụ trách đang thao tác tại quầy → hiện ô nhập OTP ngay trong mục xác nhận.
+   const canEnterOtp=!readOnly&&app.owner===me&&otpStatus==='SENT';
+   const otpInputId='assisted-otp-inline-'+u.insuredUnitId;
+   const uw=u.underwriting||{};
+   const canSend=!readOnly&&app.owner===me&&otpStatus==='PENDING'&&uw.paymentAllowed!==false&&uw.decision&&uw.decision!=='IN_UW'&&uw.decision!=='NEED_MORE_INFO'&&uw.decision!=='REFERRED'&&uw.decision!=='REJECTED';
+   const blocked=otpStatus==='PENDING'&&!canSend&&uw.paymentAllowed===false?['Chờ kết quả thẩm định của người được bảo hiểm này.']:[];
+   return `<div class="card" style="padding:var(--space-md);margin-bottom:var(--space-sm);">
+     <div><b>${u.name||'—'} <span class="chip" style="font-size:9px;">${u.insuredUnitId}</span>${u.isChild?' · trẻ em':''}</b></div>
      <div style="font-size:12px;color:var(--ink-500);margin-top:4px;">Gói: ${healthPkgName(u.package)} · vai trò: ${u.relationship||'—'}</div>
      <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${who}</div>
-     ${cf.status!=='PENDING'?BANCA.ui.otpVerificationPanel({
-        mode:'CUSTOMER_SELF_SERVICE',
-        status: cf.status==='CONFIRMED'?'VERIFIED':'SENT',
-        customerName: u.name||'—',
+     ${BANCA.ui.otpVerificationPanel({
+        mode: canEnterOtp?'SELLER_ASSISTED':'CUSTOMER_SELF_SERVICE',
+        inputId: otpInputId,
+        onSubmit: canEnterOtp ? "submitCustomerAssistedOtp('"+app.id+"','"+u.insuredUnitId+"','"+otpInputId+"')" : null,
+        status: otpStatus,
+        customerName: u.isChild?(u.guardianName||'Người đại diện chưa được khai báo'):(u.name||'—'),
         maskedPhone: u.isChild ? (u.guardianPhone||'—') : (u.phone||(cust&&u.relationship==='Bản thân'?BANCA.maskPhone(cust.phone):'—')),
         sentAt: cf.sentAt, confirmedAt: cf.confirmedAt,
-        onResend: (app.owner===me&&cf.status==='SENT') ? "healthMemberConfirm('"+app.id+"','"+u.insuredUnitId+"','send')" : null
-      }):''}
-     ${app.owner===me&&cf.status==='PENDING'?`<div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi xác nhận</button></div>`:''}
-     ${app.owner===me&&cf.status==='SENT'?`<div class="demo-tools"><div class="label">Demo Tools</div><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">Mô phỏng: người này đã xác nhận</button></div>`:''}
+        onSend: canSend ? "healthMemberConfirm('"+app.id+"','"+u.insuredUnitId+"','send')" : null,
+        onResend: (!readOnly&&app.owner===me&&(otpStatus==='SENT'||otpStatus==='EXPIRED')) ? "healthMemberConfirm('"+app.id+"','"+u.insuredUnitId+"','send')" : null,
+        blockedReasons: blocked
+      })}
+     ${canSend?`<div class="submitted-confirm-options"><button class="btn btn-secondary btn-sm" onclick="openAssistedCustomerOtp('${app.id}','${u.insuredUnitId}')">Hỗ trợ khách xác nhận OTP tại quầy</button><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','send')">Gửi link để khách tự xác nhận</button><p>Đây là phiên riêng của ${u.name||u.insuredUnitId}. Khách hàng hoặc người đại diện trực tiếp nhập OTP tại quầy.</p></div>`:''}
+     ${!readOnly&&app.owner===me&&cf.status==='SENT'?`<div class="demo-tools"><div class="label">Demo Tools</div><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirm('${app.id}','${u.insuredUnitId}','verify')">Mô phỏng: người này đã xác nhận</button></div>`:''}
     </div>`;
   }).join('');
   const allConfirmed = units.every(function(u){return (u.confirmation||{}).status==='CONFIRMED';});
   inner = `<div class="alert2 info" style="margin:0 0 12px;">Xác nhận theo từng người được bảo hiểm. Người ≥18 tự xác nhận bằng SĐT + OTP riêng; trẻ &lt;18 do người đại diện xác nhận — mỗi người 1 phiên/evidence riêng (KHÔNG dùng 1 OTP chung).</div>
-    ${app.owner===me&&!allConfirmed?`<div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirmAll('${app.id}')">Gửi xác nhận hàng loạt (mỗi người 1 phiên)</button></div>`:''}
+    ${!readOnly&&app.owner===me&&!allConfirmed?`<div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" onclick="healthMemberConfirmAll('${app.id}')">Gửi xác nhận hàng loạt (mỗi người 1 phiên)</button></div>`:''}
     ${cards}
     ${allConfirmed?'<div class="alert2" style="margin-top:8px;background:var(--teal-100);color:var(--teal-600);">✓ Tất cả thành viên đã xác nhận — đủ điều kiện thanh toán tổng.</div>':'<div class="alert2 warn" style="margin-top:8px;">Còn thành viên chưa xác nhận — chưa thể khởi tạo thanh toán.</div>'}`;
  } else {
-  const needConfirm = app.productId==='pa' || (app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))||['PENDING_CUSTOMER_CONFIRM','UW_DECIDED'].includes(st);
   let cState;
-  if(app.confirm && ['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'].includes(st)) cState='CONFIRMED';
+  if(BANCA.confirmationComplete(app)) cState='CONFIRMED';
+  else if(app.confirm && (app.confirm.status==='EXPIRED'||app.confirm.otp==='EXPIRED')) cState='EXPIRED';
   else if(app.confirm) cState='SENT';
-  else if(needConfirm) cState='PENDING';
+  else if(caseFlow.approved||app.productId==='pa'||['PENDING_CUSTOMER_CONFIRM','UW_DECIDED'].includes(st)) cState='PENDING';
   else if(['PENDING_RECEIPT','PENDING_UW','IN_UW','NEED_MORE_INFO'].includes(st)) cState='NOT_READY';
   else cState='NOT_APPLICABLE';
-  const cLabel={CONFIRMED:['Đã xác nhận','ok'],SENT:['Đã gửi — chờ khách xác nhận','wait'],PENDING:['Cần gửi yêu cầu xác nhận','info'],NOT_READY:['Chưa thể gửi xác nhận','wait'],NOT_APPLICABLE:['Không yêu cầu xác nhận riêng','ok']}[cState];
   let cfBody;
   if(cState==='NOT_APPLICABLE') cfBody=`<div class="alert2 info" style="margin:0;">Yêu cầu đã được xác nhận khi nộp — không cần bước xác nhận riêng trước khi thanh toán.</div>`;
-  else if(cState==='NOT_READY') cfBody=`<div class="alert2 info" style="margin:0;">Yêu cầu đang chờ kết quả thẩm định — chưa thể gửi xác nhận.</div>`;
-  else if(cState==='PENDING') cfBody=`<div class="card" style="padding:16px;"><div style="font-size:13px;color:var(--ink-700);">Kết quả thẩm định có điều chỉnh (phụ phí/điều kiện) — khách cần xác nhận trước khi thanh toán.</div>${app.owner===me?'<button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="sendConfirm()">Gửi khách xác nhận</button>':''}</div>`;
   else {
-   // §9.4 — dùng CHUNG OtpVerificationPanel. Khách nhận link tự xác nhận
-   // → mode CUSTOMER_SELF_SERVICE, nhân viên tư vấn chỉ theo dõi trạng thái.
-   const otpSt = cState==='CONFIRMED' ? 'VERIFIED' : (app.confirm.otp==='VERIFIED' ? 'VERIFIED' : 'SENT');
+   const confirmData=app.confirm||{};
+   const otpSt = cState==='CONFIRMED'?'VERIFIED':cState==='SENT'?'SENT':cState==='EXPIRED'?'EXPIRED':'PENDING';
+   const canSend=!readOnly&&app.owner===me&&cState==='PENDING';
+   // Phiên đã gửi và nhân viên phụ trách đang thao tác tại quầy → hiện ô nhập OTP ngay trong mục xác nhận.
+   const canEnterOtp=!readOnly&&app.owner===me&&cState==='SENT';
+   const otpInputId='assisted-otp-inline-case';
    cfBody = `<div class="card" style="padding:16px;">`
     + BANCA.ui.otpVerificationPanel({
-        mode:'CUSTOMER_SELF_SERVICE',
+        mode: canEnterOtp?'SELLER_ASSISTED':'CUSTOMER_SELF_SERVICE',
+        inputId: otpInputId,
+        onSubmit: canEnterOtp?`submitCustomerAssistedOtp('${app.id}','','${otpInputId}')`:null,
         status: otpSt,
         customerName: (cust?cust.name:'—'),
         maskedPhone: cust?BANCA.maskPhone(cust.phone):'—',
-        link: app.confirm.link,
-        sentAt: app.confirm.sentAt,
-        expiry: app.confirm.expiry,
-        confirmedAt: app.confirm.confirmedAt||app.updatedAt,
-        onResend: (app.owner===me&&cState==='SENT') ? "alert('Đã gửi lại link (demo)')" : null
+        link: confirmData.link,
+        sentAt: confirmData.sentAt,
+        expiry: confirmData.expiry,
+        confirmedAt: confirmData.confirmedAt||app.updatedAt,
+        onSend: canSend?'sendConfirm()':null,
+        onResend: (!readOnly&&app.owner===me&&(cState==='SENT'||cState==='EXPIRED')) ? "alert('Đã gửi lại link (demo)')" : null,
+        blockedReasons: cState==='NOT_READY'?['Yêu cầu đang chờ kết quả thẩm định.']:[]
       })
     + `<table class="dtable" style="margin-top:10px;"><tbody>
     ${row('Vai trò','Bên mua bảo hiểm')}
     ${row('Nội dung', app.uw&&app.uw.decision!=='APPROVED'?'Xác nhận lại điều kiện/phí điều chỉnh':'Xác nhận thông tin yêu cầu')}
-    ${row('Kênh gửi', BANCA.label('delivery',app.confirm.delivery)||'SMS + Email')}
    </tbody></table>
-   ${app.confirm.link?`<div style="font-size:11px;margin-top:8px;"><a href="javascript:alert('Xem evidence xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
-   ${app.owner===me&&cState==='SENT'?`<div class="demo-tools"><div class="label">Demo Tools — không thuộc UI production</div><button class="btn btn-secondary btn-sm" onclick="simConfirm()">Mô phỏng: khách đã xác nhận</button><div class="demo-note">Nhân viên tư vấn KHÔNG được xác nhận thay khách — kết quả chỉ đến từ phiên xác nhận của khách.</div></div>`:''}
+   ${confirmData.link?`<div style="font-size:11px;margin-top:8px;"><a href="javascript:alert('Xem evidence xác nhận (demo)')" style="color:var(--brand-600);">Xem evidence</a></div>`:''}
+   ${canSend?`<div class="submitted-confirm-options"><button class="btn btn-secondary btn-sm" onclick="openAssistedCustomerOtp('${app.id}','')">Hỗ trợ khách xác nhận OTP tại quầy</button><button class="btn btn-secondary btn-sm" onclick="sendConfirm()">Gửi link để khách tự xác nhận</button><p>Khách hàng trực tiếp cung cấp và nhập OTP; nhân viên tư vấn chỉ hỗ trợ khởi tạo phiên xác nhận.</p></div>`:''}
+   ${!readOnly&&app.owner===me&&cState==='SENT'?`<div class="demo-tools"><div class="label">Demo Tools — không thuộc UI production</div><button class="btn btn-secondary btn-sm" onclick="simConfirm()">Mô phỏng: khách đã xác nhận</button><div class="demo-note">Nhân viên tư vấn KHÔNG được xác nhận thay khách — kết quả chỉ đến từ phiên xác nhận của khách.</div></div>`:''}
   </div>`;
   }
-  inner = statusBanner(cLabel[1], cLabel[0], '', '') + cfBody;
+  inner = cfBody;
  }
  return inner;
 }
@@ -2228,17 +2487,20 @@ function cpFeeInner(){
 // ---- Section 4: Ba cách thanh toán (hiển thị trực tiếp, KHÔNG modal chọn — §9.3) ----
 // Dùng BANCA.ui.paymentMethodGroup + config payment-method-config.js.
 // Motor/Health cùng component; điều kiện bật đến từ BANCA.paymentEnableRule (§9.2).
+// Sau khi đã tạo yêu cầu thanh toán, chỗ 3 nút chuyển thành trạng thái của chính yêu cầu đó
+// (mã QR / liên kết đã gửi / tạo lại khi thất bại) — không tách thành mục riêng bị lặp.
 function cpMethodsInner(){
  const s=caseView.states; const pay=app.payment;
  const payDone = pay && pay.status==='SUCCESS';
- const payActive = pay && ['PENDING','PROCESSING'].includes(pay.status);
  let inner;
- if(payDone) inner=`<div class="alert2" style="margin:0;background:var(--teal-100);color:var(--teal-600);">✓ Đã thanh toán thành công — xem chi tiết ở mục "Trạng thái thanh toán".</div>`;
- else if(payActive) inner=`<div class="alert2 info" style="margin:0;">Đã khởi tạo yêu cầu thanh toán — theo dõi ở mục "Trạng thái thanh toán".</div>`;
+ if(payDone) inner=`<div class="alert2" style="margin:0;background:var(--teal-100);color:var(--teal-600);">✓ Đã thanh toán thành công — chi tiết giao dịch ở mục "Lịch sử thanh toán".</div>`;
+ else if(pay) inner=cpCurrentInner();
  else if(s.policyStatus==='ISSUED') inner=`<div class="alert2 info" style="margin:0;">Yêu cầu đã hoàn tất thanh toán và phát hành.</div>`;
  else inner = BANCA.ui.paymentMethodGroup(app, {me:me});
  return inner;
 }
+// Nhãn của khối: chưa có yêu cầu thì là nơi chọn cách trả; đã có thì là trạng thái của yêu cầu.
+function cpMethodsLabel(){ return app.payment ? 'Trạng thái thanh toán' : 'Cách thanh toán'; }
 // ---- Section 5: Trạng thái thanh toán hiện tại ----
 function cpCurrentInner(){
  const pay=app.payment;
@@ -2290,7 +2552,7 @@ function renderConfirmPay(){
    confirmHtml:       cpConfirmInner(),
    feeHtml:           cpFeeInner(),
    methodsHtml:       cpMethodsInner(),
-   paymentStatusHtml: cpCurrentInner(),
+   methodsLabel:      cpMethodsLabel(),
    historyHtml:       cpHistoryInner()
  });
 }
@@ -2319,7 +2581,7 @@ function supplementWorkspace(){
    <div style="font-weight:700;margin-bottom:2px;">Yêu cầu từ đơn vị xử lý</div>
    <div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">Yêu cầu bởi <b>${s.requestedBy||'Thẩm định viên'}</b> · ${s.requestedAt||'—'}${app.deadline?' · hạn '+app.deadline:''}</div>
    ${reqs.map(rq=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap;">
-     <div style="font-size:13px;"><b>${rq.id}</b> · ${rq.type==='DOCUMENT'?'Tài liệu':rq.type==='CONFIRMATION'?'Xác nhận KH':'Thông tin'} <span class="badge badge-conditional" style="font-size:9px;">${rq.priority}</span><div style="color:var(--ink-500);margin-top:2px;">${rq.text}</div></div>
+     <div style="font-size:13px;"><b>${rq.type==='DOCUMENT'?'Tài liệu cần bổ sung':rq.type==='CONFIRMATION'?'Xác nhận khách hàng':'Thông tin cần bổ sung'}</b> <span class="badge badge-conditional" style="font-size:9px;">${rq.priority}</span><div style="color:var(--ink-500);margin-top:2px;">${rq.text}</div></div>
      <div><span class="badge badge-blocked">${rq.status}</span></div>
    </div>`).join('')}
  </div>`;
@@ -2344,7 +2606,7 @@ function supplementWorkspace(){
    <table class="dtable"><thead><tr><th>Trường / tài liệu</th><th>Bản đã nộp</th><th>Sau bổ sung</th></tr></thead><tbody>${beforeAfter}</tbody></table>
    <div style="margin-top:10px;font-size:12px;">${rc.requires_customer_reconfirmation
      ? '<span class="badge badge-conditional">Cần khách xác nhận lại</span> Thay đổi ảnh hưởng nội dung/phí — sẽ yêu cầu khách xác nhận lại trước khi tiếp tục.'
-     : '<span class="badge badge-ready">Không cần khách xác nhận lại</span> Bổ sung mang tính kỹ thuật/tài liệu — không ảnh hưởng nội dung khai báo.'}
+     : '<span class="badge badge-ready">Không cần khách xác nhận lại</span> Nội dung bổ sung không làm thay đổi thông tin khách đã xác nhận.'}
      ${rc.requires_rerate?' <span class="badge badge-blocked">Cần tính lại phí</span>':''}</div>
  </div>`;
  const actions=owner?`<div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -2355,14 +2617,11 @@ function supplementWorkspace(){
  return part1+part2+part3+actions;
 }
 
+function renderSubmittedStagePart(activeTab){
 let body='';
 if(activeTab==='overview'){
- const naO=caseNextAction();
  const c5=(title,inner,accent)=>`<section class="card" style="padding:16px;${accent?'border-left:4px solid '+accent+';':''}"><div class="label" style="margin-bottom:10px;">${title}</div>${inner}</section>`;
  const kvO=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="color:var(--ink-500);">${k}</span><span style="text-align:right;font-weight:600;">${v}</span></div>`;
- const uwOrg = app.productId==='health' ? 'ABC Insurance — Health Thẩm định' : ((app.uw&&app.uw.officer)? 'ABC Insurance — Motor UW' : 'ABC Insurance — Motor Thẩm định');
- const card1=c5('Trạng thái xử lý', kvO('Trạng thái',BANCA.caseStatusBadge(app))+kvO('Việc cần làm','<b>'+naO[0]+'</b>')+(app.sla?kvO('SLA / deadline',slaHtml(app.sla)):'')+kvO('Người phụ trách yêu cầu hiện tại',['NEED_MORE_INFORMATION'].includes(casePh)?'Nhân viên tư vấn':'Đơn vị bảo hiểm')+kvO('Đơn vị xử lý',uwOrg)+kvO('Cập nhật gần nhất',app.updatedAt||'—'), {danger:'var(--red-600)',ok:'var(--teal-600)',info:'var(--brand-600)',wait:'var(--amber-600)'}[naO[1]]);
- const card2=`<section class="card" style="padding:16px;"><div class="label" style="margin-bottom:10px;">Tiến trình</div>${timeline()}</section>`;
  const healthOvPkg=healthPkg(app.package);
  const card3=app.productId==='health'
   ? c5('Tóm tắt bảo hiểm', kvO('Gói',healthOvPkg.name||app.package||'—')+kvO('Giới hạn/năm',healthOvPkg.annualLimit?BANCA.vnd(healthOvPkg.annualLimit):'—')+kvO('Nội trú',healthOvPkg.inpatientLimit?BANCA.vnd(healthOvPkg.inpatientLimit):'—')+kvO('Ngoại trú',healthOvPkg.outpatientLimit?BANCA.vnd(healthOvPkg.outpatientLimit):'Không bao gồm')+kvO('Đồng chi trả',healthOvPkg.copayPercent!=null?healthOvPkg.copayPercent+'%':'—')+kvO('Tổng phí',BANCA.vnd(app.uw&&app.uw.newPremium||app.premium))+kvO('Thời hạn','12 tháng'))
@@ -2389,9 +2648,9 @@ if(activeTab==='overview'){
  const h=BANCA.caseHealth(app);
  const hColor={ok:'var(--teal-600)',warn:'var(--amber-600)',bad:'var(--red-600)'}[h.overall];
  const cardHealth=`<section class="card" style="padding:16px;border-top:4px solid ${hColor};"><div class="label" style="margin-bottom:8px;">Sức khỏe yêu cầu <span style="color:${hColor};font-weight:800;">${h.overall==='ok'?'Tốt':h.overall==='warn'?'Cần chú ý':'Có vấn đề'}</span></div>${h.items.map(([k,v,t])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);"><span style="color:var(--ink-500);">${k}</span><span style="color:${intDot(t)};font-weight:600;">${v}</span></div>`).join('')}</section>`;
- body=`<div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start;">
-  <div style="display:grid;gap:14px;">${card1}${cardStatus}${card3}${card4}${card5}</div>
-  <aside style="position:sticky;top:76px;display:grid;gap:14px;">${cardHealth}${card2}</aside>
+ body=`<div class="submitted-content-layout">
+  <main class="submitted-content-main">${cardStatus}${card3}${card4}</main>
+  <aside class="submitted-context-rail">${cardHealth}${card5}</aside>
  </div>`;
 } else if(activeTab==='supplement'){
  body=supplementWorkspace();
@@ -2473,26 +2732,23 @@ if(activeTab==='overview'){
   if(/ngập|kỹ thuật|camera|lắp/i.test(d.q)) return 'Tình trạng kỹ thuật';
   return 'Khai báo pháp lý';
  };
- const impactOf=d=>{ const a=[]; if(d.flag) a.push('UW'); if(/tổn thất|kinh doanh/i.test(d.q)) a.push('Phí'); return a.length?a.join(' · '):'—'; };
+ const impactOf=d=>{ const a=[]; if(d.flag) a.push('<span class="badge badge-conditional">Thẩm định</span>'); if(/tổn thất|kinh doanh/i.test(d.q)) a.push('<span class="chip">Phí</span>'); return a.length?a.join(' '):'—'; };
  const groups={};
  decl.forEach(d=>{ const s=sectionOf(d); (groups[s]=groups[s]||[]).push(d); });
  const custConfirmed = !!app.confirm || ['PAYMENT_METHOD_REQUIRED','PENDING_PAYMENT','PAID','PENDING_ISSUE','ISSUED'].includes(st);
  const declTime = app.submittedAt||'—';
- const rowDecl=d=>`<div style="padding:12px 14px;border-bottom:1px solid var(--line);">
-   <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div style="font-size:13px;font-weight:600;flex:1;">${d.q}</div>${d.flag?'<span class="badge badge-conditional" style="font-size:9px;">Kích hoạt UW</span>':''}</div>
-   <div style="font-size:13px;margin-top:4px;">Trả lời: <b>${d.a}</b></div>
-   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--ink-500);">
-     <span>Người cung cấp: <b style="color:var(--ink-700);">Khách hàng</b></span>
-     <span>Nguồn: <b style="color:var(--ink-700);">Kê khai khi nộp</b></span>
-     <span>Thời điểm: ${declTime}</span>
-     <span>Khách xác nhận: ${custConfirmed?'<span class="badge badge-ready" style="font-size:9px;">Đã xác nhận</span>':'<span class="badge badge-pending" style="font-size:9px;">Chưa</span>'}</span>
-     <span>Ảnh hưởng: ${impactOf(d)}</span>
-   </div>
-   ${d.note?`<div style="font-size:11px;color:var(--ink-300);margin-top:2px;">${d.note}</div>`:''}
- </div>`;
- body=`<div class="alert2 info" style="margin-bottom:12px;">Nội dung khai báo tại thời điểm nộp — <b>chỉ xem</b>.</div>`
-  + Object.keys(groups).map(sec=>`<div class="section-title" style="margin-top:0;"><h2>${sec}</h2></div><div class="card" style="padding:0;overflow:hidden;margin-bottom:12px;">${groups[sec].map(rowDecl).join('')}</div>`).join('')
-  + `<div class="section-title" style="margin-top:0;"><h2>Tình trạng thế chấp (suy ra)</h2></div><div class="card" style="padding:12px 14px;"><div style="font-size:13px;">${mgTrack.mortgaged?`<b>Có</b> — ${mgTrack.bank||'—'}`:'<b>Không</b>'} <span class="chip">Derived</span></div><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Suy ra từ tab Đối tượng bảo hiểm/NTH — không nhập hai lần.</div></div>`;
+ const groupRow=sec=>`<tr><th colspan="3" scope="rowgroup" style="text-transform:none;letter-spacing:0;background:var(--paper);">${sec}</th></tr>`;
+ const rowDecl=d=>`<tr>
+   <td>${d.q}${d.note?`<div style="font-size:var(--text-xs);color:var(--ink-300);margin-top:var(--space-3xs);">${d.note}</div>`:''}</td>
+   <td><b>${d.a}</b></td>
+   <td>${impactOf(d)}</td>
+  </tr>`;
+ body=`<div class="alert2 info" style="margin-bottom:var(--space-md);">Nội dung khai báo tại thời điểm nộp — <b>chỉ xem</b>. Do <b>Khách hàng</b> kê khai lúc <b>${declTime}</b> · Khách xác nhận: ${custConfirmed?'<span class="badge badge-ready">Đã xác nhận</span>':'<span class="badge badge-pending">Chưa xác nhận</span>'}</div>`
+  + `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Nội dung khai báo</th><th>Trả lời</th><th>Ảnh hưởng</th></tr></thead><tbody>`
+  + Object.keys(groups).map(sec=>groupRow(sec)+groups[sec].map(rowDecl).join('')).join('')
+  + groupRow('Thông tin suy ra')
+  + `<tr><td>Tình trạng thế chấp <span class="chip">Derived</span><div style="font-size:var(--text-xs);color:var(--ink-300);margin-top:var(--space-3xs);">Suy ra từ Đối tượng bảo hiểm/Người thụ hưởng — không nhập hai lần.</div></td><td><b>${mgTrack.mortgaged?`Có — ${mgTrack.bank||'—'}`:'Không'}</b></td><td>—</td></tr>`
+  + `</tbody></table></div>`;
 } else if(activeTab==='documents'){
  body=submittedDocTable();
 } else if(activeTab==='uw' && app.productId==='health' && (app.insuredMembers||[]).some(function(m){return m.underwriting;})){
@@ -2500,6 +2756,31 @@ if(activeTab==='overview'){
  const overall = BANCA.healthDeriveOverallUw(app);
  const oTone = {ok:['var(--teal-600)','#eefaf7'],wait:['var(--amber-600)','#fdf3e3'],warn:['var(--amber-600)','#fdf3e3'],danger:['var(--red-600)','#fdecec']}[overall.tone]||['var(--brand-600)','var(--brand-100)'];
  const units = BANCA.healthUnitsOf(app);
+ const memberPanels = units.filter(function(u){return u.active!==false;}).map(function(u){
+  const uw=u.underwriting||{decision:'IN_UW'};
+  const decisionMap={APPROVED_STP:'APPROVED_STP',CONDITIONAL:'APPROVED_WITH_CONDITION',LOADING:'APPROVED_WITH_LOADING',EXCLUSION:'APPROVED_WITH_EXCLUSION',REDUCED:'APPROVED_WITH_CONDITION',MEDICAL_EXAM:'APPROVED_WITH_CONDITION',REJECTED:'DECLINED'};
+  const decision=decisionMap[uw.decision]||'NONE';
+  const isMoreInfoDecision=uw.decision==='NEED_MORE_INFO'||uw.decision==='REFERRED';
+  const isConditionDecision=['CONDITIONAL','LOADING','EXCLUSION','REDUCED','MEDICAL_EXAM'].includes(uw.decision);
+  const status=isMoreInfoDecision?'NEED_MORE_INFORMATION':(uw.decision==='IN_UW'?'IN_REVIEW':'DECIDED');
+  const meta=BANCA.HEALTH_UW_MEMBER[uw.decision]||{label:'Đang thẩm định'};
+  const moreInfoItems=(uw.additionalDocuments&&uw.additionalDocuments.length)
+    ? uw.additionalDocuments
+    : (isMoreInfoDecision?(uw.conditions||[]).concat(uw.exclusions||[]):[]);
+  const requirements=moreInfoItems.map(function(x){return {label:x,status:'PENDING'};});
+  const conditions=isConditionDecision
+    ? (uw.conditions||[]).map(function(x){return {type:'Điều kiện',text:x};})
+      .concat((uw.exclusions||[]).map(function(x){return {type:'Loại trừ',text:x};}))
+    : [];
+  return `<div class="card" style="padding:var(--space-md);margin-bottom:var(--space-sm);"><div style="margin-bottom:var(--space-sm);"><b>${u.name||'—'}</b> <span class="chip">${u.insuredUnitId}</span></div>${BANCA.ui.underwritingStatusPanel(app,{
+    state:{underwritingMode:uw.decision==='APPROVED_STP'?'STP':'MANUAL_UNDERWRITING',underwritingDecision:decision,underwritingStatus:status},
+    statusLabel:meta.label,
+    requirements:requirements,
+    conditions:conditions,
+    conditionAccepted:(u.confirmation||{}).status==='CONFIRMED',
+    onSendCondition:(isConditionDecision&&!readOnly&&app.owner===me&&(u.confirmation||{}).status!=='CONFIRMED')?"healthMemberConfirm('"+app.id+"','"+u.insuredUnitId+"','send')":null
+  })}</div>`;
+ }).join('');
  const rows = units.filter(function(u){return u.active!==false;}).map(function(u){
   const uw=u.underwriting||{decision:'IN_UW'};
   const meta=BANCA.HEALTH_UW_MEMBER[uw.decision]||{label:uw.decision,tone:'wait'};
@@ -2514,9 +2795,10 @@ if(activeTab==='overview'){
    </tr>`;
  }).join('');
  body = `<div class="card" style="padding:14px 16px;margin-bottom:12px;border-left:4px solid ${oTone[0]};background:${oTone[1]};">
-    <b style="color:${oTone[0]};font-size:14px;">Trạng thái tổng (derive): ${overall.label}</b>
+   <b style="color:${oTone[0]};font-size:14px;">Trạng thái tổng (derive): ${overall.label}</b>
     <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">Trạng thái tổng suy ra từ kết quả từng thành viên — không hiển thị "Đã chấp thuận tự động" cho toàn yêu cầu nếu chỉ một phần thành viên được duyệt.</div>
    </div>
+   ${memberPanels}
    <div class="card" style="padding:16px;">
     <div class="label" style="margin-bottom:8px;">Ma trận thẩm định theo thành viên</div>
     <table class="dtable"><thead><tr><th>Thành viên</th><th>Kết quả</th><th>Phụ phí</th><th>Điều kiện</th><th>Mô phỏng</th></tr></thead><tbody>${rows}</tbody></table>
@@ -2534,7 +2816,7 @@ if(activeTab==='overview'){
  const _queueName=_uwDef.error?'—':(_uwDef.queueCode||'—');
  const wsCard=(_uwDef.error?`<div class="card" style="padding:14px;margin-bottom:12px;border:1.5px solid var(--red-600);background:#fdecec;"><b style="color:var(--red-600);">⚠ Lỗi cấu hình thẩm định</b><div style="font-size:12px;margin-top:4px;">${_uwDef.message}</div></div>`:'')+`<div class="card" style="padding:16px;margin-bottom:12px;"><div class="label" style="margin-bottom:10px;">Trạng thái thẩm định</div>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-     ${[['Trạng thái',uwState],['Đơn vị xử lý',_unitName],['Hàng chờ (queue)',_queueName],['Ưu tiên',app.uw?'Bình thường':(app.sla&&new Date(app.sla.replace(' ','T'))<new Date('2026-07-21T15:30:00')?'Cao':'Bình thường')],['Tiếp nhận lúc',received],['Bắt đầu',started],['Dự kiến xong',expected],['SLA còn lại',app.sla?slaHtml(app.sla):'—']].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:8px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12px;font-weight:700;margin-top:2px;">${v}</div></div>`).join('')}
+     ${[['Đơn vị xử lý',_unitName],['Hàng chờ (queue)',_queueName],['Ưu tiên',app.uw?'Bình thường':(app.sla&&new Date(app.sla.replace(' ','T'))<new Date('2026-07-21T15:30:00')?'Cao':'Bình thường')],['Tiếp nhận lúc',received],['Bắt đầu',started],['Dự kiến xong',expected],['SLA còn lại',app.sla?slaHtml(app.sla):'—']].map(([k,v])=>`<div style="border:1px solid var(--line);border-radius:8px;padding:8px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12px;font-weight:700;margin-top:2px;">${v}</div></div>`).join('')}
    </div></div>`;
  // Condition detail (chỉ khi duyệt có điều kiện) — không lộ note nội bộ/fraud/risk score
  // §9.1 — khối "điều kiện/loại trừ khách phải chấp nhận" dùng CHUNG Motor/Health
@@ -2548,6 +2830,13 @@ if(activeTab==='overview'){
    conditions:_conds,
    accepted: !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt)),
    onSend: (app.owner===me && !(app.confirm&&app.confirm.sentAt)) ? 'sendConfirm()' : null
+ });
+ const uwRequirements=(app.supplement&&app.supplement.items||[]).map(function(x){return typeof x==='string'?{label:x,status:'PENDING'}:x;});
+ const sharedUwPanel=BANCA.ui.underwritingStatusPanel(app,{
+   requirements:uwRequirements,
+   conditions:_conds,
+   conditionAccepted:!!(app.confirm&&(app.confirm.otp==='VERIFIED'||app.confirm.confirmedAt)),
+   onSendCondition:(!readOnly&&app.owner===me&&!(app.confirm&&app.confirm.sentAt))?'sendConfirm()':null
  });
  const condCard = condAccept + ((app.uw&&['APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION','APPROVED_WITH_CONDITION'].includes(app.uw.decision))?`<div class="card" style="padding:16px;margin:12px 0;border-left:4px solid var(--amber-600);">
    <div class="label" style="margin-bottom:10px;color:var(--amber-600);">Điều kiện thẩm định</div>
@@ -2609,9 +2898,9 @@ if(activeTab==='overview'){
     <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Yêu cầu đủ điều kiện phát hành tự động theo bộ quy tắc STP — không qua hàng chờ/thẩm định viên thủ công.</div>
     ${app.status==='PAYMENT_METHOD_REQUIRED'&&app.owner===me?`<a class="btn btn-primary btn-sm" style="margin-top:12px;" href="?id=${app.id}&tab=confirmpay">Khởi tạo thanh toán →</a>`:''}
   </div>`;
-  body = stpCard;
+  body = sharedUwPanel + (app.status==='PAYMENT_METHOD_REQUIRED'&&app.owner===me?`<a class="btn btn-primary btn-sm" style="margin-top:12px;" href="?id=${app.id}&tab=confirmpay">Tiếp tục xác nhận khách hàng →</a>`:'');
  } else {
-  body = simUwPanel + wsCard + condCard + decCard;
+  body = simUwPanel + sharedUwPanel + wsCard + decCard;
  }
 } else if(CONFIRMPAY_ALIASES.includes(activeTab)){
  body = renderConfirmPay();
@@ -2636,6 +2925,7 @@ if(activeTab==='overview'){
      <div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">Đang phát hành hợp đồng → <b style="color:var(--teal-600);">Hợp đồng đã phát hành</b></div>
      <div style="font-size:20px;font-weight:700;color:var(--teal-600);">✓ Hợp đồng đã phát hành thành công</div>
      <div style="font-size:14px;color:var(--ink-700);margin-top:4px;">Số HĐ <b>${app.policyId}</b> · Hiệu lực ${effFrom} → ${effTo}</div>
+     <a class="btn btn-secondary btn-sm" style="margin-top:var(--space-sm);" href="${r}modules/policies/index.html?view=detail&id=${app.policyId}">Mở chi tiết hợp đồng</a>
     </div>
     <!-- Nút Tải hợp đồng/Gửi cho khách đã chuyển lên header (getSubmittedCaseActions) -->
    </div>
@@ -2694,6 +2984,141 @@ if(activeTab==='overview'){
   </div>`;}).join(''):'<div class="empty-state" style="padding:20px;">Không có sự kiện ở nhóm này.</div>'}</div>
   <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Sự kiện tích hợp hiển thị thân thiện (không lộ log kỹ thuật thô).</div>`;
 }
+return body;
+}
+
+const stageSection=(title,html)=>`<section class="submitted-stage-section" aria-labelledby="submitted-stage-${title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}"><h3 id="submitted-stage-${title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}">${title}</h3>${html}</section>`;
+function submittedInsuredViews(){
+ if(app.productId==='health'){
+  return BANCA.healthUnitsOf(app).filter(function(unit){return unit.active!==false;}).map(function(unit){
+   const uw=unit.underwriting||{};
+   const uwMeta=BANCA.HEALTH_UW_MEMBER[uw.decision]||{};
+   return {insuredUnitId:unit.insuredUnitId,name:unit.name||'—',relationship:unit.relationship||'—',age:unit.age,
+    productName:app.productName,packageCode:unit.package,packageLabel:healthPkgName(unit.package),
+    memberPremium:unit.memberPremium!=null?unit.memberPremium:(unit.premium!=null?unit.premium:null),underwritingDisplayState:uwMeta.label||'Đang thẩm định',unit:unit};
+  });
+ }
+ const customer=cust||{};
+ const isPa=app.productId==='pa';
+ const name=isPa?(app.insuredName||customer.name||'—'):(customer.name||app.insuredName||'—');
+ const packageCode=app.package||(app.quote&&app.quote.packageId);
+ const packageLabel=isPa?paPkgName(packageCode):((BANCA.motorPackages[packageCode]||{}).name||packageCode||'—');
+ return [{insuredUnitId:'insured-1',name:name,relationship:app.buyerIsInsured===false?(app.relationship||'Người được bảo hiểm'):'Bản thân',
+  age:app.insuredAge,productName:app.productName,packageCode:packageCode,packageLabel:packageLabel,
+  memberPremium:(app.uw&&app.uw.newPremium)||app.premium||null,
+  underwritingDisplayState:caseFlow.dead?'Không được chấp thuận':caseFlow.uwDecided?'Đã chấp thuận':casePh==='NEED_MORE_INFORMATION'?'Cần bổ sung':'Đang thẩm định'}];
+}
+const submittedInsuredUnits=submittedInsuredViews();
+const requestedInsuredId=qs.get('insured');
+const selectedSubmittedInsured=submittedInsuredUnits.find(function(unit){return unit.insuredUnitId===requestedInsuredId;})||submittedInsuredUnits[0]||null;
+function submittedInsuredBenefits(view){
+ if(app.productId==='health') return healthBenefitRows(view.packageCode);
+ if(app.productId==='pa') return paBenefitRows(view.packageCode);
+ return [
+  ['Số tiền bảo hiểm',idvTrack?BANCA.vnd(idvTrack):'—'],
+  ['Mức khấu trừ',dedTrack?BANCA.vnd(dedTrack):'—'],
+  ['Quyền lợi bổ sung',addOnsTrack.length?addOnsTrack.join(', '):'Không']
+ ];
+}
+// Gói + quyền lợi của người đang xem — nằm TRONG card của chính người đó, không tách khối riêng.
+function submittedInsuredCardBody(view){
+ const pkg=app.productId==='health'?healthPkg(view.packageCode):app.productId==='pa'?paPkg(view.packageCode):(BANCA.motorPackages[view.packageCode]||{});
+ const conditions=(view.unit&&view.unit.underwriting&&view.unit.underwriting.conditions)||pkg.exclusions||[];
+ const benefits=submittedInsuredBenefits(view).map(function(item){return `<div class="submitted-insured-benefit"><span>${item[0]}</span><b>${item[1]}</b></div>`;}).join('');
+ return `<div class="submitted-insured-card__body">
+   <div class="submitted-insured-meta"><span>Nhà bảo hiểm <b>ABC Insurance</b></span><span>Thời hạn <b>${pkg.termMonths||12} tháng</b></span></div>
+   <div class="submitted-insured-benefits">${benefits}</div>
+   <div class="submitted-insured-conditions"><b>Loại trừ / điều kiện riêng</b><span>${conditions.length?conditions.join('; '):'Không có điều kiện riêng được ghi nhận'}</span></div>
+  </div>`;
+}
+function renderSubmittedInsuredPackageFee(){
+ if(!selectedSubmittedInsured) return '<div class="empty-state">Chưa có Người được bảo hiểm.</div>';
+ const familyTotal=app.productId==='health'?((app.quote&&app.quote.premium)||app.premium||0):null;
+ const cards=submittedInsuredUnits.map(function(unit){
+  const selected=unit.insuredUnitId===selectedSubmittedInsured.insuredUnitId;
+  const href='?id='+encodeURIComponent(app.id)+'&stage=created&insured='+encodeURIComponent(unit.insuredUnitId);
+  const premium=unit.memberPremium!=null?BANCA.vnd(unit.memberPremium):'Chưa tách phí theo người';
+  const head=`<div class="submitted-insured-card__head">
+    <div class="submitted-insured-card__who"><b>${unit.name}</b><span>${unit.relationship}${unit.age!=null?' · '+unit.age+' tuổi':''}</span></div>
+    <div class="submitted-insured-card__plan"><b>${unit.productName||'—'} · ${unit.packageLabel}</b><span>Thẩm định: ${unit.underwritingDisplayState}</span></div>
+    <div class="submitted-insured-card__fee"><b class="op-money">${premium}</b><span>Phí của người này</span></div>
+   </div>`;
+  const body=selected
+   ? submittedInsuredCardBody(unit)
+   : `<a class="submitted-insured-card__more" href="${href}">Xem gói và quyền lợi của ${unit.name}</a>`;
+  return `<article class="submitted-insured-card${selected?' is-selected':''}"${selected?' aria-current="true"':''}>${head}${body}</article>`;
+ }).join('');
+ return `<div class="submitted-insured-list" aria-label="Người được bảo hiểm">${cards}</div>
+  ${familyTotal!=null?`<div class="card submitted-family-total"><span>Tổng phí gia đình</span><b>${BANCA.vnd(familyTotal)}</b><small>Tổng gia đình được trình bày riêng, không phải phí của thành viên đang chọn.</small></div>`:''}`;
+}
+function underwritingMemberStatus(view){
+ if(app.productId!=='health') return view.underwritingDisplayState;
+ const decision=(view.unit&&view.unit.underwriting&&view.unit.underwriting.decision)||'';
+ if(decision==='REJECTED') return 'Không được chấp thuận';
+ if(['NEED_MORE_INFO','REFERRED'].includes(decision)) return 'Cần bổ sung';
+ if(['IN_UW',''].includes(decision)) return 'Đang thẩm định';
+ return ['CONDITIONAL','LOADING','EXCLUSION','REDUCED','MEDICAL_EXAM'].includes(decision)?'Chấp thuận có điều kiện':'Đã chấp thuận';
+}
+function submittedUnderwritingSummary(phase,memberStates){
+ const hasDeclined=memberStates.some(function(state){return state==='Không được chấp thuận';});
+ const hasMore=phase==='NEED_MORE_INFORMATION'||memberStates.some(function(state){return state==='Cần bổ sung';});
+ const hasPending=memberStates.some(function(state){return state==='Đang thẩm định';});
+ const current=hasDeclined?'Có Người được bảo hiểm không được chấp thuận':hasMore?'Cần bổ sung':hasPending?'Đang thẩm định':'Đã chấp thuận';
+ const next=hasMore?'Bổ sung hồ sơ theo yêu cầu.':hasPending?'Chưa cần thao tác; theo dõi kết quả thẩm định.':hasDeclined?'Xem kết quả từng người và phương án tiếp tục.':caseFlow.confirmComplete?'Tiếp tục xác nhận & thanh toán.':'Gửi khách xác nhận.';
+ return {current:current,next:next};
+}
+function renderSubmittedUnderwritingClarity(){
+ const memberStates=submittedInsuredUnits.map(underwritingMemberStatus);
+ const summary=submittedUnderwritingSummary(casePh,memberStates);
+ const cards=submittedInsuredUnits.map(function(view){return `<article class="submitted-uw-member"><b>${view.name}</b><span>${view.relationship}${view.age!=null?' · '+view.age+' tuổi':''}</span><strong>${underwritingMemberStatus(view)}</strong></article>`;}).join('');
+ return `<div class="submitted-uw-purpose"><h3>Mục đích thẩm định</h3><p>Nhà bảo hiểm đánh giá điều kiện tham gia, mức phí và các điều khoản bảo hiểm phù hợp cho từng Người được bảo hiểm.</p></div>
+  <div class="card submitted-uw-current"><div><span>Tình trạng hiện tại</span><b>${summary.current}</b></div><div><span>Việc cần thực hiện</span><b>${summary.next}</b></div></div>
+  <section class="submitted-uw-results"><h3>Kết quả theo Người được bảo hiểm</h3><div>${cards}</div></section>
+  <details class="submitted-uw-support"><summary>Thông tin xử lý hỗ trợ</summary><div><span>Đơn vị xử lý: <b>${(BANCA.underwritingDefinitionFor(app.productId).manualUnit)||'Nhà bảo hiểm'}</b></span><span>Dự kiến hoàn tất: <b>${app.sla||'Theo tiến độ xử lý'}</b></span></div></details>`;
+}
+function renderSubmittedStageGuidance(stageId){
+ const copy={
+  created:['Kiểm tra hồ sơ đã nộp','Đối chiếu khách hàng, Người được bảo hiểm, gói/phí, khai báo và tài liệu tại thời điểm nộp. Nếu có thiếu/sai lệch, xử lý qua yêu cầu bổ sung thay vì sửa trực tiếp bản đã nộp.'],
+  underwriting:['Theo dõi kết quả thẩm định','Xem tình trạng hiện tại, việc cần làm tiếp và kết quả theo từng Người được bảo hiểm. Chỉ các yêu cầu bổ sung hoặc điều kiện được phép chia sẻ mới hiển thị ở bước này.'],
+  'confirmation-payment':['Hoàn tất xác nhận và thu phí','Đảm bảo khách hàng xác nhận nội dung trước khi thanh toán. Nhân viên tư vấn có thể hỗ trợ nhập OTP tại quầy hoặc gửi link để khách tự thực hiện.'],
+  policy:['Theo dõi phát hành hợp đồng','Kiểm tra trạng thái phát hành sau thanh toán. Khi hợp đồng đã phát hành, dùng link chi tiết hợp đồng để xem hồ sơ đầy đủ, tải hoặc gửi cho khách.']
+ }[stageId]||['Theo dõi bản chào','Xem nội dung và hành động phù hợp với trạng thái hiện tại.'];
+ const tone=stageId===businessCurrentSubmittedStage?'Đang thực hiện':(submittedStageModel.find(function(s){return s.id===stageId&&s.complete;})?'Đã hoàn thành':'Đang xem');
+ return `<div class="submitted-stage-guidance"><div><span class="submitted-stage-guidance__eyebrow">${tone}</span><h3>${copy[0]}</h3><p>${copy[1]}</p></div></div>`;
+}
+function renderActiveSubmittedStage(){
+ if(activeSubmittedStage==='created') return [
+  renderSubmittedStageGuidance('created'),
+  stageSection('Thông tin khách hàng',renderSubmittedStagePart('customer')),
+  stageSection('Gói và phí theo Người được bảo hiểm',renderSubmittedInsuredPackageFee()),
+  stageSection('Nội dung khai báo',renderSubmittedStagePart('declaration')),
+  stageSection('Tài liệu đã nộp',renderSubmittedStagePart('documents'))
+ ].join('');
+ if(activeSubmittedStage==='underwriting'){
+  const supplement=(supCount>0||casePh==='NEED_MORE_INFORMATION')
+   ? stageSection('Yêu cầu bổ sung và lịch sử bổ sung',renderSubmittedStagePart('supplement')+renderSupplementationHistory())
+   : '';
+  return renderSubmittedStageGuidance('underwriting')+renderSubmittedUnderwritingClarity()+supplement;
+ }
+ if(activeSubmittedStage==='confirmation-payment') return renderSubmittedStageGuidance('confirmation-payment')+renderSubmittedStagePart('confirmpay');
+ return renderSubmittedStageGuidance('policy')+renderSubmittedStagePart('policy');
+}
+function renderSupplementationHistory(){
+ const events=(app.supplementHistory||[]).concat(app.supplement?[app.supplement]:[]);
+ if(!events.length) return '<div class="empty-state">Chưa có lịch sử bổ sung.</div>';
+ return `<div class="card" style="padding:0;overflow-x:auto;"><table class="dtable"><thead><tr><th>Thời điểm</th><th>Sự kiện</th><th>Bởi</th><th>Trạng thái</th></tr></thead><tbody>${events.map(function(event){
+  const count=(event.items||[]).length;
+  return `<tr><td>${event.requestedAt||event.at||'—'}</td><td>Yêu cầu bổ sung ${count?count+' nội dung':''}</td><td>${event.requestedBy||event.actor||'Đơn vị thẩm định'}</td><td>${event.status||'Đang chờ bổ sung'}</td></tr>`;
+ }).join('')}</tbody></table></div>`;
+}
+const SUBMITTED_STAGE_META={
+ created:['Bản chào đã tạo','Thông tin khách hàng, phương án chính thức, khai báo và tài liệu tại thời điểm nộp.'],
+ underwriting:['Thẩm định','Kết quả, điều kiện được phép chia sẻ và các yêu cầu bổ sung.'],
+ 'confirmation-payment':['Xác nhận & thanh toán','Khách hàng xác nhận nội dung trước khi thực hiện thanh toán phí bảo hiểm.'],
+ policy:['Phát hành hợp đồng','Trạng thái phát hành và hồ sơ hợp đồng liên kết.']
+};
+const activeSubmittedStageMeta=SUBMITTED_STAGE_META[activeSubmittedStage];
+const activeSubmittedStageBody=renderActiveSubmittedStage();
 
 // Header enriched + status-driven action bar (Không gian theo dõi yêu cầu đã nộp — view-only)
 const na = caseNextAction();
@@ -2709,7 +3134,7 @@ const roleName=(BANCA.personas[me]||{}).role||'Nhân viên tư vấn';
 const permLabel = readOnly?'Chỉ xem' : (casePh==='NEED_MORE_INFORMATION'?'Được bổ sung':'Chỉ xem (đã nộp)');
 // Version selector
 const verSelect = cmeta.versions.length>1
- ? `<select onchange="viewVersion(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--line);border-radius:6px;">${cmeta.versions.slice().reverse().map(v=>`<option value="${v.v}" ${v.v===caseVer?'selected':''}>V${v.v}${v.v===caseVer?' (Current)':''} · ${v.status}</option>`).join('')}</select>${cmeta.compare.length?` <button class="btn btn-secondary btn-sm" onclick="compareVersions('${app.id}')">Compare V1↔V${caseVer}</button>`:''}`
+ ? `<select onchange="viewVersion(this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--line);border-radius:6px;">${cmeta.versions.slice().reverse().map(v=>`<option value="${v.v}" ${v.v===caseVer?'selected':''}>V${v.v}${v.v===caseVer?' (Hiện hành)':''} · ${v.status}</option>`).join('')}</select>${cmeta.compare.length?` <button class="btn btn-secondary btn-sm" onclick="compareVersions('${app.id}')">So sánh phiên bản</button>`:''}`
  : `<span class="badge badge-version">Phiên bản ${caseVer}</span>`;
 // Notification banner (Epic 12)
 function caseNotification(){
@@ -2727,25 +3152,33 @@ const stageLbl={PENDING_INTAKE:'Chờ tiếp nhận',UW_PENDING:'Chờ thẩm đ
 const caseOwner=casePh==='NEED_MORE_INFORMATION'?'Nhân viên tư vấn':(casePh==='PENDING_INTAKE'?'Chờ tiếp nhận':'Đơn vị bảo hiểm');
 const dashChip=(k,v)=>`<div style="border:1px solid var(--line);border-radius:8px;padding:6px 12px;"><div style="font-size:11px;color:var(--ink-300);text-transform:uppercase;">${k}</div><div style="font-size:12px;font-weight:700;margin-top:2px;">${v}</div></div>`;
 const dashStrip=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">${dashChip('Giai đoạn',stageLbl)}${dashChip('Việc tiếp theo',na[0].length>28?na[0].slice(0,28)+'…':na[0])}${dashChip('SLA',app.sla?slaHtml(app.sla):'—')}${dashChip('Phiên bản','V'+caseVer)}${dashChip('Owner',caseOwner)}</div>`;
+function submittedSummaryItem(label,value,emphasis){
+ return `<div class="submitted-summary-item${emphasis?' is-emphasis':''}"><span>${label}</span><b>${value}</b></div>`;
+}
+const submittedBusinessSummary=`<section class="submitted-business-summary" aria-label="Tóm tắt xử lý bản chào">
+ ${submittedSummaryItem('Giai đoạn hiện tại',stageLbl,true)}
+ ${submittedSummaryItem('Việc tiếp theo',na[0])}
+ ${submittedSummaryItem('Người phụ trách',caseOwner)}
+ ${submittedSummaryItem('SLA',app.sla?slaHtml(app.sla):'Không áp dụng')}
+ ${submittedSummaryItem('Phiên bản','V'+caseVer)}
+</section>`;
 
-const hdr=`<div class="card" style="padding:14px 18px;margin-bottom:14px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(10,25,60,.06);">
- <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
-  <div>
-   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:22px;font-weight:700;color:var(--ink-900);line-height:1.15;">${app.id}</span>${verSelect}</div>
-   <div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${cust?cust.name:'—'} · ${app.productName}${app.package?' · '+app.package:''}</div>
-   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">${metaChip('Nộp lúc',(app.submittedAt||'—')+' · '+submittedBy)}${metaChip('Nguồn',srcLabel)}${metaChip('Quote',quoteRef)}${metaChip('Mã xử lý',uwRef)}<span class="chip" style="background:#eef0f4;color:var(--ink-500);">${roleName} · ${permLabel}</span></div>
+const hdr=`<header class="submitted-case-header">
+ <div class="submitted-case-header__inner">
+  <div class="submitted-case-header__identity">
+   <div class="submitted-case-header__title"><span>${app.id}</span>${verSelect}</div>
+   <div class="submitted-case-header__customer">${cust?cust.name:'—'} · ${app.productName}${app.package?' · '+app.package:''}</div>
+   <div class="submitted-case-header__meta">${metaChip('Nộp lúc',(app.submittedAt||'—')+' · '+submittedBy)}${metaChip('Nguồn',srcLabel)}<span class="chip" style="background:#eef0f4;color:var(--ink-500);">${roleName} · ${permLabel}</span></div>
+   <details class="submitted-case-header__refs"><summary>Thông tin tham chiếu</summary><div>${metaChip('Báo giá',quoteRef)}${metaChip('Mã xử lý',uwRef)}${metaChip('Phiên bản','V'+caseVer)}</div></details>
   </div>
-  <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-left:auto;">
-   <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Trạng thái xử lý</div><div style="margin-top:2px;">${BANCA.caseStatusBadge(app)}</div></div>
-   <div style="text-align:right;"><div style="font-size:12px;color:var(--ink-500);font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Tổng phí</div><b style="font-size:24px;color:var(--brand-600);display:block;margin-top:0px;">${BANCA.vnd((app.uw&&app.uw.newPremium)||app.premium)}</b></div>
+  <div class="submitted-case-header__metrics">
+   <div><div class="submitted-case-header__metric-label">Trạng thái xử lý</div><div>${BANCA.caseStatusBadge(app)}</div></div>
+   <div><div class="submitted-case-header__metric-label">Tổng phí</div><b class="submitted-case-header__premium">${BANCA.vnd((app.uw&&app.uw.newPremium)||app.premium)}</b></div>
   </div>
  </div>
- <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">${caseStepperStrip()}</div>
- <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);">
-  ${getSubmittedCaseActions().join('')}
-  ${readOnly?'<span class="chip">Chỉ xem (manager)</span>':''}
- </div>
-</div>`;
+</header>`;
+const commandBar=renderSubmittedCommandBar(getSubmittedCaseActions(),na[0],app.sla?slaHtml(app.sla):'');
+const stageStepper=renderSubmittedStageStepper();
 
 // P0.6 — Banner continuity: vừa submit → hiển thị kết quả decision router + next action (không quay về list).
 const routedBanner = (qs.get('routed')==='1' && app.routing) ? (function(){
@@ -2760,9 +3193,21 @@ const routedBanner = (qs.get('routed')==='1' && app.routing) ? (function(){
   </div>`;
 })() : '';
 
-// bỏ hết alert giải thích (.alert2.info) ở mọi tab tracking cho gọn — giữ warn/danger (actionable) và success (teal inline).
-const trackCleanStyle = `<style>.track-clean .alert2.info{display:none!important;}</style>`;
-shell('Bản chào','Theo dõi bản chào', trackCleanStyle+'<div class="track-clean">'+hdr+tabBar+routedBanner+body+'</div>', {startSale:false});
+const contentShell=`<section class="submitted-content-shell" aria-labelledby="submitted-content-title">
+ <header class="submitted-content-header"><h2 id="submitted-content-title">${activeSubmittedStageMeta[0]}</h2><p>${activeSubmittedStageMeta[1]}</p></header>
+ ${lockedStageNotice}${routedBanner}<div class="submitted-content-layout submitted-content-layout--single"><main class="submitted-content-main">${activeSubmittedStageBody}</main></div>
+</section>`;
+
+shell('Bản chào','Theo dõi bản chào','<div class="submitted-workspace">'+hdr+commandBar+submittedBusinessSummary+stageStepper+contentShell+'</div>', {startSale:false});
+if(qs.get('stage')!==activeSubmittedStage || legacyTabRequest || (activeSubmittedStage==='created'&&selectedSubmittedInsured&&requestedInsuredId!==selectedSubmittedInsured.insuredUnitId)){
+ const canonical=new URL(location.href);
+ canonical.searchParams.delete('tab');
+ canonical.searchParams.delete('hcat');
+ canonical.searchParams.set('stage',activeSubmittedStage);
+ if(activeSubmittedStage==='created'&&selectedSubmittedInsured) canonical.searchParams.set('insured',selectedSubmittedInsured.insuredUnitId);
+ else canonical.searchParams.delete('insured');
+ history.replaceState(null,'',canonical.pathname+'?'+canonical.searchParams.toString());
+}
 
 window.viewVersion=function(v){ if(String(v)!==String(caseVer)) alert('Xem snapshot phiên bản V'+v+' (demo). Bản đã nộp cũ được giữ nguyên.'); };
 window.compareVersions=function(id){
@@ -2828,6 +3273,36 @@ window.simConfirm = function(){
   confirm:Object.assign({},app.confirm||{},{otp:'VERIFIED',confirmedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5)})});
  alert('Khách đã xác nhận điều kiện (demo) → chọn cách thanh toán.');
  location.href='?id='+app.id+'&tab=payment';
+};
+// P0.7 corrective — assisted OTP is a distinct customer-entered path, never a send-link alias.
+window.openAssistedCustomerOtp = function(id, unitId){
+ const unit=unitId?(BANCA.healthUnitsOf(app).find(function(item){return item.insuredUnitId===unitId;})||{}):null;
+ const actor=unit?(unit.isChild?(unit.guardianName||'Người đại diện'):(unit.name||'Người được bảo hiểm')):((cust&&cust.name)||'Khách hàng');
+ const inputId='assisted-customer-otp-'+(unitId||'case');
+ const root=document.getElementById('start-sale-root')||document.body;
+ const modal=document.createElement('div');
+ modal.className='modal-overlay2 open';
+ modal.onclick=function(ev){if(ev.target===modal)modal.remove();};
+ modal.innerHTML=`<div class="modal2 submitted-assisted-otp-modal" onclick="event.stopPropagation()"><div class="modal2-head"><b>Khách xác nhận OTP tại quầy</b><span class="modal2-close" onclick="this.closest('.modal-overlay2').remove()">&times;</span></div><div class="modal2-body">
+   <div class="alert2 info submitted-assisted-otp-note">Nhân viên tư vấn chỉ khởi tạo và hỗ trợ phiên. <b>${actor}</b> trực tiếp cung cấp và nhập OTP; nhân viên tư vấn không xác nhận thay khách.</div>
+   ${unitId?`<div class="submitted-assisted-otp-meta">Phiên xác nhận riêng: <b>${unitId}</b>. OTP này không dùng chung với thành viên khác.</div>`:''}
+   <label class="submitted-assisted-otp-label" for="${inputId}">Khách hàng nhập OTP</label>
+   <input class="submitted-assisted-otp-input" id="${inputId}" inputmode="numeric" autocomplete="one-time-code" maxlength="6" aria-describedby="${inputId}-help" placeholder="Nhập 6 chữ số">
+   <div class="submitted-assisted-otp-help" id="${inputId}-help">Chỉ hoàn tất xác nhận sau khi khách hàng gửi OTP hợp lệ.</div>
+   <div class="submitted-assisted-otp-error" id="${inputId}-error" role="alert"></div>
+   <div class="submitted-assisted-otp-actions"><button class="btn btn-secondary btn-sm" onclick="this.closest('.modal-overlay2').remove()">Hủy</button><button class="btn btn-primary btn-sm" onclick="submitCustomerAssistedOtp('${id}','${unitId}','${inputId}')">Khách gửi OTP xác nhận</button></div>
+  </div></div>`;
+ root.appendChild(modal);
+ const input=document.getElementById(inputId); if(input)input.focus();
+};
+window.submitCustomerAssistedOtp = function(id, unitId, inputId){
+ const input=document.getElementById(inputId);
+ const error=document.getElementById(inputId+'-error');
+ const otp=(input&&input.value||'').trim();
+ if(!/^\d{6}$/.test(otp)){if(error)error.textContent='OTP phải gồm đúng 6 chữ số do khách hàng nhập.';return;}
+ const modal=input&&input.closest('.modal-overlay2'); if(modal)modal.remove();
+ if(unitId) healthMemberConfirm(id,unitId,'verify');
+ else simConfirm();
 };
 // §sau nộp — mô phỏng kết quả thẩm định 1 thành viên; đổi dữ liệu 1 người chỉ ảnh hưởng người đó.
 window.healthMemberUw = function(id, unitId, decision){
@@ -2917,7 +3392,7 @@ window.createPaymentIntent = function(cfg){
  const merchantReference='MR-'+app.id+'-'+Math.floor(1000+Math.random()*9000);
  const intent = BANCA.makePayment({
    applicationId:app.id, amount:amount, paymentChannel:channel, paymentInstrument:cfg.instrument, paymentExperience:cfg.experience,
-   paymentInitiator:'SELLER', payerType:'CUSTOMER', payerName:cfg.payerName||(cust||{}).name||app.customerName||null,
+   paymentInitiator:'SELLER', payerName:cfg.payerName||(cust||{}).name||app.customerName||null,
    payerRelationship:cfg.payerRelationship||null,
    recipientPhone: (cfg.experience==='CUSTOMER_REMOTE'&&cfg.delivery!=='EMAIL'&&cfg.delivery!=='COPY_LINK')?(cfg.recipient||((cust||{}).phone||null)):null,
    recipientEmail: (cfg.experience==='CUSTOMER_REMOTE'&&cfg.delivery==='EMAIL')?(cfg.recipient||((cust||{}).email||'khach@email.vn')):null,
@@ -2970,11 +3445,17 @@ window.settlePayment = function(result){
    specialConditions:(app.stpDecision&&app.stpDecision.conditions)||[],
    territorialScope:(healthPkg(app.package).territory||'Việt Nam')
  } : {};
+ // Policy reference chuẩn — HĐ trỏ đúng phiên báo giá đã duyệt (§7.3/§8.3).
+ const quoteRef = BANCA.policyQuoteRef ? BANCA.policyQuoteRef(app) : {};
  // Bước 1: thanh toán thành công + bắt đầu phát hành.
  BANCA.patchApp(app.id,{paymentStatus:'SUCCESS',policyStatus:'ISSUING',status:'PENDING_ISSUE',payment:pay,todo:'Đang phát hành',updatedAt:now});
- if(BANCA.addPolicyDemo) BANCA.addPolicyDemo(Object.assign({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:pay.amount,issueDate:'2026-07-23',effectiveFrom:effFrom,effectiveTo:effTo,status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:(app.productId==='pa'||app.productId==='health')?null:(app.vehicle||{}),payment:Object.assign({},pay),billing:[{date:'2026-07-23',amount:pay.amount,method:pay.paymentInstrument||pay.paymentChannel,ref:pay.gatewayTransactionId||pay.gatewayReference,status:'SUCCESS'}]}, paPolicyFields, healthPolicyFields));
- // Bước 2: hoàn tất phát hành (mock core).
- BANCA.patchApp(app.id,{status:'ISSUED',policyStatus:'ISSUED',policyId:polId,todo:'Xem hợp đồng',updatedAt:now});
+ if(BANCA.addPolicyDemo) BANCA.addPolicyDemo(Object.assign({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:pay.amount,issueDate:'2026-07-23',effectiveFrom:effFrom,effectiveTo:effTo,status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:(app.productId==='pa'||app.productId==='health')?null:(app.vehicle||{}),payment:Object.assign({},pay),billing:[{date:'2026-07-23',amount:pay.amount,method:pay.paymentInstrument||pay.paymentChannel,ref:pay.gatewayTransactionId||pay.gatewayReference,status:'SUCCESS'}]}, quoteRef, paPolicyFields, healthPolicyFields));
+ // Bước 2: hoàn tất phát hành (mock core) + callback về ngân hàng bằng đúng external ref + quote version.
+ const certNos = app.productId==='health'
+   ? BANCA.healthUnitsOf(app).filter(function(m){return m.active!==false;}).map(function(m,mi){return 'GCN-'+String(certNo).slice(-4)+'-'+String(mi+1).padStart(2,'0');})
+   : [certNo];
+ const bankCallback = BANCA.makeBankCallback ? BANCA.makeBankCallback({app:Object.assign({},app,{policyId:polId,payment:pay}), policyNumber:polId, certificateNumbers:certNos, issueStatus:'ISSUED', effectiveFrom:effFrom, effectiveTo:effTo, paymentStatus:'SUCCESS'}) : null;
+ BANCA.patchApp(app.id,{status:'ISSUED',policyStatus:'ISSUED',policyId:polId,bankCallback:bankCallback,todo:'Xem hợp đồng',updatedAt:now});
  location.href='?id='+app.id+'&tab=policy';
 };
 // §IX — thử phát hành lại (payment giữ SUCCESS, không thu lại tiền).
@@ -2997,8 +3478,9 @@ window.retryIssue = function(){
    insuredMembers:BANCA.healthUnitsOf(app).filter(function(m){return m.active!==false;}).map(function(m,mi){return {name:m.name,dob:m.dob,age:m.age,relationship:m.relationship,identityNumber:m.identityNumber||null,package:m.package,isChild:m.isChild,guardianName:m.guardianName||null,underwriting:m.underwriting||null,certificateNumber:'GCN-'+String(certNo).slice(-4)+'-'+String(mi+1).padStart(2,'0')};}),
    coverage:Object.assign({},healthPkg(app.package),{packageCode:app.package}), exclusions:(healthPkg(app.package).exclusions||[]), specialConditions:(app.stpDecision&&app.stpDecision.conditions)||[], territorialScope:(healthPkg(app.package).territory||'Việt Nam')
  } : {};
+ const quoteRef = BANCA.policyQuoteRef ? BANCA.policyQuoteRef(app) : {};
  BANCA.patchApp(app.id,{status:'ISSUED',policyStatus:'ISSUED',policyId:polId,todo:'Xem hợp đồng',updatedAt:now});
- if(BANCA.addPolicyDemo) BANCA.addPolicyDemo(Object.assign({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:app.payment.amount,issueDate:'2026-07-23',effectiveFrom:effFrom,effectiveTo:effTo,status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:(app.productId==='pa'||app.productId==='health')?null:(app.vehicle||{}),payment:Object.assign({},app.payment),billing:[]}, paPolicyFields, healthPolicyFields));
+ if(BANCA.addPolicyDemo) BANCA.addPolicyDemo(Object.assign({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:app.payment.amount,issueDate:'2026-07-23',effectiveFrom:effFrom,effectiveTo:effTo,status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:(app.productId==='pa'||app.productId==='health')?null:(app.vehicle||{}),payment:Object.assign({},app.payment),billing:[]}, quoteRef, paPolicyFields, healthPolicyFields));
  location.href='?id='+app.id+'&tab=policy';
 };
 // Tạo lại yêu cầu thanh toán khi hết hạn/hủy.

@@ -200,11 +200,30 @@ BANCA.sellerCell = function(referrer, advisor, seller){
 // Hợp đồng theo phạm vi tổ chức (tương tự appsForScope). Dùng cho danh sách Hợp đồng.
 BANCA.policiesForScope = function(scope, id){
   id = id || (BANCA.current && BANCA.current());
-  const all = BANCA.myPolicies ? BANCA.myPolicies() : (BANCA.policies||[]);
+  // Lọc TRỰC TIẾP trên danh mục hợp đồng theo phạm vi được chọn.
+  // Trước đây lọc chồng lên myPolicies() (quy tắc cũ theo cờ trong danh sách nhân sự)
+  // nên trang Hợp đồng và Trang chủ nhìn thấy tập dữ liệu khác nhau.
+  const all = BANCA.policies||[];
   if(scope==='SELF') return all.filter(x=>x.owner===id);
   const ids = BANCA.membersForScope(scope,id).map(s=>s.id);
   return all.filter(x=>x.owner===id || ids.includes(x.owner));
 };
+
+// ============================================================
+// Quyền XEM dữ liệu — MỘT quy tắc cho mọi trang (trang chủ, danh sách, chi tiết).
+// Tập nhìn thấy = của mình + của thành viên thuộc mọi phạm vi quản lý khai báo
+// trong hồ sơ tài khoản (availableScopes). Không đọc cờ quản lý rời trong danh sách nhân sự.
+// ============================================================
+BANCA.visibleOwnerIds = function(id){
+  id = id || (BANCA.current && BANCA.current());
+  const ids = [id];
+  (BANCA.availableScopes ? BANCA.availableScopes(id) : ['SELF']).forEach(function(sc){
+    if(sc==='SELF') return;
+    (BANCA.membersForScope(sc,id)||[]).forEach(function(s){ if(ids.indexOf(s.id)<0) ids.push(s.id); });
+  });
+  return ids;
+};
+BANCA.canViewOwner = function(ownerId, id){ return BANCA.visibleOwnerIds(id).indexOf(ownerId)>=0; };
 
 // Audit log (demo, localStorage) — dùng cho unmask / reassign / re-attribution.
 BANCA.auditLog = BANCA.auditLog || (function(){ try{ return JSON.parse(localStorage.getItem('banca_audit')||'[]'); }catch(e){ return []; } })();

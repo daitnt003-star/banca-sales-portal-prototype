@@ -57,18 +57,31 @@ BANCA.paymentEnableRule = function (app, opts) {
   var s = BANCA.caseStates ? BANCA.caseStates(app) : {};
   var reasons = [];
 
-  // 1. Quyền sở hữu case + quyền thu hộ (§17).
+  // 1. Quyền sở hữu case + phải còn ít nhất MỘT cách thanh toán khả dụng (§17).
+  // Thiếu quyền thu hộ chỉ khoá phương thức "RM/Đại lý thu hộ"; QR và link thanh toán là
+  // khách tự trả nên vẫn phải dùng được — không khoá toàn bộ bước thanh toán.
   var me = opts.me || (BANCA.current && BANCA.current());
   if (app.owner && me && app.owner !== me) reasons.push('Chỉ nhân viên phụ trách case được khởi tạo thanh toán');
   var rd = (opts.readiness !== undefined) ? opts.readiness
     : (BANCA.readinessFor ? BANCA.readinessFor(app.productId, me) : null);
-  if (rd && rd.caps && rd.caps.indexOf('can_collect_payment') < 0) {
-    reasons.push('Bạn không có quyền thu hộ cho sản phẩm này' + (rd.reason ? ' (' + rd.reason + ')' : ''));
+  if (BANCA.paymentMethodsFor) {
+    var mopts = { me: me };
+    if (opts.readiness !== undefined) mopts.readiness = opts.readiness;
+    var methods = BANCA.paymentMethodsFor(app, mopts);
+    var usable = methods.filter(function (m) { return !m.blockedReason; });
+    if (!methods.length) reasons.push('Sản phẩm chưa được cấu hình cách thanh toán');
+    else if (!usable.length) {
+      reasons.push('Bạn không có cách thanh toán khả dụng cho sản phẩm này' + (rd && rd.reason ? ' (' + rd.reason + ')' : ''));
+    }
+  } else {
+    // Fail-safe: thiếu cấu hình phương thức → khoá kèm lý do, không mở nhầm.
+    reasons.push('Chưa nạp cấu hình cách thanh toán');
   }
 
   // 2. Kết quả thẩm định phải thuộc nhóm cho phép.
   var dec = s.underwritingDecision;
-  var uwOk = ['APPROVED', 'APPROVED_STP', 'APPROVED_WITH_CONDITION'].indexOf(dec) >= 0;
+  var uwOk = BANCA.isApprovedDecision ? BANCA.isApprovedDecision(dec)
+    : ['APPROVED', 'APPROVED_STP', 'APPROVED_WITH_CONDITION'].indexOf(dec) >= 0;
   if (s.underwritingStatus === 'NEED_MORE_INFORMATION') reasons.push('Cần bổ sung thông tin/tài liệu trước khi thanh toán');
   else if (dec === 'DECLINED') reasons.push('Hồ sơ đã bị từ chối thẩm định');
   else if (!uwOk) reasons.push(s.underwritingStatus === 'NOT_STARTED' ? 'Hồ sơ chưa được thẩm định' : 'Thẩm định đang xử lý');
@@ -81,8 +94,8 @@ BANCA.paymentEnableRule = function (app, opts) {
       }).map(function (m) { return m.name || '—'; });
       if (miss.length) reasons.push('Còn ' + miss.length + ' người được bảo hiểm chưa xác nhận (' + miss.join(', ') + ')');
       else reasons.push('Khách chưa xác nhận');
-    } else if (dec === 'APPROVED_WITH_CONDITION') {
-      reasons.push('Khách chưa xác nhận điều kiện/loại trừ sau thẩm định');
+    } else if (BANCA.isApprovedWithTerms && BANCA.isApprovedWithTerms(dec)) {
+      reasons.push('Khách chưa xác nhận điều kiện/phụ phí/loại trừ sau thẩm định');
     } else {
       reasons.push('Khách chưa xác nhận (OTP)');
     }

@@ -43,6 +43,21 @@ window.BANCA = window.BANCA || {};
       a.uw.note = a.uw.note || (a.uw.decision==='APPROVED_WITH_LOADING'?'Tăng phí do lịch sử claim; cần khách xác nhận phí mới.': a.uw.decision==='APPROVED_WITH_EXCLUSION'?'Áp điều khoản loại trừ theo khu vực/nguy cơ.': a.uw.decision==='REJECTED'?'Ngoài khẩu vị nhận bảo hiểm.':'Yêu cầu đạt điều kiện phát hành tiêu chuẩn.');
     }
   });
+  // Hợp đồng phát hành TỪ một yêu cầu → phí hợp đồng, số tiền đã thu và lịch sử thu phí
+  // phải BẰNG phí cuối của chính yêu cầu đó. Trước đây phí seed viết tay nên đầu trang
+  // (phí bảo hiểm) lệch với breakdown rating lấy từ yêu cầu nguồn.
+  (BANCA.policies||[]).forEach(function(p){
+    if(!p.appId) return;
+    const a=(BANCA.applications||[]).find(function(x){return x.id===p.appId;});
+    if(!a) return;
+    const finalPremium = (a.uw && a.uw.newPremium) || a.premium;
+    if(!finalPremium) return;
+    p.premium = finalPremium;
+    if(p.payment) p.payment.amount = finalPremium;
+    const bills = p.billing||[];
+    if(bills.length===1) bills[0].amount = finalPremium;
+  });
+
   const app103=BANCA.appById&&BANCA.appById('APP-2026-103');
   if(app103){
     app103.mortgage={mortgaged:true,lenderType:'Ngân hàng',bank:'Vietcombank',branch:'CN Tân Định',creditContract:'VCB-LOAN-2026-4431'};

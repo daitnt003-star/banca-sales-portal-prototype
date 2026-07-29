@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca Reflection Loop"
+  short_description: "Nhận diện lỗi lặp và cải thiện quy trình"
+  default_prompt: "Use $banca-reflection-loop to record, analyze, and prevent recurring implementation errors."

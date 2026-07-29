@@ -294,11 +294,8 @@ BANCA.applications = [
    vehicle:null}
 ];
 BANCA.appById = id => BANCA.applications.find(a=>a.id===id);
+// Yêu cầu người dùng được XEM — cùng quy tắc quyền xem với trang chủ và các danh sách.
 BANCA.myApps = (state, p = BANCA.current()) => {
-  const per = BANCA.personas[p];
-  return BANCA.applications.filter(a => a.submissionState===state && (
-    a.owner===p ||
-    (per.managerScope==='TEAM'  && (BANCA.personas[a.owner]||{}).team===per.team) ||
-    (per.managerScope==='BRANCH'&& (BANCA.personas[a.owner]||{}).branch===per.branch)
-  ));
+  const ids = BANCA.visibleOwnerIds ? BANCA.visibleOwnerIds(p) : [p];
+  return BANCA.applications.filter(a => a.submissionState===state && ids.indexOf(a.owner) >= 0);
 };

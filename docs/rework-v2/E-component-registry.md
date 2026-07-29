@@ -17,6 +17,7 @@
 | **filterDrawer** (advanced filter) | `filterDrawer(fields, hidden)` → `{button,tags,drawer}` | Bản chào, Hợp đồng | ✅ |
 | **DataSourceBadge / ConsentStatus / SensitiveDataNotice / CustomerContextCard** | `BANCA.ui.*` | entry/consent/offer stage | ✅ |
 | **ChannelSwitcher** | `BANCA.ui.channelSwitcher()` | auth, state-gallery, header demo tool | ✅ |
+| **progressStepper** (compact chip, brand/warning current tone) | `BANCA.ui.progressStepper(items,{ariaLabel,currentTone,className})` | Application Workspace Draft + Submitted | ✅ |
 | Modal / Toast / ConfirmDialog | `BANCA.modal/toast` (shared/components) | toàn hệ | ✅ (giữ nguyên) |
 
 ## 2. Danh sách Bản chào (unified shell)
@@ -75,8 +76,8 @@
 | **feeDueSummary** (tự reconcile breakdown = tổng) | `BANCA.ui.feeDueSummary({total,paid,lines,extraHtml})` | app-workspace | ✅ |
 | **paymentHistory** | `BANCA.ui.paymentHistory(txns,{payerFallback,rowClickJs})` | app-workspace | ✅ |
 | **blockedReasons** (lý do CTA bị khoá) | `BANCA.ui.blockedReasons(reasons)` | payment group | ✅ |
-| **otpVerificationPanel** (2 mode SELLER_ASSISTED / CUSTOMER_SELF_SERVICE) | `BANCA.ui.otpVerificationPanel(cfg)` | — | 🟡 đã đóng gói, **chưa thay markup inline** |
-| **underwritingStatusPanel / requirementList / conditionAcceptance** | `BANCA.ui.*` | — | 🟡 như trên |
+| **otpVerificationPanel** (2 mode SELLER_ASSISTED / CUSTOMER_SELF_SERVICE) | `BANCA.ui.otpVerificationPanel(cfg)` | app-workspace §confirmpay, gồm Health per-member | ✅ |
+| **underwritingStatusPanel / requirementList / conditionAcceptance** | `BANCA.ui.*` | app-workspace §uw, gồm Health per-member | ✅ |
 | **documentChecklist** (§10) | `BANCA.ui.documentChecklist({appId,items})` | bọc `BANCA.docItemHtml` | ✅ |
 
 > **Gate thanh toán là 1 hàm duy nhất**: `BANCA.paymentEnableRule(app)` → `{enabled, reasons[]}`.

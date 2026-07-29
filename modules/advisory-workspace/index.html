@@ -9,11 +9,39 @@
   .adv-step.done .n{background:var(--teal-600);color:#fff;}
   .adv-step.active{background:var(--brand-600);color:#fff;border-color:transparent;font-weight:600;}
   .adv-step.active .n{background:rgba(255,255,255,.25);}
-  .need-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
-  .need-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:border-color .14s,box-shadow .14s;background:var(--paper-card);}
-  .need-card:hover{border-color:var(--brand-500);}
-  .need-card.sel{border-color:var(--brand-600);box-shadow:0 0 0 2px var(--brand-100) inset;}
-  .need-card .ic{font-size:20px;}
+  .adv-sep{border:none;border-top:1px solid var(--line);margin:var(--space-lg) 0 var(--space-md);}
+  .adv-sub-head{display:flex;align-items:baseline;gap:var(--space-sm);flex-wrap:wrap;margin-bottom:var(--space-sm);font-size:var(--text-sm);}
+  .adv-sub-head span{font-size:var(--text-xs);color:var(--ink-500);}
+  /* Bước Nhu cầu — 2 cột: ngữ cảnh | điều quan tâm xếp theo ưu tiên */
+  .need-2col{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:var(--space-md);align-items:start;margin-bottom:var(--space-md);}
+  .need-col{padding:var(--space-lg);}
+  .need-col-title{margin:0 0 var(--space-2xs);font-size:var(--text-lg);}
+  .need-col-note{margin:0 0 var(--space-md);color:var(--ink-500);font-size:var(--text-xs);line-height:var(--leading-normal);}
+  .need-ctx-list{display:grid;gap:var(--space-xs);}
+  .need-ctx-item{display:flex;align-items:flex-start;gap:var(--space-sm);width:100%;text-align:left;padding:var(--space-sm) var(--space-md);
+    border:1px solid var(--line);border-radius:var(--radius-md);background:var(--paper-card);cursor:pointer;font-family:inherit;}
+  .need-ctx-item:hover{border-color:var(--brand-500);}
+  .need-ctx-item.sel{border-color:var(--brand-600);background:var(--brand-100);}
+  .need-ctx-item .ic{font-size:16px;line-height:1.3;}
+  .need-ctx-text{display:flex;flex-direction:column;gap:var(--space-3xs);min-width:0;}
+  .need-ctx-text b{font-size:var(--text-sm);color:var(--ink-900);}
+  .need-ctx-text span{font-size:var(--text-xs);color:var(--ink-500);}
+  .need-rank{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-xs);}
+  .need-rank-item{display:flex;align-items:center;gap:var(--space-sm);padding:var(--space-sm) var(--space-md);
+    border:1px solid var(--line);border-radius:var(--radius-md);background:var(--paper-card);}
+  .need-rank-item.is-primary{border-color:var(--brand-600);}
+  .need-rank-item.is-over{border-color:var(--brand-600);background:var(--brand-100);}
+  .need-rank-handle{cursor:grab;color:var(--ink-300);font-size:var(--text-sm);letter-spacing:-2px;}
+  .need-rank-pos{flex:0 0 auto;width:22px;height:22px;border-radius:var(--radius-pill);background:var(--brand-100);color:var(--brand-700);
+    display:inline-flex;align-items:center;justify-content:center;font-size:var(--text-2xs);font-weight:700;}
+  .need-rank-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--space-3xs);text-align:left;
+    background:none;border:none;padding:0;cursor:pointer;font-family:inherit;}
+  .need-rank-main b{font-size:var(--text-sm);color:var(--ink-900);}
+  .need-rank-main span{font-size:var(--text-xs);color:var(--ink-500);}
+  .need-rank-main:hover b{color:var(--brand-600);}
+  .need-rank-actions{display:flex;gap:var(--space-2xs);flex:0 0 auto;}
+  .need-add{display:flex;gap:var(--space-xs);flex-wrap:wrap;}
+  @media(max-width:900px){.need-2col{grid-template-columns:minmax(0,1fr);}}
   .opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
   .opt-card{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;background:var(--paper-card);}
   .opt-card.sel{border-color:var(--brand-600);box-shadow:0 0 0 2px var(--brand-100) inset;}
@@ -21,6 +49,9 @@
   .cmp-table{width:100%;border-collapse:collapse;font-size:13px;}
   .cmp-table th,.cmp-table td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top;}
   .cmp-table thead th{position:sticky;top:0;background:var(--paper-card);z-index:var(--z-sticky);}
+  .cmp-table thead th.is-picked{background:var(--brand-100);}
+  .adv-decision{background:var(--brand-100);border-radius:var(--radius-md);padding:var(--space-md);margin-bottom:var(--space-md);}
+  .cmp-table tr.cmp-action td{border-bottom:none;padding-top:var(--space-md);}
   /* §B — thẻ phương án nhiều nhu cầu */
   .plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-md);}
   .plan-card{border:1px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm);background:var(--paper-card);}
@@ -61,7 +92,8 @@ if(p.status!=='ACTIVE'){
 
 // ---------- STATE (auto-save demo qua localStorage) ----------
 // §D — 'compare' KHÔNG còn là bước bắt buộc; so sánh chuyển thành drawer tùy chọn.
-const STEPS = [['needs','Nhu cầu','❤️'],['priority','Phân tích','📊'],['recommend','Gợi ý','⭐'],['result','Quyết định','🎯']];
+// Ưu tiên/nhu cầu chính nằm CHUNG bước Nhu cầu — không tách bước riêng (quyết định user, 2026-07-28).
+const STEPS = [['needs','Nhu cầu','❤️'],['recommend','Gợi ý','⭐'],['result','Quyết định','🎯']];
 const isNew = qs.get('new')==='1';
 let id = qs.get('id');
 function key(x){ return 'banca_advice_'+x; }
@@ -73,11 +105,17 @@ if(isNew || !id){
   id = BANCA.newAdviceId();
   state = {id, version:1, mode:'ANONYMOUS', status:'IN_PROGRESS', customerRef:null, customerName:null,
            needProfile:[], primaryNeed:null, budgetBand:null, desiredTerm:'1 năm', priorities:{},
-           compareSet:[], selectedOffer:null, upsell:[], createdBy:me, startedAt:Date.now(), updatedAt:BANCA.nowLabel?BANCA.nowLabel():'2026-07-21 12:00',
+           selectedProductId:null, selectedPackageId:null, compareSet:[], selectedOffer:null, upsell:[], createdBy:me, startedAt:Date.now(), updatedAt:BANCA.nowLabel?BANCA.nowLabel():'2026-07-21 12:00',
            // §6.2 — ngữ cảnh ngân hàng: nhận từ deep link (?ctx=) hoặc seller chọn ở bước Nhu cầu.
            bankingContext:null};
   const _ctx = qs.get('ctx');
   if(_ctx && BANCA.bankingContextById(_ctx)) applyBankingContext(state, _ctx, me);
+  const _customerRef = qs.get('externalCustomerRef') || qs.get('customerRef');
+  if(_customerRef){
+    state.externalCustomerRef = _customerRef;
+    state.customerRef = _customerRef;
+    state.mode = 'BANK_CUSTOMER';
+  }
   persist(state);
   history.replaceState(null,'',`?id=${id}`);
 } else {
@@ -91,15 +129,14 @@ if(isNew || !id){
 
 let step = qs.get('step') || (state.primaryNeed?'recommend':'needs');
 // §D — deep link cũ ?step=compare không còn bước riêng → đưa về Gợi ý (nơi có drawer so sánh).
+// Link cũ ?step=priority → về Nhu cầu, nơi đã gộp phần xác định ưu tiên.
+if(step==='priority') step='needs';
 if(!STEPS.some(s=>s[0]===step)) step = state.primaryNeed ? 'recommend' : 'needs';
-// §D — compareSet chuẩn hóa về khoá gộp productRef:packageRef (data cũ chỉ có packageRef).
-state.compareSet = (state.compareSet||[]).map(function(x){
-  if(String(x).indexOf(':')>=0) return x;
-  const pr = (BANCA.adviceOffersFor(state.primaryNeed)[0]||{}).productRef || 'health';
-  return pr+':'+x;
-});
+// Reload/legacy: suy ra product từ selectedOffer, loại stale package/compare,
+// nhưng không tự chọn sản phẩm hoặc gói cho phiên chưa có lựa chọn.
+BANCA.adviceSelection.normalize(state);
 let saveMsg = 'Đã lưu lúc '+state.updatedAt;
-const locked = state.locked===true || ['NOT_INTERESTED','CONVERTED_TO_SALE'].includes(state.status);
+const locked = state.locked===true || ['NOT_INTERESTED','CONVERTED_TO_SALE','CUSTOMER_ACCEPTED'].includes(state.status);
 
 // §6.2 — áp ngữ cảnh ngân hàng: set nhu cầu gợi ý + nhu cầu chính (đã lọc theo quyền bán).
 // Dùng CHUNG cho deep link từ ngân hàng và cho seller chọn tay — không tách 2 nhánh.
@@ -108,14 +145,20 @@ function applyBankingContext(st, ctxId, who){
   st.bankingContext = ctxId;
   const needs = BANCA.contextNeedsFor(ctxId, who);
   if(needs.length){
-    st.needProfile = needs.map(n=>({needId:n, label:BANCA.needLabel(n), weight:'HIGH'}));
-    st.primaryNeed = needs.indexOf(c.primaryNeed)>=0 ? c.primaryNeed : needs[0];
+    // Nhu cầu chính của ngữ cảnh đứng đầu danh sách — thứ tự chính là mức ưu tiên.
+    const ordered = needs.indexOf(c.primaryNeed)>=0
+      ? [c.primaryNeed].concat(needs.filter(n=>n!==c.primaryNeed))
+      : needs.slice();
+    st.needProfile = ordered.map((n,i)=>({needId:n, label:BANCA.needLabel(n), weight:i===0?'HIGH':(i===1?'MEDIUM':'LOW')}));
+    st.priorities = st.priorities||{};
+    ordered.forEach((n,i)=>{ st.priorities[n] = i===0?'HIGH':(i===1?'MEDIUM':'LOW'); });
+    st.primaryNeed = ordered[0];
   }
 }
 // expose state mutators to window (onclick handlers)
 function save(){ state.updatedAt = (new Date()).toTimeString().slice(0,5); persist(state); const el=document.getElementById('adv-save'); if(el){ el.textContent='Đang lưu…'; setTimeout(()=>{ el.textContent='Đã lưu lúc '+state.updatedAt; },250); } }
 window.advGo = function(s){ const u=new URL(location.href); u.searchParams.set('step',s); u.searchParams.set('id',state.id); location.href=u.toString(); };
-window.advToggleNeed = function(nid){ const i=state.needProfile.findIndex(n=>n.needId===nid); if(i>=0) state.needProfile.splice(i,1); else state.needProfile.push({needId:nid,label:BANCA.needLabel(nid),weight:'MEDIUM'}); if(!state.primaryNeed && state.needProfile[0]) state.primaryNeed=state.needProfile[0].needId; if(state.primaryNeed && !state.needProfile.some(n=>n.needId===state.primaryNeed)) state.primaryNeed=(state.needProfile[0]||{}).needId||null; save(); renderStep(); };
+window.advToggleNeed = function(nid){ const i=state.needProfile.findIndex(n=>n.needId===nid); if(i>=0) state.needProfile.splice(i,1); else state.needProfile.push({needId:nid,label:BANCA.needLabel(nid),weight:'MEDIUM'}); advSyncPriority(); save(); renderStep(); };
 window.advSetContext = function(ctxId){
   if(state.bankingContext===ctxId){ state.bankingContext=null; }
   else { applyBankingContext(state, ctxId, me); }
@@ -123,19 +166,108 @@ window.advSetContext = function(ctxId){
 };
 window.advSetBudget = function(b){ state.budgetBand=b; save(); renderStep(); };
 window.advSetMode = function(m){ state.mode=m; if(m==='ANONYMOUS'){state.customerRef=null;state.customerName=null;} save(); renderStep(); };
-window.advSetPrimary = function(nid){ state.primaryNeed=nid; save(); renderStep(); };
-window.advSetWeight = function(nid,w){ state.priorities[nid]=w; save(); renderStep(); };
-// §D — compareSet dùng khoá gộp productRef:packageRef, tối đa 3; mở/đóng drawer KHÔNG đổi business status.
-function advCmpRef(productRef,pkg){ return productRef+':'+pkg; }
+window.advSetPrimary = function(nid){
+  // Nhu cầu chính = vị trí 1 trong danh sách ưu tiên.
+  const i = state.needProfile.findIndex(n=>n.needId===nid);
+  if(i<0){ state.needProfile.unshift({needId:nid, label:BANCA.needLabel(nid), weight:'HIGH'}); }
+  else if(i>0){ state.needProfile.unshift(state.needProfile.splice(i,1)[0]); }
+  advSyncPriority(); save(); renderStep();
+};
+// Thứ tự trong danh sách CHÍNH LÀ mức ưu tiên: vị trí 1 = nhu cầu chính (Cao),
+// vị trí 2 = Trung bình, từ vị trí 3 = Thấp. Đổi nhu cầu chính thì reset sản phẩm/gói đã chọn.
+function advSyncPriority(){
+  state.priorities = state.priorities||{};
+  state.needProfile.forEach(function(n,i){
+    const w = i===0?'HIGH':(i===1?'MEDIUM':'LOW');
+    n.weight = w; state.priorities[n.needId] = w;
+  });
+  const first = (state.needProfile[0]||{}).needId || null;
+  if(state.primaryNeed!==first){
+    state.primaryNeed = first;
+    state.selectedProductId = null;
+    BANCA.adviceSelection.resetPackageState(state);
+  }
+}
+function advReorderNeed(fromId, toIndex){
+  const from = state.needProfile.findIndex(n=>n.needId===fromId);
+  if(from<0 || toIndex<0 || toIndex>=state.needProfile.length || from===toIndex) return false;
+  const item = state.needProfile.splice(from,1)[0];
+  state.needProfile.splice(toIndex,0,item);
+  advSyncPriority(); save(); renderStep(); return true;
+}
+window.advMoveNeed = function(nid,dir){
+  const i = state.needProfile.findIndex(n=>n.needId===nid);
+  advReorderNeed(nid, i+dir);
+};
+let advDragNeedId = null;
+window.advDragStart = function(ev,nid){
+  advDragNeedId = nid;
+  if(ev.dataTransfer){ ev.dataTransfer.effectAllowed='move'; try{ ev.dataTransfer.setData('text/plain',nid); }catch(e){} }
+};
+window.advDragOver = function(ev){
+  ev.preventDefault();
+  if(ev.dataTransfer) ev.dataTransfer.dropEffect='move';
+  ev.currentTarget.classList.add('is-over');
+};
+window.advDragLeave = function(ev){ ev.currentTarget.classList.remove('is-over'); };
+window.advDrop = function(ev,toId){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('is-over');
+  const fromId = advDragNeedId || (ev.dataTransfer && ev.dataTransfer.getData('text/plain'));
+  advDragNeedId = null;
+  if(!fromId || fromId===toId) return;
+  advReorderNeed(fromId, state.needProfile.findIndex(n=>n.needId===toId));
+};
+// Bộ câu hỏi của MỘT điều quan tâm — mở ở drawer, không đổ hết ra trang.
+// Gồm: câu hỏi riêng của nhu cầu + mối lo ngại + ngân sách (2 phần sau dùng chung cả phiên).
+function advNeedQuestionsBody(nid){
+  const qs = BANCA.needQuestionsFor(nid)||[];
+  const dyn = state.dynAnswers||{};
+  const relatedOf = (BANCA.RECOMMENDATION_CONFIG&&BANCA.RECOMMENDATION_CONFIG.concernToNeed)||{};
+  const qsHtml = qs.length
+    ? `<div style="display:grid;gap:14px;">${qs.map(q=>`<div>
+        <div style="font-size:13px;margin-bottom:6px;">${q.q}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${q.opts.map(o=>`<button class="btn btn-sm ${dyn[q.k]===o?'btn-primary':'btn-secondary'}" onclick="advSetNeedAnswer('${nid}','${q.k}','${o}')">${o}</button>`).join('')}</div>
+      </div>`).join('')}</div>`
+    : '<div class="empty-state" style="padding:16px;">Nhu cầu này chưa có bộ câu hỏi riêng.</div>';
+  return `<p class="need-col-note">Câu hỏi cho mục tiêu <b>${BANCA.needLabel(nid)}</b> — chỉ ghi nhận theo nhóm, không thu thông tin định danh.</p>
+    ${qsHtml}
+    <hr class="adv-sep">
+    <div class="adv-sub-head"><b>Điều gì khiến anh/chị lo lắng nhất?</b><span>Dùng chung cho cả phiên tư vấn — chọn nhiều nếu cần.</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.CONCERN_CATALOG.map(c=>{
+      const on=(state.concerns||[]).includes(c.id);
+      const rel=relatedOf[c.id]===nid;
+      return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advSetNeedConcern('${nid}','${c.id}')" title="${rel?'Liên quan trực tiếp tới '+BANCA.needLabel(nid):'Mối lo ngại chung'}">${c.icon} ${c.label}${rel?' ★':''}</button>`;
+    }).join('')}</div>
+    <div class="need-col-note" style="margin:6px 0 0;">★ liên quan trực tiếp tới ${BANCA.needLabel(nid)} — chọn sẽ nâng trọng số của nhu cầu này khi gợi ý.</div>
+    <hr class="adv-sep">
+    <div class="adv-sub-head"><b>Ngân sách dự kiến</b><span>Dùng chung cho cả phiên tư vấn.</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.BUDGET_BANDS.map(b=>`<button class="btn btn-sm ${state.budgetBand===b.id?'btn-primary':'btn-secondary'}" onclick="advSetNeedBudget('${nid}','${b.id}')">${b.label}</button>`).join('')}</div>`;
+}
+window.advOpenNeedQuestions = function(nid){
+  advDrawerOpen('need-questions','Câu hỏi: '+BANCA.needLabel(nid), advNeedQuestionsBody(nid));
+};
+function advRefreshNeedDrawer(nid){
+  const body = document.querySelector('.adv-drawer[data-kind="need-questions"] .adv-drawer-body');
+  if(body) body.innerHTML = advNeedQuestionsBody(nid);
+}
+window.advSetNeedAnswer = function(nid,k,v){
+  state.dynAnswers = state.dynAnswers||{};
+  state.dynAnswers[k] = v; save(); renderStep(); advRefreshNeedDrawer(nid);
+};
+window.advSetNeedConcern = function(nid,cid){ advToggleConcern(cid); advRefreshNeedDrawer(nid); };
+window.advSetNeedBudget = function(nid,b){ advSetBudget(b); advRefreshNeedDrawer(nid); };
+function advCmpRef(productRef,pkg){ return BANCA.adviceSelection.compareRef(productRef,pkg); }
+// Chế độ xem bảng so sánh (chỉ điểm khác / đầy đủ) — thuộc phiên xem, không lưu vào bản tư vấn.
+let advCmpDiffOnly=false;
+window.advToggleCmpDiff=function(){ advCmpDiffOnly=!advCmpDiffOnly; renderStep(); };
 window.advToggleCompareRef = function(ref){
-  const i=state.compareSet.indexOf(ref);
-  if(i>=0) state.compareSet.splice(i,1);
-  else { if(state.compareSet.length>=3){ advToast('So sánh tối đa 3 phương án.'); return; } state.compareSet.push(ref); }
+  const result=BANCA.adviceSelection.toggleCompare(state,ref);
+  if(!result.changed){ advToast(result.reason); return; }
   save(); renderStep();
   if(document.querySelector('.adv-drawer[data-kind="compare"]')){ if(state.compareSet.length>=2) advOpenCompare(); else advDrawerClose(); }
 };
-// tương thích chữ ký cũ (offer card của nhu cầu chính): pkg thuộc sản phẩm nhu cầu chính
-window.advToggleCompare = function(pkg){ const pr=(BANCA.adviceOffersFor(state.primaryNeed)[0]||{}).productRef||'health'; advToggleCompareRef(advCmpRef(pr,pkg)); };
+window.advToggleCompare = function(pkg){ if(state.selectedProductId) advToggleCompareRef(advCmpRef(state.selectedProductId,pkg)); };
 window.advClearCompare = function(){ state.compareSet=[]; save(); renderStep(); advDrawerClose(); };
 // Tìm offer theo khoá gộp productRef:packageRef trên toàn danh mục (dùng cho sản phẩm khác).
 function advOfferByRef(ref){
@@ -146,19 +278,50 @@ function advOfferByRef(ref){
 // Áp một offer đã chọn vào state (KHÔNG tự động thêm — chỉ khi seller bấm chọn).
 function applySelectedOffer(o, planId){
   if(!o) return;
-  state.selectedOffer={productRef:o.productRef, productName:o.productName, packageRef:o.packageRef, packageName:o.packageName, premiumBand:o.premiumBand, fit:o.fit, issueTime:o.issueTime};
-  // §6.3 — lưu đúng bộ khoá spec để Quote Workspace KHÔNG bắt chọn lại sản phẩm/gói.
-  state.selectedProductId      = o.productRef;
-  state.selectedPackageId      = o.packageRef;
-  state.recommendationVersion  = BANCA.RECOMMENDATION_VERSION;
-  state.estimatedPremium       = o.premiumBand;
-  state.adviceOutcome          = 'OFFER_SELECTED';
+  if(state.selectedProductId!==o.productRef) BANCA.adviceSelection.selectProduct(state,o.productRef);
+  BANCA.adviceSelection.selectPackage(state,o.packageRef);
   if(planId===undefined) state.selectedPlan=null;   // chọn 1 sản phẩm lẻ → không còn gắn plan
 }
 window.advSelectOffer = function(pkg){
-  const o=(BANCA.adviceOffersFor(state.primaryNeed)||[]).find(x=>x.packageRef===pkg);
+  const o=BANCA.adviceSelection.packagesForProduct(state.primaryNeed,state.selectedProductId).find(x=>x.packageRef===pkg);
   applySelectedOffer(o); save(); renderStep();
 };
+window.advSelectProduct = function(productRef){
+  const product=BANCA.adviceSelection.productsForNeed(state.primaryNeed).find(x=>x.productRef===productRef);
+  if(!product) return;
+  const rd=BANCA.readinessFor?BANCA.readinessFor(productRef,me):{ready:true,canQuote:true};
+  if(!(rd.ready||rd.canQuote)){ advToast(rd.reason||'Bạn chưa đủ điều kiện bán sản phẩm này.'); return; }
+  BANCA.adviceSelection.selectProduct(state,productRef);
+  save(); renderStep();
+};
+// Sản phẩm ngoài gợi ý: mọi sản phẩm đang bán được của các nhu cầu khác.
+// Chọn một sản phẩm như vậy = đưa nhu cầu tương ứng lên vị trí 1 (cơ sở gợi ý), không im lặng đổi dữ liệu.
+function advOtherProducts(){
+  const current = new Set((BANCA.adviceSelection.productsForNeed(state.primaryNeed)||[]).map(p=>p.productRef));
+  const out=[];
+  (BANCA.servedNeeds()||[]).forEach(function(nid){
+    if(nid===state.primaryNeed) return;
+    (BANCA.adviceSelection.productsForNeed(nid)||[]).forEach(function(p){
+      if(current.has(p.productRef) || out.some(x=>x.productRef===p.productRef)) return;
+      out.push(Object.assign({}, p, {needId:nid}));
+    });
+  });
+  return out;
+}
+window.advSelectOtherProduct = function(productRef, needId){
+  const rd=BANCA.readinessFor?BANCA.readinessFor(productRef,me):{ready:true,canQuote:true};
+  if(!(rd.ready||rd.canQuote)){ advToast(rd.reason||'Bạn chưa đủ điều kiện bán sản phẩm này.'); return; }
+  advSetPrimary(needId);
+  advSelectProduct(productRef);
+  advToast('Đã đặt "'+BANCA.needLabel(needId)+'" làm nhu cầu chính để phù hợp với sản phẩm đã chọn.');
+};
+window.advChangeProduct = function(){
+  state.selectedProductId=null;
+  BANCA.adviceSelection.resetPackageState(state);
+  save(); advDrawerClose(); renderStep();
+};
+window.advRetryProducts = function(){ state.productLoadState=null; save(); renderStep(); };
+window.advRetryPackages = function(){ state.packageLoadState=null; save(); renderStep(); };
 // §C — chọn một sản phẩm KHÁC (từ drawer "Xem sản phẩm khác") nếu đủ điều kiện bán.
 window.advSelectOfferRef = function(ref){
   const o=advOfferByRef(ref); if(!o) return;
@@ -175,7 +338,6 @@ window.advSelectPlan = function(planId){
   state.selectedPlan={id:plan.id, label:plan.label, offers:plan.offers.map(o=>({productRef:o.productRef, packageRef:o.packageRef, packageName:o.packageName, productName:o.productName, premiumBand:o.premiumBand})), coveredNeeds:plan.coveredNeeds, remainingGaps:plan.remainingGaps, totalMonthly:plan.totalMonthly, recommendationVersion:BANCA.RECOMMENDATION_VERSION};
   save(); renderStep();
 };
-window.advSaveSession = function(){ state.status='SAVED'; save(); syncSeed(); advToast('Đã lưu bản tư vấn '+state.id+'. Không tạo yêu cầu hay báo giá.'); setTimeout(()=>{ location.href=r+'modules/quick-advisory/index.html?tab=SAVED'; },800); };
 window.advFollowUp = function(){
   advModal(`<div style="font-size:14px;margin-bottom:8px;">Hẹn theo dõi lại phiên <b>${state.id}</b></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
@@ -187,7 +349,7 @@ window.advFollowUp = function(){
    <div style="font-size:11px;color:var(--ink-300);margin-top:8px;">Sẽ tạo task nhắc RM liên hệ lại khách.</div>`);
 };
 window.advDoFollowUp = function(label, date){
-  state.status='FOLLOW_UP_LATER'; state.followUpDate=date||'2026-07-25'; save(); syncSeed(); advModalClose();
+  state.status='FOLLOW_UP'; state.followUpDate=date||'2026-07-25'; save(); syncSeed(); advModalClose();
   advToast('Đã tạo task theo dõi ('+label+' · '+(date||state.followUpDate)+').');
   setTimeout(()=>{ location.href=r+'modules/quick-advisory/index.html?tab=FOLLOW_UP'; },900);
 };
@@ -248,27 +410,68 @@ function cmpBar(){
     </span></div>`;
 }
 
-// §D — Comparison drawer: phí, coverage, quyền lợi, deductible/copay, waiting, exclusions, verify, fit, gaps.
-window.advOpenCompare=function(){
-  const refs=state.compareSet.slice(0,3);
-  if(refs.length<2){ advToast('Chọn ít nhất 2 phương án để so sánh.'); return; }
-  const cols=refs.map(advOfferByRef).filter(Boolean);
-  // union hàng theo sản phẩm có mặt (giữ thứ tự, không trùng khoá)
-  const rowKeys=[]; const seen={};
-  cols.forEach(o=>(BANCA.COMPARE_ROWS[o.productRef]||[]).forEach(([k,l])=>{ if(!seen[k]){ seen[k]=l; rowKeys.push([k,l]); } }));
+// Bộ tiêu chí so sánh — MỘT nguồn cho bảng trong bước Gợi ý và cho drawer so sánh.
+// raw = giá trị thuần để phát hiện tiêu chí giống nhau; cells = nội dung hiển thị.
+function advCompareRows(cols){
   const bestFit=Math.max.apply(null, cols.map(o=>o.fit||0));
   const dataOf=o=>(BANCA.ADVICE_COMPARE[o.productRef]||{})[o.packageRef]||{};
-  const cell=(inner)=>`<td>${inner}</td>`;
-  const head=`<tr><th>Tiêu chí</th>${cols.map(o=>`<th><div class="adv-th"><span style="font-weight:700;">${o.packageName}</span><button class="adv-x" aria-label="Bỏ ${o.packageName} khỏi so sánh" onclick="advToggleCompareRef('${advCmpRef(o.productRef,o.packageRef)}')">×</button></div><div class="adv-sub">${o.productName}</div></th>`).join('')}</tr>`;
-  const rowFit=`<tr><td style="color:var(--ink-500);">Fit score ${tip('fit')}</td>${cols.map(o=>{const f=o.fit||0;return cell(`<b>${f}%</b> ${f===bestFit?'<span class="badge badge-ready badge-mini">Phù hợp nhất</span>':''}`);}).join('')}</tr>`;
-  const rowFee=`<tr><td style="color:var(--ink-500);">Phí minh họa ${tip('indicative')}</td>${cols.map(o=>cell(`<b style="color:var(--brand-600);">${o.premiumBand}</b><div style="font-size:11px;color:var(--ink-500);">${o.premiumMonthly||''}</div>`)).join('')}</tr>`;
-  const rowMeets=`<tr><td style="color:var(--ink-500);">Nhu cầu đáp ứng</td>${cols.map(o=>cell((o.meets||[]).map(m=>BANCA.needLabel(m)).join(', ')||'—')).join('')}</tr>`;
-  const rowGaps=`<tr><td style="color:var(--ink-500);">Nhu cầu còn thiếu</td>${cols.map(o=>cell((o.gaps||[]).length?('<span aria-hidden="true">⚠️ </span>'+(o.gaps||[]).map(m=>BANCA.needLabel(m)).join(', ')):'Không')).join('')}</tr>`;
-  const rowsHtml=rowKeys.map(([k,l])=>`<tr><td style="color:var(--ink-500);">${l}${k==='issue'?' '+tip('issue'):''}</td>${cols.map(o=>cell((dataOf(o)[k]!=null?dataOf(o)[k]:'—'))).join('')}</tr>`).join('');
-  const rowVerify=`<tr><td style="color:var(--ink-500);">Cần xác minh khi bán</td>${cols.map(o=>cell((o.verify||[]).join(', ')||'—')).join('')}</tr>`;
-  const rowAct=`<tr><td style="color:var(--ink-500);">Hành động</td>${cols.map(o=>{const sel=state.selectedOffer&&state.selectedOffer.productRef===o.productRef&&state.selectedOffer.packageRef===o.packageRef;return cell(`<button class="btn btn-sm ${sel?'btn-primary':'btn-secondary'}" onclick="advSelectOfferRef('${advCmpRef(o.productRef,o.packageRef)}')">${sel?'✓ Đã chọn':'Chọn phương án'}</button>`);}).join('')}</tr>`;
-  const body=`<div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">So sánh ${cols.length} phương án. Phí là minh họa — chỉ giá trị tham khảo, không phải cam kết.</div>
-    <div style="overflow-x:auto;"><table class="cmp-table"><thead>${head}</thead><tbody>${rowFit}${rowFee}${rowMeets}${rowGaps}${rowsHtml}${rowVerify}${rowAct}</tbody></table></div>`;
+  const rowKeys=BANCA.COMPARE_ROWS[cols[0].productRef]||[];
+  const rows=[];
+  rows.push({label:'Fit score '+tip('fit'), raw:cols.map(o=>String(o.fit||0)),
+    cells:cols.map(o=>{const f=o.fit||0;return `<b>${f}%</b> ${f===bestFit?'<span class="badge badge-ready badge-mini">Phù hợp nhất</span>':''}`;})});
+  rows.push({label:'Phí minh họa '+tip('indicative'), raw:cols.map(o=>o.premiumBand+' '+(o.premiumMonthly||'')),
+    cells:cols.map(o=>`<b style="color:var(--brand-600);">${o.premiumBand}</b><div style="font-size:11px;color:var(--ink-500);">${o.premiumMonthly||''}</div>`)});
+  const why=cols.map(o=>o.why||'—');
+  rows.push({label:'Vì sao gói này', raw:why, cells:why});
+  const meets=cols.map(o=>(o.meets||[]).map(m=>BANCA.needLabel(m)).join(', ')||'—');
+  rows.push({label:'Nhu cầu đáp ứng', raw:meets, cells:meets});
+  const gaps=cols.map(o=>(o.gaps||[]).length?(o.gaps||[]).map(m=>BANCA.needLabel(m)).join(', '):'Không');
+  rows.push({label:'Nhu cầu còn thiếu', raw:gaps,
+    cells:gaps.map(g=>g==='Không'?g:'<span aria-hidden="true">⚠️ </span>'+g)});
+  rowKeys.forEach(([k,l])=>{
+    const vals=cols.map(o=>dataOf(o)[k]!=null?String(dataOf(o)[k]):'—');
+    rows.push({label:l+(k==='issue'?' '+tip('issue'):''), raw:vals, cells:vals});
+  });
+  const verify=cols.map(o=>(o.verify||[]).join(', ')||'—');
+  rows.push({label:'Cần xác minh khi bán', raw:verify, cells:verify});
+  return rows;
+}
+// Bảng so sánh đầy đủ; diffOnly ẩn các tiêu chí mà mọi gói đều giống nhau.
+function advCompareTable(cols, opt){
+  opt=opt||{};
+  const rows=advCompareRows(cols);
+  const same=r=>r.raw.every(v=>v===r.raw[0]);
+  const sameCount=rows.filter(same).length;
+  const shown=opt.diffOnly?rows.filter(r=>!same(r)):rows;
+  const head=`<tr><th>Tiêu chí</th>${cols.map(o=>{
+    const sel=state.selectedOffer&&state.selectedOffer.productRef===o.productRef&&state.selectedOffer.packageRef===o.packageRef;
+    return `<th class="${sel?'is-picked':''}"><div class="adv-th"><span style="font-weight:700;">${o.packageName}</span>${sel?'<span class="badge badge-ready badge-mini">Đã chọn</span>':''}${opt.onRemove?`<button class="adv-x" aria-label="Bỏ ${o.packageName} khỏi so sánh" onclick="${opt.onRemove(o)}">×</button>`:''}</div><div class="adv-sub">${o.productName}</div></th>`;
+  }).join('')}</tr>`;
+  const bodyRows=shown.map(r=>`<tr><td style="color:var(--ink-500);">${r.label}</td>${r.cells.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
+  const actionCell=opt.actionCell||(opt.onSelect?(o=>{
+    const sel=state.selectedOffer&&state.selectedOffer.productRef===o.productRef&&state.selectedOffer.packageRef===o.packageRef;
+    return `<button class="btn btn-sm ${sel?'btn-primary':'btn-secondary'}" onclick="${opt.onSelect(o)}">${sel?'✓ Đã chọn':'Chọn phương án'}</button>`;
+  }):null);
+  const actionRow=actionCell?`<tr class="cmp-action"><td style="color:var(--ink-500);">${opt.actionLabel||'Hành động'}</td>${cols.map(o=>`<td>${actionCell(o)}</td>`).join('')}</tr>`:'';
+  const emptyDiff=opt.diffOnly&&!shown.length
+    ? '<div class="adv-hint" style="margin-top:8px;">Các gói giống nhau ở mọi tiêu chí đang theo dõi.</div>' : '';
+  return `<div style="overflow-x:auto;"><table class="cmp-table"><thead>${head}</thead><tbody>${bodyRows}${actionRow}</tbody></table></div>${emptyDiff}`
+    + (opt.diffOnly&&sameCount?`<div class="adv-hint" style="margin-top:8px;">Đang ẩn ${sameCount} tiêu chí giống nhau ở mọi gói.</div>`:'');
+}
+// §D — Comparison drawer: phí, coverage, quyền lợi, deductible/copay, waiting, exclusions, verify, fit, gaps.
+window.advOpenCompare=function(){
+  const prefix=state.selectedProductId+':';
+  const refs=state.compareSet.filter(ref=>String(ref).indexOf(prefix)===0).slice(0,3);
+  if(refs.length<2){ advToast('Chọn ít nhất 2 phương án để so sánh.'); return; }
+  const cols=refs.map(advOfferByRef).filter(Boolean);
+  if(cols.length<2 || cols.some(o=>o.productRef!==state.selectedProductId)){
+    state.compareSet=[]; save(); advDrawerClose(); advToast('Danh sách so sánh không còn hợp lệ. Hãy chọn lại gói.'); return;
+  }
+  const body=`<div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">So sánh ${cols.length} phương án. Phí là minh họa — chỉ giá trị tham khảo, không phải cam kết.</div>`
+    + advCompareTable(cols, {
+        onRemove:o=>`advToggleCompareRef('${advCmpRef(o.productRef,o.packageRef)}')`,
+        onSelect:o=>`advSelectOfferRef('${advCmpRef(o.productRef,o.packageRef)}')`
+      });
   advDrawerOpen('compare','⚖️ So sánh phương án', body);
 };
 
@@ -322,17 +525,45 @@ window.advDoSend = function(){
   const consent=document.getElementById('adv-send-consent').checked;
   if(!contact){ advToast('Nhập số điện thoại hoặc email của khách.'); return; }
   if(!consent){ advToast('Cần khách đồng ý nhận thông tin.'); return; }
-  state.contact=contact; state.sendConsent=true; save(); syncSeed();
+  state.contact=contact; state.sendConsent=true;
+  // Outcome chuẩn: đã gửi bản tư vấn cho khách (không khoá — vẫn có thể tạo bản chào sau).
+  if(!locked) state.status='SHARED_WITH_CUSTOMER';
+  save(); syncSeed();
   advModalClose(); advToast('Đã gửi bản tư vấn cho khách.');
 };
 
 // ---------- CONVERT (in-page modal, ẩn danh phải gắn khách) ----------
+let advConvertSubmitting=false;
+// Luồng banca tích hợp: ngân hàng đã truyền CIF khi mở phiên tư vấn, nên không hỏi lại
+// nguồn khách — bấm là sang thẳng màn hình tạo bản chào với dữ liệu đã điền sẵn.
+function advAdoptBankCustomer(){
+  if(state.customerRef||state.externalCustomerRef) return true;
+  const book=(BANCA.myCustomers?BANCA.myCustomers():[]).filter(c=>c.scope&&c.scope[me]!=='PROSPECT');
+  const c=book[0];
+  if(!c) return false;
+  state.customerRef=c.id; state.externalCustomerRef=c.cif||c.id;
+  state.customerName=c.name||null; state.mode='BANK_CUSTOMER';
+  save();
+  advToast('Ngữ cảnh khách hàng do ngân hàng truyền sang: '+(c.name||'')+(c.cif?' · CIF '+c.cif:''));
+  return true;
+}
 window.advConvert = function(){
   const chk = convertReady();
   if(!chk.ok){ advToast(chk.reason); return; }
-  if(state.mode==='ANONYMOUS' && !state.customerRef && !state.customerName){ advAttachCustomerModal(); return; }
+  const channel=(BANCA.channelProfile?BANCA.channelProfile():{id:'BANCA_INTEGRATED'}).id;
+  if(channel==='BANCA_INTEGRATED'){
+    if(advAdoptBankCustomer()){ advDoConvert(); return; }
+    advMissingBancaContextModal(); return;
+  }
+  const decision=BANCA.adviceConversionDecision(channel,state);
+  if(decision.action==='BLOCK_MISSING_BANCA_CONTEXT'){ advMissingBancaContextModal(); return; }
+  if(decision.action==='ATTACH_CUSTOMER'){ advAttachCustomerModal(); return; }
   advConvertConfirmModal();
 };
+function advMissingBancaContextModal(){
+  advModal(`<div class="alert2 danger"><b>Phiên chưa đủ ngữ cảnh khách hàng từ ngân hàng.</b><br>Không thể tạo Bản chào khi thiếu mã tham chiếu khách hàng. Vui lòng quay lại hệ thống ngân hàng và mở lại phiên từ đúng khách hàng.</div>
+    <div class="adv-chips" style="justify-content:flex-end;"><button class="btn btn-secondary btn-sm" onclick="advModalClose()">Quay lại kết quả</button><button class="btn btn-primary btn-sm" onclick="history.back()">Quay lại hệ thống ngân hàng</button></div>`);
+}
 function advAttachCustomerModal(){ advConvertTab('BANK'); }
 window.advConvertTab = function(tab, q){
   q=(q||'').toLowerCase();
@@ -355,18 +586,40 @@ window.advConvertTab = function(tab, q){
    <div style="display:flex;gap:6px;margin-bottom:12px;">${tabBtn('BANK','Khách hàng ngân hàng')}${tabBtn('LEAD','Lead')}${tabBtn('NEW','Tạo mới')}</div>
    ${inner}`);
 };
-window.advAttachBank = function(custId){ const c=BANCA.customerById(custId); state.customerRef=custId; state.customerName=c?c.name:null; state.mode='BANK_CUSTOMER'; save(); advConvertConfirmModal(); };
-window.advAttachLead = function(leadId){ const x=(BANCA.referrals||[]).find(r=>r.id===leadId)||{}; state.leadId=leadId; state.customerRef=x.customerId||null; state.customerName=x.customerName||null; state.campaign=x.source||null; state.mode='REFERRAL'; save(); advConvertConfirmModal(); };
-window.advAttachProspect = function(){ const nm=(document.getElementById('adv-prospect-name').value||'').trim(); if(!nm){ advToast('Nhập tên khách.'); return; } state.customerName=nm; state.mode='NEW_PROSPECT'; save(); advConvertConfirmModal(); };
+window.advAttachBank = function(custId){
+  const allowed=(BANCA.myCustomers?BANCA.myCustomers():[]).some(c=>c.id===custId);
+  const c=allowed?BANCA.customerById(custId):null;
+  if(!c){ advToast('Không tìm thấy khách hàng hoặc bạn không có quyền truy cập.'); return; }
+  state.customerRef=custId; state.customerName=c.name||null; state.mode='BANK_CUSTOMER'; save(); advConvertConfirmModal();
+};
+window.advAttachLead = function(leadId){
+  const x=(BANCA.myReferrals?BANCA.myReferrals():[]).find(r=>r.id===leadId);
+  if(!x){ advToast('Không tìm thấy lead hoặc bạn không có quyền truy cập.'); return; }
+  state.leadId=leadId; state.customerRef=x.customerId||null; state.customerName=x.customerName||null; state.campaign=x.source||null; state.mode='REFERRAL'; save(); advConvertConfirmModal();
+};
+window.advAttachProspect = function(){
+  const profile=BANCA.channelProfile?BANCA.channelProfile():{allowCreateCustomer:true};
+  if(!profile.allowCreateCustomer){ advToast('Kênh hiện tại không cho phép tạo khách hàng mới.'); return; }
+  const nm=(document.getElementById('adv-prospect-name').value||'').trim();
+  if(!nm){ advToast('Nhập tên khách.'); return; }
+  state.customerName=nm; state.mode='NEW_PROSPECT'; save(); advConvertConfirmModal();
+};
 // ===== Tạo bản chào từ tư vấn này — customer-first, tạo Handoff =====
 function advConvertConfirmModal(){
   const o=state.selectedOffer||{};
-  const cust=state.customerRef?BANCA.customerById(state.customerRef):null;
+  const customerRef=state.externalCustomerRef||state.customerRef;
+  const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
+  const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
+  const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  const cust=canShowPII&&state.customerRef?BANCA.customerById(state.customerRef):null;
+  const customerSummary=canShowPII
+    ? `<b>${state.customerName||(cust&&cust.name)||'Khách hàng'}</b>${cust&&cust.cif?' · CIF '+cust.cif:''}`
+    : `<b>Tham chiếu ${customerRef||'—'}</b> · định danh chưa được chia sẻ`;
   const meName=(BANCA.personas[me]||{}).name||me;
   advModal(`<div style="font-size:14px;font-weight:700;margin-bottom:4px;">Tạo bản chào từ tư vấn này</div>
    <div style="font-size:11px;color:var(--ink-300);margin-bottom:10px;">Xác định khách hàng → xác nhận tư vấn → chọn phân công → bàn giao.</div>
-   <div class="label" style="margin-bottom:4px;">① Khách hàng (đã xác định)</div>
-   <div class="card" style="padding:10px;font-size:12px;margin-bottom:10px;"><b>${state.customerName||'—'}</b>${cust&&cust.cif?' · CIF '+cust.cif:(state.leadId?' · Lead '+state.leadId:' · Prospect')} · Consent: <span class="badge badge-ready" style="font-size:9px;">Hợp lệ</span></div>
+   <div class="label" style="margin-bottom:4px;">① Ngữ cảnh khách hàng</div>
+   <div class="card" style="padding:10px;font-size:12px;margin-bottom:10px;">${customerSummary} · <span class="badge badge-version" style="font-size:9px;">${(((BANCA.DATA_ACCESS_STAGES||{})[accessStage])||{}).label||accessStage}</span></div>
    <div class="label" style="margin-bottom:4px;">② Tư vấn & người tham gia</div>
    <div class="card" style="padding:10px;font-size:12px;margin-bottom:10px;line-height:1.7;">
      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">Người giới thiệu:
@@ -387,37 +640,59 @@ function advConvertConfirmModal(){
      <option value="TEAM_QUEUE">Chuyển vào hàng chờ team</option>
      <option value="AUTO_ROUTE">Tự động phân công</option>
    </select>
-   <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-secondary btn-sm" onclick="advModalClose()">Quay lại</button><button class="btn btn-primary btn-sm" onclick="advDoConvert()">④ Xác nhận bàn giao</button></div>`);
+   <div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-secondary btn-sm" onclick="advModalClose()">Quay lại</button><button id="adv-convert-submit" class="btn btn-primary btn-sm" onclick="advDoConvert()">④ Xác nhận bàn giao</button></div>`);
 }
 window.advRefHint = function(v){ const el=document.getElementById('adv-ref-hint'); if(!el)return; el.textContent = 'Nguồn: '+(v==='LEAD'?('Bank lead '+(state.leadId||'')):v==='NONE'?'Không có người giới thiệu':v===me?'Mặc định theo người tạo':'Chọn nhân viên ngân hàng'); };
 window.advDoConvert = function(){
+  if(advConvertSubmitting){ advToast('Bản chào đang được tạo. Vui lòng chờ.'); return; }
+  advConvertSubmitting=true;
+  const submitBtn=document.getElementById('adv-convert-submit');
+  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent='Đang tạo Bản chào…'; }
+  try {
   const route=(document.getElementById('adv-route')||{}).value||'DIRECT_SELF';
   const refVal=(document.getElementById('adv-referrer')||{}).value||me;
   const refUser = (refVal==='NONE')?null : (refVal==='LEAD'? (state.leadId?me:me) : refVal);
   const refSource = refVal==='LEAD'?'BANK_LEAD':refVal==='NONE'?'NONE':refVal===me?'CREATOR_DEFAULT':'MANUAL_BANK_EMPLOYEE';
   const o=state.selectedOffer||{};
-  const base={ type:'SALES_HANDOFF', customerId:state.customerRef||null, customerName:state.customerName,
-    cif:state.customerRef?((BANCA.customerById(state.customerRef)||{}).cif||null):null,
+  const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
+  const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
+  const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  const base={ type:'SALES_HANDOFF', customerId:state.customerRef||null, externalCustomerRef:state.externalCustomerRef||state.customerRef||null,
+    customerName:canShowPII?state.customerName:null,
+    cif:canShowPII&&state.customerRef?((BANCA.customerById(state.customerRef)||{}).cif||null):null,
     productRef:o.productRef, productName:o.productName, packageName:o.packageName,
     source: state.leadId?'REFERRAL':(state.customerRef?'BANK_CRM':'PORTAL'), sourceSystem:'PORTAL', leadRef:state.leadId||null, campaign:state.campaign||null, adviceId:state.id,
     recommendationReason:o.why||('Đề xuất '+(o.packageName||'')), needSummary:BANCA.needLabel?BANCA.needLabel(state.primaryNeed):state.primaryNeed, budget:state.budgetBand?BANCA.budgetLabel(state.budgetBand):null, consent:'VALID',
     priority:'MEDIUM', targetTeam:(BANCA.personas[me]||{}).team||null,
     participants:[...(refUser?[{participationRole:'REFERRER',userId:refUser,isPrimary:true,status:'ACTIVE',source:refSource}]:[]),{participationRole:'ADVISOR',userId:me,isPrimary:true,status:'ACTIVE'}],
     completeness:60 };
-  state.status='CONVERTED_TO_SALE'; save(); syncSeed(); advModalClose();
   if(route==='DIRECT_SELF'){
     const h=BANCA.createHandoff(Object.assign({routingMode:'DIRECT_SELLER', targetSeller:me}, base));
     BANCA.acceptHandoff(h.id, me); // advisor tự bán → tiếp nhận ngay
+    state.status='CUSTOMER_ACCEPTED';
     state.convertedCaseId='APP-2026-'+(200+Math.floor(Math.random()*80)); save(); syncSeed();
-    location.href = `${r}modules/application-workspace/index.html?entry=CONVERTED_FROM_ADVICE&adviceId=${state.id}&handoff=${h.id}`;
+    advModalClose();
+    // Truyền kèm khách hàng, ngữ cảnh ngân hàng và gói đã chọn để bản chào điền sẵn.
+    const q=[`entry=CONVERTED_FROM_ADVICE`,`adviceId=${encodeURIComponent(state.id)}`,`handoff=${encodeURIComponent(h.id)}`];
+    if(state.customerRef) q.push('customer='+encodeURIComponent(state.customerRef));
+    if(state.bankingContext) q.push('ctx='+encodeURIComponent(state.bankingContext));
+    if(o.packageRef) q.push('pkg='+encodeURIComponent(o.packageRef));
+    location.href = `${r}modules/application-workspace/index.html?${q.join('&')}`;
   } else if(route==='TEAM_QUEUE'){
     BANCA.createHandoff(Object.assign({routingMode:'TEAM_QUEUE', targetSeller:null}, base));
+    state.status='CUSTOMER_ACCEPTED'; save(); syncSeed(); advModalClose();
     advToast('Đã chuyển vào hàng chờ team — Team Lead sẽ phân công.');
     setTimeout(()=>location.href=r+'modules/quick-advisory/index.html', 900);
   } else {
-    const h=BANCA.createHandoff(Object.assign({routingMode:'AUTO_ROUTE', targetSeller:null, state:'UNASSIGNED_EXCEPTION', unassignedReason:'Auto-route demo: chờ Team Lead xử lý ngoại lệ.'}, base));
+    BANCA.createHandoff(Object.assign({routingMode:'AUTO_ROUTE', targetSeller:null, state:'UNASSIGNED_EXCEPTION', unassignedReason:'Auto-route demo: chờ Team Lead xử lý ngoại lệ.'}, base));
+    state.status='CUSTOMER_ACCEPTED'; save(); syncSeed(); advModalClose();
     advToast('Đã gửi auto-route — nếu không có nhân viên tư vấn phù hợp sẽ vào ngoại lệ.');
     setTimeout(()=>location.href=r+'modules/quick-advisory/index.html', 900);
+  }
+  } catch(e) {
+    advConvertSubmitting=false;
+    if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='④ Thử lại bàn giao'; }
+    advToast('Chưa thể tạo Bản chào. Lựa chọn vẫn được giữ — vui lòng thử lại.');
   }
 };
 window.advOfferDetail = function(pkg){
@@ -491,8 +766,8 @@ function sidebar(){
   const rl=riskLevel();
   const gap = state.primaryNeed? BANCA.financialGapByNeed(state).gap : 0;
   const offers = state.primaryNeed? BANCA.adviceOffersFor(state.primaryNeed):[];
-  const bestFit = offers.length?Math.max.apply(null,offers.map(o=>o.fit||0)):0;
-  const selFit = state.selectedOffer? (offers.find(o=>o.packageRef===state.selectedOffer.packageRef)||{}).fit||bestFit : bestFit;
+  const selectedProduct=(BANCA.adviceSelection.productsForNeed(state.primaryNeed)||[]).find(x=>x.productRef===state.selectedProductId);
+  const selFit = state.selectedOffer? (offers.find(o=>o.packageRef===state.selectedOffer.packageRef)||{}).fit||0 : 0;
   const metric=(k,v,c)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="color:var(--ink-500);">${k}</span><b style="color:${c||'var(--ink-900)'};text-align:right;">${v}</b></div>`;
   const an=state.advisorStruct||{};
   return `<aside class="adv-side">
@@ -502,7 +777,7 @@ function sidebar(){
       ${metric('Ngân sách', state.budgetBand?BANCA.budgetLabel(state.budgetBand):'—')}
       ${metric('Mức rủi ro', rl[0], rl[1])}
       ${metric('Khoảng thiếu bảo vệ', gap?BANCA.vnd(gap):'—', gap?'var(--red-600)':null)}
-      ${metric('Khuyến nghị', state.selectedOffer?state.selectedOffer.packageName:(offers.find(o=>o.fit===bestFit)||{}).packageName||'—', 'var(--teal-600)')}
+      ${metric('Khuyến nghị', state.selectedOffer?state.selectedOffer.packageName:(selectedProduct?selectedProduct.productName:'Chọn sản phẩm'), 'var(--teal-600)')}
       ${metric('Độ phù hợp', (selFit||'—')+(selFit?'%':''), 'var(--brand-600)')}
       <div style="margin-top:12px;">
         <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-500);"><span>Thông tin đã đủ</span><b style="color:${dc.pct>=60?'var(--teal-600)':'var(--amber-600)'};">${dc.pct}%</b></div>
@@ -527,14 +802,15 @@ function footer(){
   const next = idx<STEPS.length-1?STEPS[idx+1][0]:null;
   let primary='';
   if(step==='result'){
-    if(locked){ primary = `<span class="chip" style="background:#eef0f4;color:var(--ink-500);">🔒 Phiên đã khoá (${state.status==='CONVERTED_TO_SALE'?'đã chuyển bán':'chưa quan tâm'})</span>`; }
+    if(locked){ primary = `<span class="chip" style="background:#eef0f4;color:var(--ink-500);">🔒 Phiên đã khoá (${['CONVERTED_TO_SALE','CUSTOMER_ACCEPTED'].includes(state.status)?'đã chuyển bán':'chưa quan tâm'})</span>`; }
     else { const chk = convertReady();
     primary = chk.ok
       ? `<button class="btn btn-primary" onclick="advConvert()">Tạo bản chào từ tư vấn này →</button>`
       : `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;"><span style="font-size:12px;color:var(--amber-600);max-width:340px;text-align:right;">⚠️ ${chk.reason}</span>${(!state.selectedOffer)?`<button class="btn btn-secondary" onclick="advGo('recommend')">← Chọn gói</button>`:''}<button class="btn btn-primary" disabled style="opacity:.45;cursor:not-allowed;" title="${chk.reason}">Tạo bản chào từ tư vấn này →</button></div>`; }
   } else if(next){
-    const disabled = (step==='needs' && !state.primaryNeed);
-    primary = `${disabled?'<span style="font-size:11px;color:var(--amber-600);">Chọn ít nhất 1 nhu cầu để tiếp tục</span> ':''}<button class="btn btn-primary" ${disabled?'disabled style="opacity:.5;"':''} onclick="advGo('${next}')">Tiếp tục →</button>`;
+    const disabled = (step==='needs' && !state.primaryNeed) || (step==='recommend' && !state.selectedOffer);
+    const disabledHint = step==='recommend' ? 'Chọn sản phẩm và gói để tiếp tục' : 'Chọn ít nhất 1 nhu cầu để tiếp tục';
+    primary = `${disabled?`<span style="font-size:11px;color:var(--amber-600);">${disabledHint}</span> `:''}<button class="btn btn-primary" ${disabled?'disabled style="opacity:.5;"':''} onclick="advGo('${next}')">Tiếp tục →</button>`;
   }
   return `<div class="adv-footer">
     <div style="display:flex;gap:8px;align-items:center;">
@@ -567,7 +843,6 @@ window.advSetAdvisorNote = function(){ const el=document.getElementById('adv-adv
 window.advSetAdvisorField = function(k,v){ state.advisorStruct=state.advisorStruct||{}; state.advisorStruct[k]=v; state.advisorNote=[state.advisorStruct.concern,state.advisorStruct.budget,state.advisorStruct.barrier].filter(Boolean).join(' · '); persist(state); };
 window.advToggleConcern = function(cid){ state.concerns=state.concerns||[]; const i=state.concerns.indexOf(cid); if(i>=0) state.concerns.splice(i,1); else state.concerns.push(cid); save(); renderStep(); };
 window.advToggleUpsell = function(rid){ state.upsell=state.upsell||[]; const i=state.upsell.indexOf(rid); if(i>=0) state.upsell.splice(i,1); else state.upsell.push(rid); save(); renderStep(); };
-window.advSetDynAnswer = function(k,v){ state.dynAnswers=state.dynAnswers||{}; state.dynAnswers[k]=v; save(); renderStep(); };
 window.advTransferSeller = function(pkgRef){
   const offers = state.primaryNeed? BANCA.adviceOffersFor(state.primaryNeed):[];
   const o = offers.find(x=>x.packageRef===pkgRef)||{};
@@ -592,70 +867,70 @@ window.advTransferSeller = function(pkgRef){
    ${rest.length?rest.map(s=>row(s,false)).join(''):'<div style="font-size:12px;color:var(--ink-300);">Không có nhân viên tư vấn khác.</div>'}
    <div style="display:flex;justify-content:flex-end;margin-top:6px;"><button class="btn btn-secondary btn-sm" onclick="advModalClose()">Đóng</button></div>`);
 };
+window.advTransferSellerForProduct = function(productRef){
+  const pkg=(BANCA.adviceSelection.packagesForProduct(state.primaryNeed,productRef)[0]||{}).packageRef;
+  if(pkg) advTransferSeller(pkg);
+  else advToast('Sản phẩm chưa có gói để chuyển tư vấn.');
+};
 window.advDoTransfer = function(sellerId, sellerName){ state.transferredTo=sellerId; save(); advModalClose(); advToast('Đã chuyển tư vấn cho '+sellerName+' (demo).'); };
 window.advExport = function(kind){ advModal(`<div style="text-align:center;padding:10px;"><div style="font-size:34px;">${kind==='QR'?'🔳':kind==='EMAIL'?'✉️':'📄'}</div><div style="font-size:14px;font-weight:700;margin-top:8px;">${kind==='QR'?'Chia sẻ QR bản tư vấn':kind==='EMAIL'?'Gửi email bản tư vấn':'Tải PDF bản tư vấn'}</div><div style="font-size:12px;color:var(--ink-500);margin:6px 0;">Bản tư vấn gồm: Nhu cầu · Khuyến nghị · So sánh · Ghi chú tư vấn (demo).</div><button class="btn btn-primary btn-sm" onclick="advModalClose()">Đã hiểu</button></div>`); };
 
 // ----- Step bodies -----
+// Bước Nhu cầu — 2 cột: trái là ngữ cảnh ngân hàng, phải là danh sách điều quan tâm
+// xếp theo thứ tự ưu tiên (kéo thả hoặc phím). Câu hỏi của từng điều quan tâm mở ở drawer.
 function bodyNeeds(){
-  const dyn = state.dynAnswers||{};
-  const dynQ = state.primaryNeed ? BANCA.needQuestionsFor(state.primaryNeed) : [];
-  // §6.2 — Ngữ cảnh ngân hàng: ngân hàng truyền sang (?ctx=) hoặc seller chọn.
   const ctxCur = state.bankingContext ? BANCA.bankingContextById(state.bankingContext) : null;
-  const ctxBlock = `<div class="card" style="padding:18px;margin-bottom:12px;">
-    <h3 style="margin:0 0 4px;font-size:15px;">Ngữ cảnh từ ngân hàng</h3>
-    <p style="margin:0 0 12px;color:var(--ink-500);font-size:13px;">Ngữ cảnh quyết định bộ câu hỏi, sản phẩm và gói được đề xuất. Chưa lấy thông tin định danh khách hàng ở bước này.</p>
-    <div class="need-grid">${BANCA.BANKING_CONTEXTS.map(c=>{
+  // Cột trái — ngữ cảnh: luôn hiển thị, không giấu trong khối gập.
+  const ctxCol = `<section class="card need-col">
+    <h3 class="need-col-title">Ngữ cảnh từ ngân hàng</h3>
+    <p class="need-col-note">Ngữ cảnh quyết định điều quan tâm được gợi ý sẵn, sản phẩm và gói. Chưa lấy thông tin định danh khách hàng ở bước này.</p>
+    <div class="need-ctx-list" role="radiogroup" aria-label="Ngữ cảnh từ ngân hàng">${BANCA.BANKING_CONTEXTS.map(c=>{
       const on = state.bankingContext===c.id;
-      return `<div class="need-card ${on?'sel':''}" onclick="advSetContext('${c.id}')">
-        <div class="ic">${c.icon}</div>
-        <div><div style="font-weight:600;font-size:13px;">${c.label}</div><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${c.desc}</div></div>
-      </div>`;}).join('')}</div>
-    ${ctxCur?`<div class="alert2 info" style="margin:12px 0 0;">${ctxCur.explain}</div>`:''}
-    ${ctxCur&&ctxCur.crossSell&&ctxCur.crossSell.length?`<div style="font-size:12px;color:var(--ink-500);margin-top:8px;">Có thể bán kèm: ${ctxCur.crossSell.map(n=>`<span class="chip">${BANCA.needLabel(n)}</span>`).join(' ')}</div>`:''}
-  </div>`;
+      return `<button type="button" class="need-ctx-item ${on?'sel':''}" role="radio" aria-checked="${on}" onclick="advSetContext('${c.id}')">
+        <span class="ic" aria-hidden="true">${c.icon}</span>
+        <span class="need-ctx-text"><b>${c.label}</b><span>${c.desc}</span></span>
+      </button>`;}).join('')}</div>
+    ${ctxCur?`<div class="alert2 info" style="margin:12px 0 0;">${ctxCur.explain}</div>
+      ${ctxCur.crossSell&&ctxCur.crossSell.length?`<div class="need-col-note" style="margin:8px 0 0;">Có thể bán kèm: ${ctxCur.crossSell.map(n=>`<span class="chip">${BANCA.needLabel(n)}</span>`).join(' ')}</div>`:''}`:''}
+  </section>`;
 
-  return ctxBlock + `<div class="card" style="padding:18px;">
-    <h3 style="margin:0 0 4px;font-size:16px;">Điều anh/chị quan tâm nhất hôm nay là gì?</h3>
-    <p style="margin:0 0 14px;color:var(--ink-500);font-size:13px;">${ctxCur&&ctxCur.id!=='OTHER'?'Đã gợi ý sẵn theo ngữ cảnh — có thể điều chỉnh.':'Chọn theo mục tiêu bảo vệ — có thể chọn nhiều.'} Chưa cần định danh khách hàng (chọn nguồn khách khi chuyển sang bán hàng).</p>
-    <div class="need-grid">${BANCA.NEED_CATALOG.map(n=>{
-      const sel = state.needProfile.some(x=>x.needId===n.id);
-      // §15.2 — nói trước nhu cầu nào chưa có sản phẩm, đừng để seller chọn rồi mới gặp ngõ cụt.
-      const cov = BANCA.needCoverage(n.id);
-      return `<div class="need-card ${sel?'sel':''}" onclick="advToggleNeed('${n.id}')"${cov.served?'':' title="'+(cov.reason||'')+'"'}>
-        <div class="ic">${n.icon}</div>
-        <div><div style="font-weight:600;font-size:13px;">${n.label}${cov.served?'':' <span class="badge badge-version" style="font-size:9px;">chưa có sản phẩm</span>'}</div>
-        <div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${cov.served?n.desc:(cov.reason||n.desc)}</div></div>
-      </div>`;
-    }).join('')}</div>
-    ${state.needProfile.length?`<hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
-    <h3 style="margin:0 0 4px;font-size:14px;">Điều gì khiến anh/chị lo lắng nhất?</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${BANCA.CONCERN_CATALOG.map(c=>{const on=(state.concerns||[]).includes(c.id);return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advToggleConcern('${c.id}')">${c.icon} ${c.label}</button>`;}).join('')}</div>`:''}
-    ${dynQ.length?`<hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
-    <h3 style="margin:0 0 4px;font-size:14px;">Vài câu hỏi cho mục tiêu <b>${BANCA.needLabel(state.primaryNeed)}</b></h3>
-    <p style="margin:0 0 10px;font-size:12px;color:var(--ink-300);">Câu hỏi thay đổi theo nhu cầu chính — chỉ nhóm, không thu PII.</p>
-    <div style="display:grid;gap:12px;">${dynQ.map(q=>`<div><div style="font-size:12px;color:var(--ink-500);margin-bottom:4px;">${q.q}</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${q.opts.map(o=>`<button class="btn btn-sm ${dyn[q.k]===o?'btn-primary':'btn-secondary'}" onclick="advSetDynAnswer('${q.k}','${o}')">${o}</button>`).join('')}</div></div>`).join('')}</div>`:''}
-    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
-    <div class="label" style="margin-bottom:8px;">Ngân sách dự kiến</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.BUDGET_BANDS.map(b=>`<button class="btn btn-sm ${state.budgetBand===b.id?'btn-primary':'btn-secondary'}" onclick="advSetBudget('${b.id}')">${b.label}</button>`).join('')}</div>
-  </div>`;
-}
+  // Cột phải — điều quan tâm đã chọn, thứ tự = mức ưu tiên; vị trí 1 là nhu cầu chính.
+  const rankItems = state.needProfile.map((n,i)=>{
+    const meta = BANCA.NEED_CATALOG.find(x=>x.id===n.needId)||{};
+    const cov = BANCA.needCoverage(n.needId);
+    const qCount = (BANCA.needQuestionsFor(n.needId)||[]).length;
+    const answered = (BANCA.needQuestionsFor(n.needId)||[]).filter(q=>(state.dynAnswers||{})[q.k]).length;
+    return `<li class="need-rank-item ${i===0?'is-primary':''}" draggable="true" data-need="${n.needId}"
+        ondragstart="advDragStart(event,'${n.needId}')" ondragover="advDragOver(event)" ondragleave="advDragLeave(event)" ondrop="advDrop(event,'${n.needId}')" ondragend="advDragLeave(event)">
+      <span class="need-rank-handle" aria-hidden="true" title="Kéo để đổi thứ tự">⋮⋮</span>
+      <span class="need-rank-pos" aria-hidden="true">${i+1}</span>
+      <button type="button" class="need-rank-main" onclick="advOpenNeedQuestions('${n.needId}')">
+        <b>${meta.icon||''} ${BANCA.needLabel(n.needId)}${i===0?' <span class="badge badge-base badge-mini">Nhu cầu chính</span>':''}${cov.served?'':' <span class="badge badge-version badge-mini">chưa có sản phẩm</span>'}</b>
+        <span>${answered}/${qCount} câu hỏi · mối lo ngại · ngân sách — bấm để mở bộ câu hỏi</span>
+      </button>
+      <span class="need-rank-actions">
+        <button class="btn btn-secondary btn-sm" onclick="advMoveNeed('${n.needId}',-1)" ${i===0?'disabled':''} aria-label="Tăng ưu tiên ${BANCA.needLabel(n.needId)}">↑</button>
+        <button class="btn btn-secondary btn-sm" onclick="advMoveNeed('${n.needId}',1)" ${i===state.needProfile.length-1?'disabled':''} aria-label="Giảm ưu tiên ${BANCA.needLabel(n.needId)}">↓</button>
+        <button class="btn btn-secondary btn-sm" onclick="advToggleNeed('${n.needId}')" aria-label="Bỏ ${BANCA.needLabel(n.needId)}">×</button>
+      </span>
+    </li>`;
+  }).join('');
+  const remaining = BANCA.NEED_CATALOG.filter(n=>!state.needProfile.some(x=>x.needId===n.id));
+  const needCol = `<section class="card need-col">
+    <h3 class="need-col-title">Điều anh/chị quan tâm</h3>
+    <p class="need-col-note">${ctxCur&&ctxCur.id!=='OTHER'?'Đã gợi ý sẵn theo ngữ cảnh.':'Chọn theo mục tiêu bảo vệ.'} Kéo để sắp xếp — vị trí 1 là nhu cầu chính, dùng làm cơ sở gợi ý phương án.</p>
+    ${state.needProfile.length
+      ? `<ol class="need-rank">${rankItems}</ol>`
+      : `<div class="empty-state" style="padding:16px;">Chưa có điều quan tâm nào. Chọn ngữ cảnh bên trái hoặc thêm bên dưới.</div>`}
+    ${state.needProfile.length&&(!state.budgetBand||!(state.concerns||[]).length)?`<div class="need-col-note" style="margin:10px 0 0;color:var(--amber-600);">Còn thiếu: ${[!(state.concerns||[]).length?'mối lo ngại':'',!state.budgetBand?'ngân sách dự kiến':''].filter(Boolean).join(' · ')} — mở bộ câu hỏi của một điều quan tâm để nhập.</div>`:''}
+    ${remaining.length?`<div class="need-col-note" style="margin:12px 0 6px;">Thêm điều quan tâm khác</div>
+    <div class="need-add">${remaining.map(n=>{
+      const cov=BANCA.needCoverage(n.id);
+      return `<button class="btn btn-secondary btn-sm" onclick="advToggleNeed('${n.id}')"${cov.served?'':' title="'+(cov.reason||'')+'"'}>+ ${n.icon} ${n.label}${cov.served?'':' (chưa có sản phẩm)'}</button>`;
+    }).join('')}</div>`:''}
+  </section>`;
 
-function bodyPriority(){
-  if(state.needProfile.length<=1){
-    return `<div class="card" style="padding:18px;"><div class="empty-state" style="padding:20px;">Chỉ có một nhu cầu (${state.needProfile.map(n=>BANCA.needLabel(n.needId)).join('')||'chưa chọn'}) — bước xác định ưu tiên được bỏ qua. Bấm <b>Tiếp tục</b> để xem gợi ý.</div></div>`;
-  }
-  return `<div class="card" style="padding:18px;">
-    <h3 style="margin:0 0 4px;font-size:16px;">📊 Xác định ưu tiên</h3>
-    <p style="margin:0 0 14px;color:var(--ink-500);font-size:13px;">Đặt mức ưu tiên cho từng nhu cầu và chọn nhu cầu chính (dùng để gợi ý phương án).</p>
-    ${state.needProfile.map(n=>{
-      const w = state.priorities[n.needId]||n.weight||'MEDIUM';
-      const isPrimary = state.primaryNeed===n.needId;
-      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:8px;"><b style="font-size:13px;">${BANCA.needLabel(n.needId)}</b> ${isPrimary?'<span class="badge badge-base">Nhu cầu chính</span>':`<a href="javascript:advSetPrimary('${n.needId}')" style="font-size:12px;color:var(--brand-600);">Đặt làm chính</a>`}</div>
-        <div style="display:flex;gap:6px;">${[['HIGH','Cao'],['MEDIUM','Trung bình'],['LOW','Thấp']].map(([wv,wl])=>`<button class="btn btn-sm ${w===wv?'btn-primary':'btn-secondary'}" onclick="advSetWeight('${n.needId}','${wv}')">${wl}</button>`).join('')}</div>
-      </div>`;
-    }).join('')}
-  </div>`;
+  return `<div class="need-2col">${ctxCol}${needCol}</div>`;
 }
 
 // §B — thẻ một phương án (plan): sản phẩm chính · bổ trợ · tổng phí · đáp ứng · còn thiếu · lý do · xác minh.
@@ -779,28 +1054,114 @@ function bodyRecommend(){
 
 // §D — bodyCompare đã bỏ: so sánh chuyển thành drawer tùy chọn (advOpenCompare).
 
+function bodyRecommendHierarchy(){
+  if(!state.primaryNeed) return `<div class="card"><div class="empty-state">Chưa xác định nhu cầu. <a href="javascript:advGo('needs')">Quay lại khám phá nhu cầu</a>.</div></div>`;
+  if(state.productLoadState==='LOADING') return `<div class="card"><div class="empty-state">Đang tải sản phẩm phù hợp…</div></div>`;
+  if(state.productLoadState==='ERROR') return `<div class="card"><div class="alert2 danger">Chưa thể tải sản phẩm phù hợp.</div><button class="btn btn-secondary btn-sm" onclick="advRetryProducts()">Thử lại</button> <button class="btn btn-secondary btn-sm" onclick="advGo('needs')">Quay lại nhu cầu</button></div>`;
+  const products=BANCA.adviceSelection.productsForNeed(state.primaryNeed);
+  if(!products.length){
+    const cov=BANCA.needCoverage(state.primaryNeed);
+    return `<div class="card"><div class="empty-state"><b>Chưa có sản phẩm phù hợp.</b><br>${cov.reason||'Danh mục hiện chưa phục vụ nhu cầu này.'}<br><a href="javascript:advGo('needs')">Chọn lại nhu cầu</a></div></div>`;
+  }
+  if(state.status==='IN_PROGRESS'){ state.status='RECOMMENDED'; persist(state); }
+  if(!state.selectedProductId){
+    const others=advOtherProducts();
+    return `<div class="card">
+      <div class="section-title"><h2>Sản phẩm phù hợp với nhu cầu</h2><span class="subtitle">${BANCA.needLabel(state.primaryNeed)}</span></div>
+      <div class="opt-grid">${products.map(product=>{
+        const rd=BANCA.readinessFor?BANCA.readinessFor(product.productRef,me):{ready:true,canQuote:true};
+        const eligible=rd.ready||rd.canQuote;
+        return `<div class="opt-card">
+          <div><b>${product.productName}</b></div>
+          <div class="adv-sub"><b>Đáp ứng:</b> ${product.meets.map(BANCA.needLabel).join(', ')||BANCA.needLabel(state.primaryNeed)}</div>
+          <div class="adv-sub">${product.reasons[0]||'Phù hợp với nhu cầu đã ghi nhận.'}</div>
+          ${eligible?'<span class="badge badge-ready badge-mini">Được phép bán</span>':`<div class="alert2 warn">${rd.reason||'Bạn chưa đủ điều kiện bán sản phẩm này.'}</div>`}
+          <div>${eligible?`<button class="btn btn-primary btn-sm" onclick="advSelectProduct('${product.productRef}')">Chọn sản phẩm</button>`:`<button class="btn btn-secondary btn-sm" onclick="advTransferSellerForProduct('${product.productRef}')">Chuyển người có quyền</button>`}</div>
+        </div>`;
+      }).join('')}</div>
+      ${others.length?`<hr class="adv-sep">
+      <div class="adv-sub-head"><b>Sản phẩm khác trong danh mục</b><span>Ngoài gợi ý theo nhu cầu chính — chọn sẽ đặt nhu cầu tương ứng làm nhu cầu chính.</span></div>
+      <div class="opt-grid">${others.map(product=>{
+        const rd=BANCA.readinessFor?BANCA.readinessFor(product.productRef,me):{ready:true,canQuote:true};
+        const eligible=rd.ready||rd.canQuote;
+        return `<div class="opt-card">
+          <div><b>${product.productName}</b></div>
+          <div class="adv-sub"><b>Phục vụ nhu cầu:</b> ${BANCA.needLabel(product.needId)}</div>
+          <div class="adv-sub">${product.reasons[0]||'Sản phẩm đang bán được trong danh mục.'}</div>
+          ${eligible?'<span class="badge badge-ready badge-mini">Được phép bán</span>':`<div class="alert2 warn">${rd.reason||'Bạn chưa đủ điều kiện bán sản phẩm này.'}</div>`}
+          <div>${eligible?`<button class="btn btn-secondary btn-sm" onclick="advSelectOtherProduct('${product.productRef}','${product.needId}')">Chọn sản phẩm này</button>`:`<button class="btn btn-secondary btn-sm" onclick="advTransferSellerForProduct('${product.productRef}')">Chuyển người có quyền</button>`}</div>
+        </div>`;
+      }).join('')}</div>`:''}
+    </div>`;
+  }
+  const product=products.find(item=>item.productRef===state.selectedProductId);
+  if(!product){ state.selectedProductId=null; BANCA.adviceSelection.resetPackageState(state); persist(state); return `<div class="card"><div class="alert2 warn">Sản phẩm đã chọn không còn khả dụng.</div><button class="btn btn-secondary btn-sm" onclick="advRetryProducts()">Tải lại sản phẩm</button></div>`; }
+  if(state.packageLoadState==='LOADING') return `<div class="card"><div class="empty-state">Đang tải gói đề nghị của ${product.productName}…</div></div>`;
+  if(state.packageLoadState==='ERROR') return `<div class="card"><div class="alert2 danger">Chưa thể tải gói của ${product.productName}.</div><button class="btn btn-secondary btn-sm" onclick="advRetryPackages()">Thử lại</button> <button class="btn btn-secondary btn-sm" onclick="advChangeProduct()">Đổi sản phẩm</button></div>`;
+  const packages=BANCA.adviceSelection.packagesForProduct(state.primaryNeed,state.selectedProductId);
+  if(!packages.length) return `<div class="card"><div class="empty-state">Sản phẩm này chưa có gói khả dụng.</div><button class="btn btn-secondary btn-sm" onclick="advChangeProduct()">Đổi sản phẩm</button></div>`;
+  // Một bảng duy nhất: mọi tiêu chí của mọi gói, nút chọn nằm ngay dưới từng cột.
+  const actionCell=pkg=>{
+    const selected=state.selectedPackageId===pkg.packageRef;
+    const rd=BANCA.readinessFor?BANCA.readinessFor(pkg.productRef,me):{ready:true,canQuote:true};
+    const eligible=rd.ready||rd.canQuote;
+    if(!eligible) return `<div class="adv-hint" style="color:var(--amber-600);margin-bottom:4px;">${rd.reason||'Bạn chưa đủ điều kiện bán gói này.'}</div>
+      <button class="btn btn-secondary btn-sm" onclick="advTransferSeller('${pkg.packageRef}')">Chuyển người có quyền</button>`;
+    return `<button class="btn btn-sm ${selected?'btn-primary':'btn-secondary'}" onclick="advSelectOffer('${pkg.packageRef}')">${selected?'✓ Đã chọn gói':'Chọn gói'}</button>`;
+  };
+  // Đã chọn sản phẩm → hỗ trợ ra quyết định + gợi ý bổ sung nằm ở bước này
+  // (bước Quyết định chỉ là bản tóm tắt).
+  const picked = state.selectedOffer;
+  const ds = BANCA.decisionSupport(packages, picked?picked.packageRef:null);
+  // Hỗ trợ ra quyết định đặt NGAY TRÊN bảng gói để đọc trước khi so tiêu chí;
+  // gợi ý bổ sung nằm dưới bảng vì chỉ có ý nghĩa sau khi đã chọn gói.
+  const decisionHtml = `<div class="adv-decision">
+      <div class="adv-sub-head"><b>Hỗ trợ ra quyết định</b><span>${picked?'Cho gói đang chọn: '+picked.packageName:'So với gói cân bằng — chọn gói để cập nhật theo lựa chọn'}</span></div>
+      ${ds.length?ds.map(([q,a])=>`<div style="margin-bottom:8px;"><div style="font-size:12px;font-weight:700;">${q}</div><div style="font-size:12px;color:var(--ink-600);">${a}</div></div>`).join(''):'<div class="adv-hint">Sản phẩm này chỉ có một gói — không có phương án khác để cân nhắc.</div>'}
+    </div>`;
+  const riderHtml = `<div class="card" style="padding:14px;margin-top:12px;">
+      <div class="adv-sub-head"><b>Có thể bổ sung</b><span>Gợi ý — không tự thêm; khách quyết định khi tạo bản chào.</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.RIDER_CATALOG.map(rd=>{const on=(state.upsell||[]).includes(rd.id);return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advToggleUpsell('${rd.id}')">${on?'✓ ':''}${rd.label} +${BANCA.vnd(rd.addMonthly)}/tháng</button>`;}).join('')}</div>
+      ${(state.upsell||[]).length?`<div class="adv-hint" style="margin-top:6px;">Đã ghi nhận: ${(state.upsell||[]).map(id=>(BANCA.RIDER_CATALOG.find(r=>r.id===id)||{}).label).join(', ')}.</div>`:''}
+    </div>`;
+  return `<div class="card">
+    <div class="section-title"><h2>Gói đề nghị của ${product.productName}</h2><button class="btn btn-secondary btn-sm" onclick="advChangeProduct()">← Đổi sản phẩm</button></div>
+    ${decisionHtml}
+    <div class="adv-sub-head"><span>Đối chiếu đầy đủ tiêu chí rồi chọn gói ngay dưới mỗi cột. Phí là minh họa, không phải cam kết.</span>
+      ${packages.length>1?`<button class="btn btn-secondary btn-sm" style="margin-left:auto;" aria-pressed="${advCmpDiffOnly}" onclick="advToggleCmpDiff()">${advCmpDiffOnly?'Hiện tất cả tiêu chí':'Chỉ hiện điểm khác'}</button>`:''}
+    </div>
+    ${advCompareTable(packages, {diffOnly:packages.length>1&&advCmpDiffOnly, actionCell:actionCell, actionLabel:'Chọn gói'})}
+  </div>${riderHtml}`;
+}
+
+// Bước Quyết định — CHỈ tóm tắt những gì đã chọn (ngữ cảnh · điều quan tâm · sản phẩm/gói).
+// Không có thao tác sửa/thêm làm thay đổi phí ở bước này (quyết định user, 2026-07-28).
 function bodyResult(){
   const o = state.selectedOffer;
+  const ctxSum = state.bankingContext ? BANCA.bankingContextById(state.bankingContext) : null;
   const chk = convertReady();
-  const lockBanner = locked?`<div class="alert2 ${state.status==='CONVERTED_TO_SALE'?'success':'warn'}" style="margin-bottom:12px;">🔒 <b>Phiên đã khoá — chỉ xem.</b> ${state.status==='CONVERTED_TO_SALE'?'Đã chuyển sang bán hàng.':'Đã ghi nhận khách chưa quan tâm.'} Mở phiên tư vấn mới nếu khách quay lại.</div>`:'';
+  const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
+  const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
+  const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  const customerLabel=canShowPII
+    ? (state.customerName||state.customerRef||'Khách hàng')
+    : ((state.externalCustomerRef||state.customerRef)?'Tham chiếu '+(state.externalCustomerRef||state.customerRef):'Ẩn danh');
+  const _accepted = ['CONVERTED_TO_SALE','CUSTOMER_ACCEPTED'].includes(state.status);
+  const lockBanner = locked?`<div class="alert2 ${_accepted?'success':'warn'}" style="margin-bottom:12px;">🔒 <b>Phiên đã khoá — chỉ xem.</b> ${_accepted?'Đã chuyển sang bán hàng.':'Đã ghi nhận khách chưa quan tâm.'} Mở phiên tư vấn mới nếu khách quay lại.</div>`:'';
   return lockBanner + `<div class="card" style="padding:18px;border-left:4px solid var(--teal-600);margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
-      <div><h3 style="margin:0;font-size:20px;">🎯 Kết quả tư vấn ${state.id}</h3><div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${state.mode==='ANONYMOUS'?'Ẩn danh':(state.customerName||state.customerRef||'Khách hàng')} · nhu cầu chính ${state.primaryNeed?BANCA.needLabel(state.primaryNeed):'chưa xác định'}</div></div>
+      <div><h3 style="margin:0;font-size:20px;">🎯 Kết quả tư vấn ${state.id}</h3><div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${customerLabel} · nhu cầu chính ${state.primaryNeed?BANCA.needLabel(state.primaryNeed):'chưa xác định'}</div></div>
       <div>${BANCA.adviceStatusBadge(state.status)}</div>
     </div>
   </div>
   <div class="card" style="padding:18px;">
     <table class="dtable"><tbody>
-      <tr><td style="width:220px;color:var(--ink-500);">Nhu cầu chính</td><td><b>${state.primaryNeed?BANCA.needLabel(state.primaryNeed):'Chưa xác định'}</b></td></tr>
-      <tr><td style="color:var(--ink-500);">Ngân sách</td><td>${state.budgetBand?BANCA.budgetLabel(state.budgetBand):'—'}</td></tr>
-      <tr><td style="color:var(--ink-500);">Gói đề xuất / quan tâm</td><td>${o?`<b>${o.productName} · ${o.packageName}</b>`:'<span style="color:var(--ink-300);">Chưa chọn</span>'}</td></tr>
-      <tr><td style="color:var(--ink-500);">Phí minh họa</td><td>${o?o.premiumBand+' <span class="help-hint" tabindex=0 title="Ph\u00ed minh h\u1ecda, kh\u00f4ng ph\u1ea3i ph\u00ed ch\u00ednh th\u1ee9c.">?</span>':'—'}</td></tr>
-      <tr><td style="color:var(--ink-500);">Lý do đề xuất</td><td>${o?(BANCA.adviceOffersFor(state.primaryNeed).find(x=>x.packageRef===o.packageRef)||{}).why||'—':'—'}</td></tr>
-      <tr><td style="color:var(--ink-500);">Cần bổ sung khi chuyển bán</td><td>${o?((BANCA.adviceOffersFor(state.primaryNeed).find(x=>x.packageRef===o.packageRef)||{}).verify||[]).join(', ')||'—':'Chọn gói trước'}</td></tr>
+      <tr><td style="width:220px;color:var(--ink-500);">Ngữ cảnh từ ngân hàng</td><td>${ctxSum?`<b>${ctxSum.icon} ${ctxSum.label}</b>`:'<span style="color:var(--ink-300);">Không có</span>'}</td></tr>
+      <tr><td style="color:var(--ink-500);">Điều quan tâm (theo ưu tiên)</td><td>${state.needProfile.length?state.needProfile.map((n,i)=>`<b>${i+1}. ${BANCA.needLabel(n.needId)}</b>`).join(' · '):'<span style="color:var(--ink-300);">Chưa chọn</span>'}</td></tr>
+      <tr><td style="color:var(--ink-500);">Sản phẩm & gói đã chọn</td><td>${o?`<b>${o.productName} · ${o.packageName}</b>`:'<span style="color:var(--ink-300);">Chưa chọn</span>'}</td></tr>
+      ${(state.upsell||[]).length?`<tr><td style="color:var(--ink-500);">Gợi ý bổ sung đã ghi nhận</td><td>${(state.upsell||[]).map(id=>(BANCA.RIDER_CATALOG.find(x=>x.id===id)||{}).label).join(', ')}</td></tr>`:''}
     </tbody></table>
-    ${state.selectedPlan?`<div class="card" style="padding:14px;margin-top:12px;border-left:4px solid var(--brand-600);"><div class="label" style="margin-bottom:6px;">Phương án đã chọn: ${state.selectedPlan.label}</div><div style="font-size:12px;color:var(--ink-600);">Gồm: ${state.selectedPlan.offers.map(x=>x.productName+' · '+x.packageName).join(' + ')}</div><div style="font-size:12px;color:var(--ink-500);margin-top:4px;">Đáp ứng: ${(state.selectedPlan.coveredNeeds||[]).map(n=>BANCA.needLabel(n)).join(', ')||'—'}${(state.selectedPlan.remainingGaps||[]).length?' · Còn thiếu: '+state.selectedPlan.remainingGaps.map(n=>BANCA.needLabel(n)).join(', '):''}</div></div>`:''}
-    ${(()=>{ const offers=BANCA.adviceOffersFor(state.primaryNeed); const ds=BANCA.decisionSupport(offers, o?o.packageRef:null); return ds.length?`<div class="card" style="padding:14px;margin-top:12px;background:var(--brand-100);border-color:transparent;"><div class="label" style="margin-bottom:8px;">Hỗ trợ ra quyết định</div>${ds.map(([q,a])=>`<div style="margin-bottom:8px;"><div style="font-size:12px;font-weight:700;">${q}</div><div style="font-size:12px;color:var(--ink-600);">${a}</div></div>`).join('')}</div>`:''; })()}
-    <div style="margin-top:14px;"><div class="label" style="margin-bottom:6px;">Có thể bổ sung (gợi ý — không tự thêm)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${BANCA.RIDER_CATALOG.map(rd=>{const on=(state.upsell||[]).includes(rd.id);return `<button class="btn btn-sm ${on?'btn-primary':'btn-secondary'}" onclick="advToggleUpsell('${rd.id}')">${on?'✓ ':''}${rd.label} +${BANCA.vnd(rd.addMonthly)}/tháng</button>`;}).join('')}</div>${(state.upsell||[]).length?`<div style="font-size:11px;color:var(--ink-500);margin-top:6px;">Đã ghi nhận gợi ý bổ sung: ${(state.upsell||[]).map(id=>(BANCA.RIDER_CATALOG.find(r=>r.id===id)||{}).label).join(', ')} — chỉ gợi ý, khách quyết định khi tạo yêu cầu.</div>`:''}</div>
+    <div class="adv-hint" style="margin-top:8px;">Bản tóm tắt chỉ để xem lại. Mọi thay đổi ảnh hưởng tới phí được thực hiện ở bước Nhu cầu hoặc Gợi ý.</div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span class="label">Xuất bản tư vấn:</span><button class="btn btn-secondary btn-sm" onclick="advExport('PDF')">📄 Tải PDF</button><button class="btn btn-secondary btn-sm" onclick="advExport('EMAIL')">✉️ Email</button><button class="btn btn-secondary btn-sm" onclick="advExport('QR')">🔳 Chia sẻ QR</button></div>
     ${(()=>{ const dur=state.startedAt?Math.max(1,Math.round((Date.now()-state.startedAt)/60000)):'—'; return `<div class="card" style="padding:12px 14px;margin-top:12px;background:var(--paper);border-color:transparent;"><div class="label" style="margin-bottom:6px;">Phiên tư vấn</div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-500);"><span>Tư vấn viên: <b style="color:var(--ink-700);">${(BANCA.personas[state.createdBy]||{}).name||state.createdBy}</b></span><span>Bắt đầu: <b style="color:var(--ink-700);">${state.startedAt?new Date(state.startedAt).toLocaleTimeString('vi-VN').slice(0,5):'—'}</b></span><span>Lưu gần nhất: <b style="color:var(--ink-700);">${state.updatedAt}</b></span><span>Thời lượng: <b style="color:var(--ink-700);">${dur} phút</b></span><span>Phiên bản: <b style="color:var(--ink-700);">v${state.version}</b></span></div>${state.mode==='ANONYMOUS'?'<div style="font-size:11px;color:var(--amber-600);margin-top:6px;">⚠️ Phiên ẩn danh — chưa lưu vào CRM cho đến khi chuyển sang bán hàng.</div>':''}</div>`; })()}
     <div style="margin-top:12px;font-size:12px;color:var(--ink-300);">Disclaimer: Kết quả tư vấn và phí chỉ mang tính minh họa, chưa phải cam kết bảo hiểm. Phí chính thức được tính lại tại bước lập báo giá khi chuyển sang bán hàng.</div>
@@ -815,8 +1176,7 @@ function bodyResult(){
 
 function stepBody(){
   if(step==='needs') return bodyNeeds();
-  if(step==='priority') return bodyPriority();
-  if(step==='recommend') return bodyRecommend();
+  if(step==='recommend') return bodyRecommendHierarchy();
   return bodyResult();
 }
 

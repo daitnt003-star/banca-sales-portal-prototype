@@ -1,4 +1,4 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bản chào — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=44"></script></head><body><script>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bản chào — Banca Sales Portal</title><script src="../../shared/js/head-loader.js?v=46"></script></head><body><script>
 // Thin wrapper cho lifecycle PREPARING (đang chuẩn bị) — dùng chung QuoteListShell + QuoteDataTable.
 const p = BANCA.persona(), me = BANCA.current(), r = rel();
 const qs = new URLSearchParams(location.search);
@@ -49,12 +49,18 @@ if(p.status!=='ACTIVE'){
  ];
  const fd = filterDrawer(drawerFields, {stage:fStage, warn:fWarn?'1':'', q:qs.get('q')||''});
 
+ const pageHeader = BANCA.ui.pageHeader({
+   title:'Bản chào',
+   description:'Theo dõi Bản chào theo vòng đời và tiếp tục đúng việc cần xử lý.',
+   metaHtml:`Hiển thị <b>${apps.length}</b> / ${total} bản chào`
+ });
  const body = BANCA.ui.quoteListShell({
    me, r, lifecycle:'PREPARING', g5:null, counts, scope:fScope, unit:fUnit, q:qs.get('q')||'',
    apps, shown:apps.length, total, canSell,
+   pageHeaderHtml:pageHeader,
    quickFiltersHtml: quick,
    advancedBtn: fd.button, advancedTags: fd.tags, advancedDrawer: fd.drawer
  });
- shell('Bản chào','Bản chào', body, {startSale:false});
+ shell('Bản chào','Bản chào', body, {startSale:false,headerActionMode:'OFFERS'});
 }
 </script></body></html>

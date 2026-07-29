@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca Project Orchestrator OS"
+  short_description: "Điều phối context, approval, worker và quality gate"
+  default_prompt: "Use $banca-brain-orchestrator to orchestrate this Banca change through evidence, approval, execution, loop control, and quality gates."

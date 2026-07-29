@@ -35,6 +35,17 @@ const FPT_LOGO_SVG = `<svg viewBox="0 0 50.3 25" xmlns="http://www.w3.org/2000/s
 // Shell chỉ render; không tự khai báo item ở đây (tránh 2 nguồn sự thật cho nav).
 function navItems(){ return BANCA.navResolved(); }
 
+BANCA.HEADER_ACTION_MODES = ['DEFAULT', 'QUICK_ADVICE', 'OFFERS', 'POLICIES'];
+BANCA.resolveHeaderActions = function(mode, canSell, hasResume){
+ const resolved = BANCA.HEADER_ACTION_MODES.includes(mode) ? mode : 'DEFAULT';
+ return {
+  mode: resolved,
+  quickAdvice: !!canSell && (resolved==='DEFAULT' || resolved==='QUICK_ADVICE'),
+  createOffer: !!canSell && (resolved==='DEFAULT' || resolved==='OFFERS'),
+  resumeOffer: !!canSell && !!hasResume && (resolved==='DEFAULT' || resolved==='OFFERS')
+ };
+};
+
 function navIcon(k){
  const icons={
   home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
@@ -65,14 +76,21 @@ function shell(active,title,body,opts){
  // không dẫn seller vào danh sách khách hàng trước). Nhãn khớp object "Bản chào" (§8.1).
  // §15.1 giới hạn số nút PRIMARY, KHÔNG cấm nút phụ: "Tư vấn nhanh" giữ nguyên là lối tắt
  // secondary cho seller đã biết khách chưa chốt nhu cầu — vào thẳng, đỡ 1 bước modal.
- const startBtn = canSell ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ ${BANCA.t('createOffer')}</button>` : '';
- const adviseBtn = canSell ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('quickAdvisory')}</button>` : '';
+ const headerMode = BANCA.HEADER_ACTION_MODES.includes(opts.headerActionMode) ? opts.headerActionMode : 'DEFAULT';
  let resumeBtn='';
+ let latestDraft=null;
  if(canSell){
    try{ const _me=BANCA.current();
      const _drafts=(BANCA.myApps?BANCA.myApps('NOT_SUBMITTED'):[]).filter(a=>a.owner===_me).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
-     if(_drafts.length){ const d=_drafts[0]; resumeBtn=`<button class="btn btn-secondary" onclick="location.href='${r}modules/application-workspace/index.html?id=${d.id}'" style="white-space:nowrap;" title="Yêu cầu ${d.id} · ${custName?custName(d.customerId):''}">↩ ${BANCA.t('continueLatestRequest')}</button>`; }
+     if(_drafts.length) latestDraft=_drafts[0];
    }catch(e){}
+ }
+ const headerActions = BANCA.resolveHeaderActions(headerMode, canSell, !!latestDraft);
+ const startBtn = headerActions.createOffer ? `<button class="btn btn-primary" onclick="openStartSale()" style="white-space:nowrap;">+ ${BANCA.t('createOffer')}</button>` : '';
+ const adviseBtn = headerActions.quickAdvice ? `<button class="btn btn-secondary" onclick="location.href='${r}modules/advisory-workspace/index.html?new=1'" style="white-space:nowrap;">💡 ${BANCA.t('quickAdvisory')}</button>` : '';
+ if(headerActions.resumeOffer && latestDraft){
+  const d=latestDraft;
+  resumeBtn=`<button class="btn btn-secondary" onclick="location.href='${r}modules/application-workspace/index.html?id=${d.id}'" style="white-space:nowrap;" title="Yêu cầu ${d.id} · ${custName?custName(d.customerId):''}">↩ ${BANCA.t('continueLatestRequest')}</button>`;
  }
 
  document.body.innerHTML=`

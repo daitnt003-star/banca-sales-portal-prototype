@@ -70,16 +70,16 @@ manager không tự override chính mình, KPI tách `commission` vs `commission
 
 ## 4. Hạn chế prototype / còn tồn tại
 
-1. **`OtpVerificationPanel` + `UnderwritingStatusPanel` đã đóng gói nhưng chưa thay markup inline**
-   trong `app-workspace.js`. Vùng xác nhận Health per-member phức tạp; thay nóng rủi ro vỡ luồng
-   đã nghiệm thu → để adopt-on-touch. **§9.4 chưa đóng hoàn toàn.**
-2. **UI `QuoteVersionSelector` / `ReRateNotice` chưa dựng** — model + gate đã chặn đúng
-   (có test), nhưng người dùng chưa chọn/xem version trên màn hình. **§7.3 chỉ đóng phần logic.**
+1. **`OtpVerificationPanel` + `UnderwritingStatusPanel` đã được áp dụng** trong
+   `app-workspace.js` cho Motor/PA/Health, bao gồm Health theo từng người được bảo hiểm.
+   Permission, STP/manual, bổ sung, duyệt có điều kiện và từ chối có regression guard.
+2. **UI `QuoteVersionSelector` / `ReRateNotice` đã đóng** — người dùng xem được phiên bản
+   hiện hành và lịch sử chỉ đọc; cảnh báo tính phí lại nêu rõ lý do, hệ quả khóa thanh toán
+   và hành động tiếp theo theo quyền. Kiểm thử chuyên biệt: 32/32 PASS.
 3. **`OrganizationScopeFilter` chưa hợp nhất** (§13.2) — team-workspace vẫn dùng scope dropdown riêng.
-4. **2 nguồn sự thật về quyền quản lý**: `BANCA.can('VIEW_TEAM_WORKSPACE')` đọc `persona.isManager`
-   trong khi `manager-profiles.js` mới là nơi khai báo capability. Hệ quả: RM-01 là player-coach
-   (`availableScopes` có TEAM) nhưng **không thấy mục "Đội nhóm"**. Chưa sửa vì ảnh hưởng điều hướng
-   nhiều persona — cần chốt nguồn chuẩn trước.
+4. **Quyền quản lý đã đóng**: `BANCA.can('VIEW_TEAM_WORKSPACE')` và hoa hồng thứ cấp cùng đọc
+   capability/phạm vi từ `manager-profiles.js`. RM-01 là player-coach có `TEAM` nên được thấy và
+   truy cập “Đội nhóm”; không phụ thuộc riêng vào `persona.isManager`.
 5. Hoa hồng override dùng **tỷ lệ phẳng theo `managerScope`** (mock). Thực tế theo scheme nhiều bậc.
 6. Yêu cầu dịch vụ / khai báo tổn thất mới ở mức **khởi tạo + theo dõi** (đúng §11: portal không
    sửa hợp đồng, không xử lý bồi thường); CTA tạo mới hiện là demo `alert`.

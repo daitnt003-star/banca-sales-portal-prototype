@@ -41,7 +41,7 @@ BANCA.ui = BANCA.ui || {};
     var per = (BANCA.personas || {})[a.owner] || {};
     switch (col) {
       case 'offerCustomer':
-        return '<td class="col-id"><div class="q-id nowrap">' + e(a.id) + '</div><div class="q-cust">' + e(c.name || a.customerName || '—') + '</div></td>';
+        return '<td class="col-id"><a class="q-id nowrap" href="' + r + 'modules/application-workspace/index.html?id=' + e(a.id) + '">' + e(a.id) + '</a><div class="q-cust">' + e(c.name || a.customerName || '—') + '</div></td>';
       case 'product':
         return '<td class="col-prod">' + e(a.productName || '') + (a.package ? ' · ' + e(a.package) : '') + '</td>';
       case 'task':
@@ -57,7 +57,7 @@ BANCA.ui = BANCA.ui || {};
       case 'action':
         var ct = BANCA.ui.offerCta ? BANCA.ui.offerCta(a) : { label: 'Mở', tab: 'overview', primary: false };
         var href = r + 'modules/application-workspace/index.html?id=' + a.id + (ct.tab ? '&tab=' + ct.tab : '');
-        return '<td onclick="event.stopPropagation();"><a class="btn ' + (ct.primary ? 'btn-primary' : 'btn-secondary') + ' btn-sm" href="' + href + '">' + e(ct.label) + '</a></td>';
+        return '<td class="table-action-cell" onclick="event.stopPropagation();"><div class="table-action-stack"><a class="btn ' + (ct.primary ? 'btn-primary' : 'btn-secondary') + ' btn-sm" href="' + href + '">' + e(ct.label) + '</a></div></td>';
       default: return '<td></td>';
     }
   }
@@ -68,12 +68,12 @@ BANCA.ui = BANCA.ui || {};
     var cols = (COLS[cfg.lifecycle] || COLS.PROCESSING).slice();
     if (cfg.scope === 'SELF') cols = cols.filter(function (c) { return c !== 'owner'; }); // AC: OWN ẩn người phụ trách
     var r = cfg.r || '';
-    var thead = '<tr>' + cols.map(function (c) { return '<th' + (c === 'premium' ? ' style="text-align:right;"' : '') + '>' + (HEAD[c] || '') + '</th>'; }).join('') + '</tr>';
+    var thead = '<tr>' + cols.map(function (c) { return '<th scope="col"' + (c === 'premium' ? ' class="op-money"' : c === 'action' ? ' class="table-action-cell"' : '') + '>' + (HEAD[c] || '') + '</th>'; }).join('') + '</tr>';
     var rows = apps.map(function (a) {
       return '<tr style="cursor:pointer;" onclick="location.href=\'' + r + 'modules/application-workspace/index.html?id=' + a.id + '\'">' +
         cols.map(function (c) { return cell(c, a, cfg); }).join('') + '</tr>';
     }).join('');
-    return '<div class="card" style="padding:0;overflow-x:auto;"><table class="offer-table"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table></div>';
+    return '<div class="card" style="padding:0;overflow-x:auto;"><table class="offer-table operational-list"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table></div>';
   };
 
   // MỘT QuoteListShell — layout cố định cho mọi lifecycle.
@@ -81,9 +81,10 @@ BANCA.ui = BANCA.ui || {};
     cfg = cfg || {};
     var r = cfg.r || '', me = cfg.me, lifecycle = cfg.lifecycle, counts = cfg.counts || {};
     var canSell = cfg.canSell !== false;
-    // 1. Title + primary CTA
-    var top = '<div class="qls-top"><h1 class="qls-title">Bản chào</h1>' +
-      (canSell ? '<button class="btn btn-primary" onclick="openStartSale()">+ ' + BANCA.t('createOffer') + '</button>' : '') + '</div>';
+    // 1. Opt-in PageHeader; legacy default giữ nguyên cho lifecycle/page ngoài pilot.
+    var top = cfg.pageHeaderHtml != null ? cfg.pageHeaderHtml
+      : '<div class="qls-top"><h1 class="qls-title">Bản chào</h1>' +
+        (canSell ? '<button class="btn btn-primary" onclick="openStartSale()">+ ' + BANCA.t('createOffer') + '</button>' : '') + '</div>';
     // 2. Lifecycle tabs (count)
     var tabs = '<div class="offer-group-bar">' + (BANCA.QUOTE_LIFECYCLES || []).map(function (lc) {
       var on = lc.id === lifecycle;

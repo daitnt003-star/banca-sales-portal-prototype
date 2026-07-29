@@ -146,9 +146,9 @@ BANCA.policies = [
    endorsements:[], claims:[]}
 ];
 BANCA.policyById = id => BANCA.policies.find(p=>p.id===id);
+// Hợp đồng người dùng được XEM — dùng chung quy tắc quyền xem với các trang khác
+// (hồ sơ tài khoản là nguồn chuẩn); fallback về "của mình" khi chưa nạp hồ sơ quản lý.
 BANCA.myPolicies = (p = BANCA.current()) => {
-  const per = BANCA.personas[p];
-  return BANCA.policies.filter(x => x.owner===p ||
-    (per.managerScope==='TEAM'  && (BANCA.personas[x.owner]||{}).team===per.team) ||
-    (per.managerScope==='BRANCH'&& (BANCA.personas[x.owner]||{}).branch===per.branch));
+  const ids = BANCA.visibleOwnerIds ? BANCA.visibleOwnerIds(p) : [p];
+  return BANCA.policies.filter(x => ids.indexOf(x.owner) >= 0);
 };

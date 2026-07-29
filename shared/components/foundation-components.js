@@ -10,6 +10,82 @@ BANCA.ui = BANCA.ui || {};
 function _esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
 BANCA.ui._esc = _esc;
 
+// --- ProgressStepper (P0.9) ---
+// Caller owns business state, permissions and routes; this component only renders presentation props.
+BANCA.ui.progressStepper = function (items, cfg) {
+  cfg = cfg || {};
+  var tone = cfg.currentTone === 'warning' ? 'warning' : 'brand';
+  var extraClass = cfg.className ? ' ' + _esc(cfg.className) : '';
+  var states = ['complete', 'current', 'available', 'disabled'];
+  var content = (items || []).map(function (item, index) {
+    item = item || {};
+    var state = states.indexOf(item.state) >= 0 ? item.state : 'available';
+    var selected = !!item.selected;
+    var ordinal = item.ordinal == null ? index + 1 : item.ordinal;
+    var stateLabel = state === 'complete' ? 'Hoàn tất'
+      : state === 'current' ? 'Đang thực hiện'
+        : state === 'disabled' ? 'Chưa mở' : 'Có thể xem';
+    var selectedLabel = item.selectedLabel || 'Đang xem';
+    var node = state === 'complete' ? '✓' : _esc(ordinal);
+    var body = '<span class="progress-stepper__node" aria-hidden="true">' + node + '</span>' +
+      '<span class="progress-stepper__label">' + _esc(item.label || '') + '</span>' +
+      '<span class="progress-stepper__status">' + _esc(stateLabel) + '</span>' +
+      (selected ? '<span class="progress-stepper__selected">' + _esc(selectedLabel) + '</span>' : '') +
+      (item.helper ? '<span class="progress-stepper__helper">' + _esc(item.helper) + '</span>' : '');
+    var cls = 'progress-stepper__step is-' + state + (selected ? ' is-selected' : '');
+    if (state === 'disabled') {
+      return '<li><span class="' + cls + '" aria-disabled="true">' + body + '</span></li>';
+    }
+    var aria = stateLabel + ': ' + (item.label || '') + (selected ? '. ' + selectedLabel : '');
+    return '<li><a class="' + cls + '" href="' + _esc(item.href || '#') + '"' +
+      (state === 'current' ? ' aria-current="step"' : '') +
+      (selected ? ' data-selected="true"' : '') +
+      ' aria-label="' + _esc(aria) + '">' + body + '</a></li>';
+  }).join('');
+  return '<nav class="progress-stepper progress-stepper--' + tone + extraClass + '" aria-label="' +
+    _esc(cfg.ariaLabel || 'Tiến trình') + '"><ol>' + content + '</ol></nav>';
+};
+
+// --- PageHeader (P0.1 opt-in) ---
+// Component chỉ render cfg đã được page resolve; không đọc permission/state/global data.
+BANCA.ui.pageHeader = function (cfg) {
+  cfg = cfg || {};
+  var variant = cfg.className === 'compact' ? ' page-header--compact' : '';
+  var description = cfg.description ? '<p class="page-header__description">' + _esc(cfg.description) + '</p>' : '';
+  var meta = cfg.metaHtml ? '<div class="page-header__meta">' + cfg.metaHtml + '</div>' : '';
+  var primary = cfg.primaryActionHtml ? '<div class="page-header__primary">' + cfg.primaryActionHtml + '</div>' : '';
+  var secondary = cfg.secondaryActionsHtml ? '<div class="page-header__secondary">' + cfg.secondaryActionsHtml + '</div>' : '';
+  return '<header class="page-header' + variant + '">' +
+    '<div class="page-header__main"><h1 class="page-header__title">' + _esc(cfg.title || '') + '</h1>' +
+    description + meta + '</div>' +
+    ((primary || secondary) ? '<div class="page-header__actions">' + secondary + primary + '</div>' : '') +
+    '</header>';
+};
+
+// --- NextActionPanel (P0.1 opt-in) ---
+// Permission/business resolver thuộc caller. Trạng thái không-actionable không render actionHtml.
+BANCA.ui.nextActionPanel = function (cfg) {
+  cfg = cfg || {};
+  var allowed = ['default', 'disabled', 'loading', 'blocked', 'error'];
+  var state = allowed.indexOf(cfg.state) >= 0 ? cfg.state : 'default';
+  var nonActionable = ['disabled', 'loading', 'blocked'].indexOf(state) >= 0;
+  var defaultReason = state === 'loading' ? 'Đang xử lý, vui lòng chờ.'
+    : state === 'blocked' ? 'Hành động đang bị chặn.'
+      : state === 'disabled' ? 'Hành động hiện chưa khả dụng.' : '';
+  var reason = cfg.reason || defaultReason;
+  var status = state === 'loading' ? 'Đang xử lý' : state === 'blocked' ? 'Bị chặn'
+    : state === 'disabled' ? 'Chưa khả dụng' : state === 'error' ? 'Có lỗi' : 'Việc tiếp theo';
+  return '<section class="next-action-panel next-action-panel--' + state + '" aria-label="Việc tiếp theo">' +
+    '<div class="next-action-panel__content"><div class="next-action-panel__status">' + _esc(status) + '</div>' +
+    '<div class="next-action-panel__label">' + _esc(cfg.label || '') + '</div>' +
+    (cfg.description ? '<div class="next-action-panel__description">' + _esc(cfg.description) + '</div>' : '') +
+    (reason ? '<div class="next-action-panel__reason" role="status">' + _esc(reason) + '</div>' : '') +
+    (cfg.recoveryHtml ? '<div class="next-action-panel__recovery">' + cfg.recoveryHtml + '</div>' : '') +
+    '</div>' +
+    (!nonActionable && cfg.actionHtml ? '<div class="next-action-panel__action">' + cfg.actionHtml + '</div>' : '') +
+    '</section>';
+};
+
 // --- StatusBadge (central §19.1) — dùng chung Dashboard/List/Detail ---
 BANCA.ui.statusBadge = function (statusKey) {
   var s = (BANCA.quoteStatus && BANCA.quoteStatus(statusKey)) || { label: statusKey, cls: 'badge-pending', icon: '' };
@@ -110,6 +186,12 @@ BANCA.ensureIdentifiedPrefill = function (app) {
   var ref = app.externalCustomerRef || app.customerId || (app.sourceReference && app.sourceReference.externalCustomerId);
   if (!ref || !BANCA.fetchCustomerPII) return app;
   var pii = BANCA.fetchCustomerPII(ref);
+  // FAIL-CLOSED: không khớp mã → KHÔNG gán PII khách khác; ghi cờ recovery.
+  if (!pii.matched || !pii.fields) {
+    app.piiFetchError = pii.error || { code: 'CUSTOMER_REF_NOT_FOUND' };
+    return app;
+  }
+  app.piiFetchError = null;
   app.piiFields = pii.fields;
   if (!app.customerName && pii.fields.fullName) app.customerName = pii.fields.fullName.value;
   // Đồng bộ customerId với record đã match để form Section 2 (customerById) resolve đúng, không hiện "Khách hàng mới".
@@ -128,9 +210,25 @@ BANCA.grantConsent = function (appId) {
   var app = apps.find(function (a) { return a.id === appId; }) || {};
   var ref = app.externalCustomerRef || app.customerId || (app.sourceReference && app.sourceReference.externalCustomerId) || appId;
   var pii = BANCA.fetchCustomerPII(ref);
+  // FAIL-CLOSED: mã không khớp → KHÔNG chuyển IDENTIFIED, KHÔNG lấy PII khách khác; giữ recovery.
+  if (!pii.matched || !pii.fields) {
+    if (BANCA.patchApp) BANCA.patchApp(appId, { piiFetchError: pii.error || { code: 'CUSTOMER_REF_NOT_FOUND' } });
+    if (typeof BANCA.toast === 'function') BANCA.toast((pii.error && pii.error.message) || 'Không lấy được dữ liệu định danh — đối soát mã với ngân hàng.');
+    else if (typeof location !== 'undefined') location.reload();
+    return;
+  }
+  var consent = BANCA.makeConsentRecord({
+    externalCustomerRef: ref,
+    customerRef: app.customerId || ref,
+    consentChannel: BANCA.channel(),
+    dataRetrievedAt: pii.fetchedAt,
+    sourceSystem: pii.source
+  });
   var patch = {
     dataAccessStage: 'IDENTIFIED_CONTEXT',
-    consent: { version: 'CONSENT_BANCA_v1', grantedAt: new Date().toISOString(), channel: BANCA.channel() },
+    consent: consent,
+    consentAudit: consent,
+    piiFetchError: null,
     piiFields: pii.fields,
     customerName: (pii.fields.fullName && pii.fields.fullName.value) || app.customerName || null
   };

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca Prototype QC"
+  short_description: "Kiểm thử hồi quy prototype theo yêu cầu"
+  default_prompt: "Use $banca-prototype-qc to validate this prototype change against requirements and regressions."

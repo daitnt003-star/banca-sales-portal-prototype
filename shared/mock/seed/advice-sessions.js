@@ -7,17 +7,27 @@
 window.BANCA = window.BANCA || {};
 
 // ---- Advisory status model (riêng, KHÔNG tái dùng status HSYCBH) ----
+// Autosave chỉ giữ tiến độ (ACTIVE), KHÔNG tạo outcome. Business outcome chỉ do
+// nhân viên tư vấn ghi nhận qua 4 kết quả chuẩn (§Checkpoint 2):
+//   CUSTOMER_ACCEPTED · FOLLOW_UP · NOT_INTERESTED · SHARED_WITH_CUSTOMER.
+// Không còn trạng thái/tab/hành động "Đã lưu" (SAVED) — lưu là hành vi nền, không phải kết quả.
 BANCA.ADVICE_STATUS = {
-  IN_PROGRESS:       {label:'Đang thực hiện',  badge:'badge-base',        group:'ACTIVE'},
-  RECOMMENDED:       {label:'Đã gợi ý',        badge:'badge-base',        group:'ACTIVE'},
-  COMPARING:         {label:'Đang so sánh',    badge:'badge-pending',     group:'ACTIVE'},
-  SAVED:             {label:'Đã lưu',          badge:'badge-ready',       group:'SAVED'},
-  FOLLOW_UP_LATER:   {label:'Cần theo dõi',    badge:'badge-conditional', group:'FOLLOW_UP'},
-  NOT_INTERESTED:    {label:'Chưa quan tâm',   badge:'badge-blocked',     group:'CLOSED'},
-  CONVERTED_TO_SALE: {label:'Đã chuyển bán',   badge:'badge-ready',       group:'CONVERTED'},
-  ABANDONED:         {label:'Đã hủy',          badge:'badge-blocked',     group:'CLOSED'},
-  EXPIRED:           {label:'Hết hạn',         badge:'badge-version',     group:'CLOSED'}
+  IN_PROGRESS:         {label:'Đang thực hiện',  badge:'badge-base',        group:'ACTIVE'},
+  RECOMMENDED:         {label:'Đã gợi ý',        badge:'badge-base',        group:'ACTIVE'},
+  COMPARING:           {label:'Đang so sánh',    badge:'badge-pending',     group:'ACTIVE'},
+  // ---- 4 outcome chuẩn ----
+  CUSTOMER_ACCEPTED:   {label:'Khách đồng ý',    badge:'badge-ready',       group:'CONVERTED'},
+  FOLLOW_UP:           {label:'Cần theo dõi',    badge:'badge-conditional', group:'FOLLOW_UP'},
+  NOT_INTERESTED:      {label:'Chưa quan tâm',   badge:'badge-blocked',     group:'CLOSED'},
+  SHARED_WITH_CUSTOMER:{label:'Đã gửi khách',    badge:'badge-base',        group:'SHARED'},
+  // ---- alias tương thích dữ liệu/seed cũ (không phải outcome mới) ----
+  FOLLOW_UP_LATER:     {label:'Cần theo dõi',    badge:'badge-conditional', group:'FOLLOW_UP'},
+  CONVERTED_TO_SALE:   {label:'Đã chuyển bán',   badge:'badge-ready',       group:'CONVERTED'},
+  ABANDONED:           {label:'Đã hủy',          badge:'badge-blocked',     group:'CLOSED'},
+  EXPIRED:             {label:'Hết hạn',         badge:'badge-version',     group:'CLOSED'}
 };
+// Danh sách 4 outcome chuẩn — NGUỒN DUY NHẤT để UI/kiểm thử tham chiếu.
+BANCA.ADVICE_OUTCOMES = ['CUSTOMER_ACCEPTED','FOLLOW_UP','NOT_INTERESTED','SHARED_WITH_CUSTOMER'];
 BANCA.adviceStatusBadge = function(s){
   const m = BANCA.ADVICE_STATUS[s] || {label:s, badge:'badge-version'};
   return `<span class="badge ${m.badge}">${m.label}</span>`;
@@ -154,6 +164,145 @@ BANCA.needToOfferGroup = function(need){ return BANCA.needCoverage(need).groups[
 BANCA.adviceOffersFor = function(primaryNeed){
   const g = BANCA.needToOfferGroup(primaryNeed);
   return g ? (BANCA.ADVICE_OFFERS[g] || []) : [];
+};
+
+// Product → package selection contract for Quick Advice.
+// Pure state helpers keep reload/legacy normalization and UI actions deterministic.
+BANCA.adviceSelection = {
+  productsForNeed: function (primaryNeed) {
+    const byId = {};
+    (BANCA.adviceOffersFor(primaryNeed) || []).forEach(function (offer) {
+      if (!byId[offer.productRef]) {
+        byId[offer.productRef] = {
+          productRef: offer.productRef,
+          productName: offer.productName,
+          meets: [],
+          reasons: []
+        };
+      }
+      (offer.meets || []).forEach(function (need) {
+        if (byId[offer.productRef].meets.indexOf(need) < 0) byId[offer.productRef].meets.push(need);
+      });
+      if (offer.why && byId[offer.productRef].reasons.indexOf(offer.why) < 0) {
+        byId[offer.productRef].reasons.push(offer.why);
+      }
+    });
+    return Object.keys(byId).map(function (id) { return byId[id]; });
+  },
+  packagesForProduct: function (primaryNeed, productRef) {
+    return (BANCA.adviceOffersFor(primaryNeed) || []).filter(function (offer) {
+      return offer.productRef === productRef;
+    });
+  },
+  compareRef: function (productRef, packageRef) {
+    return productRef + ':' + packageRef;
+  },
+  // Gói ở tầng tư vấn (BASIC/STANDARD/PREMIUM) → mã gói thật của sản phẩm khi tạo bản chào.
+  // Khai báo tập trung để trang không tự đoán mã gói.
+  packageCodeMap: {
+    motor:  { BASIC: 'BASIC',        STANDARD: 'STANDARD',   PREMIUM: 'PREMIUM' },
+    health: { BASIC: 'HEALTH_BASIC', STANDARD: 'HEALTH_STD', PREMIUM: 'HEALTH_PLUS' },
+    pa:     { BASIC: 'PA_BASIC',     STANDARD: 'PA_STD',     PREMIUM: 'PA_PLUS' }
+  },
+  productPackageCode: function (productRef, packageRef) {
+    const map = (BANCA.adviceSelection.packageCodeMap || {})[productRef] || {};
+    return map[packageRef] || null;
+  },
+  resetPackageState: function (state) {
+    state.selectedPackageId = null;
+    state.selectedOffer = null;
+    state.selectedPlan = null;
+    state.compareSet = [];
+    state.estimatedPremium = null;
+    state.adviceOutcome = null;
+    return state;
+  },
+  selectProduct: function (state, productRef) {
+    if (state.selectedProductId !== productRef) {
+      BANCA.adviceSelection.resetPackageState(state);
+      state.selectedProductId = productRef;
+    }
+    return state;
+  },
+  selectPackage: function (state, packageRef) {
+    const offer = BANCA.adviceSelection.packagesForProduct(state.primaryNeed, state.selectedProductId)
+      .find(function (item) { return item.packageRef === packageRef; });
+    if (!offer) return null;
+    state.selectedPackageId = offer.packageRef;
+    state.selectedOffer = {
+      productRef: offer.productRef,
+      productName: offer.productName,
+      packageRef: offer.packageRef,
+      packageName: offer.packageName,
+      premiumBand: offer.premiumBand,
+      fit: offer.fit,
+      issueTime: offer.issueTime,
+      recommendationVersion: BANCA.RECOMMENDATION_VERSION
+    };
+    state.selectedPlan = null;
+    state.recommendationVersion = BANCA.RECOMMENDATION_VERSION;
+    state.estimatedPremium = offer.premiumBand;
+    state.adviceOutcome = 'OFFER_SELECTED';
+    return state.selectedOffer;
+  },
+  toggleCompare: function (state, ref) {
+    const valid = BANCA.adviceSelection.packagesForProduct(state.primaryNeed, state.selectedProductId)
+      .map(function (offer) { return BANCA.adviceSelection.compareRef(offer.productRef, offer.packageRef); });
+    if (valid.indexOf(ref) < 0) return { changed: false, reason: 'Gói không thuộc sản phẩm đang chọn.' };
+    state.compareSet = (state.compareSet || []).filter(function (item) { return valid.indexOf(item) >= 0; });
+    const index = state.compareSet.indexOf(ref);
+    if (index >= 0) state.compareSet.splice(index, 1);
+    else if (state.compareSet.length < 3) state.compareSet.push(ref);
+    else return { changed: false, reason: 'So sánh tối đa 3 gói.' };
+    return { changed: true, count: state.compareSet.length };
+  },
+  normalize: function (state) {
+    state = state || {};
+    state.compareSet = state.compareSet || [];
+    if (!state.selectedProductId && state.selectedOffer && state.selectedOffer.productRef) {
+      state.selectedProductId = state.selectedOffer.productRef;
+    }
+    const products = BANCA.adviceSelection.productsForNeed(state.primaryNeed);
+    const validProduct = products.some(function (product) { return product.productRef === state.selectedProductId; });
+    if (!validProduct) {
+      state.selectedProductId = null;
+      BANCA.adviceSelection.resetPackageState(state);
+      return state;
+    }
+    const packages = BANCA.adviceSelection.packagesForProduct(state.primaryNeed, state.selectedProductId);
+    const validRefs = packages.map(function (offer) {
+      return BANCA.adviceSelection.compareRef(offer.productRef, offer.packageRef);
+    });
+    state.compareSet = state.compareSet.map(function (ref) {
+      if (String(ref).indexOf(':') >= 0) return String(ref);
+      return BANCA.adviceSelection.compareRef(state.selectedProductId, ref);
+    }).filter(function (ref, index, all) {
+      return validRefs.indexOf(ref) >= 0 && all.indexOf(ref) === index;
+    }).slice(0, 3);
+    const legacyPackage = state.selectedPackageId || (state.selectedOffer && state.selectedOffer.packageRef);
+    const validPackage = packages.find(function (offer) { return offer.packageRef === legacyPackage; });
+    if (!validPackage) {
+      state.selectedPackageId = null;
+      state.selectedOffer = null;
+      state.selectedPlan = null;
+    } else {
+      state.selectedPackageId = validPackage.packageRef;
+      if (state.selectedOffer) {
+        const legacyPlan = state.selectedPlan;
+        BANCA.adviceSelection.selectPackage(state, validPackage.packageRef);
+        state.selectedPlan = legacyPlan;
+      }
+    }
+    return state;
+  }
+};
+
+BANCA.adviceConversionDecision = function (channelId, state) {
+  const integrated = channelId === 'BANCA_INTEGRATED';
+  const customerRef = state && (state.externalCustomerRef || state.customerRef);
+  if (integrated && !customerRef) return { action: 'BLOCK_MISSING_BANCA_CONTEXT', customerRef: null };
+  if (!integrated && !customerRef && !(state && state.customerName)) return { action: 'ATTACH_CUSTOMER', customerRef: null };
+  return { action: 'CONFIRM', customerRef: customerRef || null };
 };
 // Nhu cầu ĐANG bán được (dùng để gợi ý thay thế khi nhu cầu chính chưa có sản phẩm).
 BANCA.servedNeeds = function(){

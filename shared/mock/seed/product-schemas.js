@@ -401,30 +401,60 @@ BANCA.evaluateUnderwriting = function(app){
   const productId = app.productId || 'motor';
   const j = BANCA.journeyFor(productId);
 
+  // ---- Health HYBRID underwriting (yêu cầu trực tiếp user; supersede "luôn manual/luôn STP") ----
+  // Ca sạch → APPROVED_STP (không queue/officer/SLA). Thiếu dữ liệu/tài liệu do rule →
+  // MORE_INFORMATION_REQUIRED. Chạm review rule → MANUAL_REVIEW. Hard-decline → DECLINED.
   if(productId === 'health'){
+    const ra = app.riskAnswers || {};
     const v = BANCA.validateHealth({
       age: app.insuredAge || app.age, members: app.insuredMembers, sumInsured: app.sumInsured,
-      riskAnswers: app.riskAnswers, buyerIsInsured: app.buyerIsInsured
+      riskAnswers: ra, buyerIsInsured: app.buyerIsInsured
     });
+    // 1) Hard-decline: bệnh nghiêm trọng / ngoài điều kiện nhận.
     if(!v.eligible){
-      return BANCA.makeRoutingResult('REJECTED', {
+      return BANCA.makeRoutingResult('DECLINED', {
+        productId:productId, underwritingMode:'MANUAL', decision:'DECLINED',
         reasons:['Không đủ điều kiện nhận bảo hiểm sức khỏe.'],
         blockingIssues: v.errors.map(function(e){return e.msg;}),
-        internalReasonCode: v.errors.map(function(e){return e.code;}).join(','),
+        ruleHits: v.errors.map(function(e){return e.code;}),
+        internalReasonCodes: v.errors.map(function(e){return e.code;}),
         displayable:true
       });
     }
-    const ra = app.riskAnswers || {};
-    if(ra.preExistingCondition || ra.hospitalizedLast12Months || ra.smoker){
-      return BANCA.makeRoutingResult('UW_REQUIRED', {
-        reasons:['Yêu cầu cần thẩm định sức khỏe do khai báo rủi ro.'],
-        conditions:v.warnings.map(function(w){return w.msg;}),
-        requiredDocuments:(ra.preExistingCondition||ra.hospitalizedLast12Months)?['MEDICAL_RECORD']:[],
-        customerConfirmationRequired:true,
-        internalReasonCode:'HEALTH_REFERRAL'
+    // 2) MORE_INFORMATION_REQUIRED: rule cần dữ liệu/tài liệu còn thiếu (không tự chuyển manual/decline).
+    const missing = [];
+    if(ra.preExistingCondition && !(ra.preExistingDetail && String(ra.preExistingDetail).trim()))
+      missing.push({code:'PRE_EXISTING_DETAIL_MISSING', msg:'Cần mô tả chi tiết bệnh có sẵn/điều trị.', doc:'MEDICAL_RECORD'});
+    if(ra.truthDeclaration !== true)
+      missing.push({code:'TRUTH_DECLARATION_MISSING', msg:'Cần khách xác nhận khai báo trung thực trước khi thẩm định.'});
+    if(missing.length){
+      return BANCA.makeRoutingResult('MORE_INFORMATION_REQUIRED', {
+        productId:productId, underwritingMode:'STP',
+        reasons: missing.map(function(m){return m.msg;}),
+        requiredDocuments: missing.map(function(m){return m.doc;}).filter(Boolean),
+        ruleHits: missing.map(function(m){return m.code;}),
+        internalReasonCodes: missing.map(function(m){return m.code;}),
+        customerConfirmationRequired:false
       });
     }
-    return BANCA.makeRoutingResult('APPROVED_FOR_BIND', {
+    // 3) MANUAL_REVIEW: chạm review rule (bệnh có sẵn đã mô tả / nhập viện gần đây / hút thuốc).
+    const reviewHits = [];
+    if(ra.preExistingCondition) reviewHits.push('HEALTH_PRE_EXISTING');
+    if(ra.hospitalizedLast12Months) reviewHits.push('HEALTH_RECENT_HOSPITAL');
+    if(ra.smoker) reviewHits.push('HEALTH_SMOKER');
+    if(reviewHits.length){
+      return BANCA.makeRoutingResult('MANUAL_REVIEW', {
+        productId:productId, underwritingMode:'MANUAL',
+        reasons:['Yêu cầu cần thẩm định sức khỏe do khai báo rủi ro.'],
+        conditions: v.warnings.map(function(w){return w.msg;}),
+        requiredDocuments:(ra.preExistingCondition||ra.hospitalizedLast12Months)?['MEDICAL_RECORD']:[],
+        ruleHits: reviewHits, internalReasonCodes: reviewHits,
+        customerConfirmationRequired:true
+      });
+    }
+    // 4) STP_PASS: ca sạch, đủ dữ liệu → chấp thuận tự động, KHÔNG tạo queue/officer/manual SLA.
+    return BANCA.makeRoutingResult('STP_PASS', {
+      productId:productId, underwritingMode:'STP', decision:'APPROVED_STP',
       reasons:['Đủ điều kiện phát hành tự động theo gói sức khỏe đã chọn.'],
       customerConfirmationRequired:false
     });
@@ -438,8 +468,11 @@ BANCA.evaluateUnderwriting = function(app){
     });
     if(!v.eligible){
       return BANCA.makeRoutingResult('REJECTED', {
+        productId:productId, underwritingMode:'STP', decision:'DECLINED',
         reasons:['Không đủ điều kiện nhận bảo hiểm.'],
         blockingIssues: v.errors.map(function(e){return e.msg;}),
+        ruleHits: v.errors.map(function(e){return e.code;}),
+        internalReasonCodes: v.errors.map(function(e){return e.code;}),
         internalReasonCode: v.errors.map(function(e){return e.code;}).join(','),
         displayable:true
       });
@@ -447,13 +480,16 @@ BANCA.evaluateUnderwriting = function(app){
     const ra = app.riskAnswers || {};
     if(app.occupationClass==='CLASS_3' || ra.hazardousActivity || ra.professionalOrRecreational==='PROFESSIONAL' || ra.frequency==='WEEKLY'){
       return BANCA.makeRoutingResult('UW_REQUIRED', {
+        productId:productId, underwritingMode:'MANUAL',
         reasons:['Yêu cầu cần thẩm định do nhóm nghề/hoạt động rủi ro.'],
         conditions:v.warnings.map(function(w){return w.msg;}),
+        ruleHits:['PA_REFERRAL'], internalReasonCodes:['PA_REFERRAL'],
         customerConfirmationRequired:true,
         internalReasonCode:'PA_REFERRAL'
       });
     }
     return BANCA.makeRoutingResult('APPROVED_FOR_BIND', {
+      productId:productId, underwritingMode:'STP', decision:'APPROVED_STP',
       reasons:['Đủ điều kiện phát hành tự động (straight-through).'],
       customerConfirmationRequired: v.warnings.length>0
     });
@@ -463,19 +499,26 @@ BANCA.evaluateUnderwriting = function(app){
   const uw = BANCA.motorRiskRating(app.riskAnswers);
   if(uw.flags.reject){
     return BANCA.makeRoutingResult('REJECTED', {
-      reasons:['Không đạt điều kiện thẩm định.'], internalReasonCode:'MOTOR_UW_REJECT'
+      productId:productId, underwritingMode:'STP', decision:'DECLINED',
+      reasons:['Không đạt điều kiện thẩm định.'],
+      ruleHits:['MOTOR_UW_REJECT'], internalReasonCodes:['MOTOR_UW_REJECT'],
+      internalReasonCode:'MOTOR_UW_REJECT'
     });
   }
   if(uw.flags.referral){
     return BANCA.makeRoutingResult('UW_REQUIRED', {
+      productId:productId, underwritingMode:'MANUAL',
       reasons:['Yêu cầu cần thẩm định do yếu tố rủi ro khai báo.'],
       conditions:uw.flags.conditions,
       requiredDocuments:uw.flags.requireDoc,
+      ruleHits:(uw.lines||[]).map(function(l){return l.code;}).concat(['MOTOR_REFERRAL']),
+      internalReasonCodes:['MOTOR_REFERRAL'],
       customerConfirmationRequired:true,
       internalReasonCode:'MOTOR_REFERRAL'
     });
   }
   return BANCA.makeRoutingResult('APPROVED_FOR_BIND', {
+    productId:productId, underwritingMode:'STP', decision:'APPROVED_STP',
     reasons:['Đủ điều kiện phát hành.']
   });
 };

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Banca Requirement Gate"
+  short_description: "Khóa yêu cầu trước khi bắt đầu triển khai"
+  default_prompt: "Use $banca-requirement-gate to verify this feature is ready for implementation."

@@ -26,7 +26,8 @@ function ok(name, cond, extra) {
 function grp(t) { console.log('\n' + t); }
 function has(gate, frag) { return gate.reasons.some(r => r.indexOf(frag) >= 0); }
 
-// Case "sạch": Motor STP đã duyệt + khách đã xác nhận + có phí → được thanh toán.
+// Case Motor STP đã duyệt + có phí, CHƯA xác nhận khách (chưa OTP).
+// STP KHÔNG miễn OTP (§corrective §4) → readyCase() bị KHÓA tới khi có confirm.
 function readyCase(over) {
   return Object.assign({
     id: 'APP-T1', owner: 'RM-01', productId: 'motor', submissionState: 'SUBMITTED',
@@ -36,13 +37,26 @@ function readyCase(over) {
     premium: 5000000, quote: { premium: 5000000, quoteStatus: 'VALID' }
   }, over || {});
 }
+// Case đã duyệt + khách đã xác nhận (OTP) → mới đủ điều kiện thanh toán.
+function readyConfirmed(over) {
+  return readyCase(Object.assign({ confirm: { otp: 'VERIFIED', confirmedAt: '2026-07-25 09:00' } }, over || {}));
+}
 
 /* 1. Happy path ------------------------------------------------------ */
-grp('1. Motor STP đủ điều kiện → cho phép thanh toán');
-const g1 = B.paymentEnableRule(readyCase());
+grp('1. Motor STP đã duyệt + đã OTP → cho phép thanh toán');
+const g1 = B.paymentEnableRule(readyConfirmed());
 ok('enabled = true', g1.enabled, JSON.stringify(g1.reasons));
 ok('không có lý do chặn', g1.reasons.length === 0, JSON.stringify(g1.reasons));
-ok('resolver dùng chung gate (canInitiatePayment)', B.deriveCaseViewState(readyCase()).canInitiatePayment === true);
+ok('resolver dùng chung gate (canInitiatePayment)', B.deriveCaseViewState(readyConfirmed()).canInitiatePayment === true);
+
+/* 1b. STP KHÔNG miễn OTP — trước OTP khóa, sau OTP mở (Motor/Health/PA) --- */
+grp('1b. STP trước OTP → khóa; sau OTP → mở (Motor/Health/PA)');
+['motor', 'health', 'pa'].forEach(function (pid) {
+  const pre = B.paymentEnableRule(readyCase({ productId: pid }));
+  ok(pid + ' STP trước OTP → khóa + lý do xác nhận', !pre.enabled && has(pre, 'Khách chưa xác nhận'), JSON.stringify(pre.reasons));
+  const post = B.paymentEnableRule(readyConfirmed({ productId: pid }));
+  ok(pid + ' STP sau OTP → mở', post.enabled, JSON.stringify(post.reasons));
+});
 
 /* 2. Từng điều kiện chặn đều có LÝ DO BẰNG CHỮ (§15.3 / AC11) -------- */
 grp('2. Mỗi điều kiện chặn phải phát ra lý do đọc được');
@@ -57,7 +71,7 @@ const gDec = B.paymentEnableRule(readyCase({ underwritingDecision: 'DECLINED' })
 ok('Từ chối → chặn + có lý do', !gDec.enabled && has(gDec, 'từ chối'), JSON.stringify(gDec.reasons));
 
 const gCond = B.paymentEnableRule(readyCase({ underwritingDecision: 'APPROVED_WITH_CONDITION' }));
-ok('Duyệt có điều kiện, khách chưa xác nhận → chặn', !gCond.enabled && has(gCond, 'điều kiện/loại trừ'), JSON.stringify(gCond.reasons));
+ok('Duyệt có điều kiện, khách chưa xác nhận → chặn', !gCond.enabled && has(gCond, 'xác nhận điều kiện'), JSON.stringify(gCond.reasons));
 
 const gCondOk = B.paymentEnableRule(readyCase({
   underwritingDecision: 'APPROVED_WITH_CONDITION', confirm: { otp: 'VERIFIED', confirmedAt: '2026-07-25 10:00' }
@@ -85,12 +99,23 @@ grp('4. Quyền và quyền sở hữu case');
 const gOwner = B.paymentEnableRule(readyCase({ owner: 'RM-02' }));
 ok('Case của seller khác → chặn', !gOwner.enabled && has(gOwner, 'nhân viên phụ trách'), JSON.stringify(gOwner.reasons));
 
-const gCap = B.paymentEnableRule(readyCase(), { readiness: { caps: ['can_advise', 'can_quote', 'can_submit'], reason: 'Telesales không được thu hộ' } });
-ok('Không có can_collect_payment → chặn + nêu lý do', !gCap.enabled && has(gCap, 'quyền thu hộ'), JSON.stringify(gCap.reasons));
+// Thiếu quyền thu hộ chỉ khoá phương thức RM thu hộ; QR/link là khách tự trả nên vẫn mở.
+const noCollect = { caps: ['can_advise', 'can_quote', 'can_submit'], reason: 'Telesales không được thu hộ' };
+const gCap = B.paymentEnableRule(readyConfirmed(), { readiness: noCollect });
+ok('Thiếu quyền thu hộ vẫn cho thanh toán bằng QR/link', gCap.enabled, JSON.stringify(gCap.reasons));
+ok('Chỉ phương thức thu hộ bị chặn', B.paymentMethodsFor(readyConfirmed(), { readiness: noCollect })
+  .filter(m => m.blockedReason).map(m => m.id).join() === 'SELLER_ASSISTED');
+// Không còn phương thức nào dùng được → mới khoá cả bước thanh toán, kèm lý do.
+const journeyBackup = B.journeyFor;
+B.journeyFor = function () { return { paymentMethods: ['SELLER_ASSISTED'] }; };
+const gNoMethod = B.paymentEnableRule(readyConfirmed(), { readiness: noCollect });
+ok('Không còn cách thanh toán khả dụng → chặn + nêu lý do',
+  !gNoMethod.enabled && has(gNoMethod, 'cách thanh toán khả dụng'), JSON.stringify(gNoMethod.reasons));
+B.journeyFor = journeyBackup;
 
 /* 5. Quote version (§8.3) -------------------------------------------- */
 grp('5. Quote version');
-const appV = readyCase();
+const appV = readyConfirmed();
 B.quoteVersion.init(appV, 5000000);
 B.quoteVersion.approve(appV);
 ok('Version 1 APPROVED → vẫn thanh toán được', B.paymentEnableRule(appV).enabled);

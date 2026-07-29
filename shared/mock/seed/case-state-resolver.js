@@ -20,8 +20,18 @@ BANCA.UNDERWRITING_STATUS = {
 };
 BANCA.UNDERWRITING_DECISION_ENUM = {
   APPROVED_STP:{label:'Chấp thuận tự động'}, APPROVED:{label:'Chấp thuận'},
-  APPROVED_WITH_CONDITION:{label:'Chấp thuận có điều kiện'}, DECLINED:{label:'Từ chối'}, NONE:{label:'—'}
+  APPROVED_WITH_CONDITION:{label:'Chấp thuận có điều kiện'},
+  APPROVED_WITH_LOADING:{label:'Chấp thuận có phụ phí'},
+  APPROVED_WITH_EXCLUSION:{label:'Chấp thuận có loại trừ'},
+  DECLINED:{label:'Từ chối'}, NONE:{label:'—'}
 };
+// Nhóm quyết định — NGUỒN DUY NHẤT để gating không rải rác từng chuỗi.
+// Quyết định "có điều kiện/phụ phí/loại trừ" đều cần khách xác nhận trước khi thanh toán.
+BANCA.UW_APPROVED_WITH_TERMS = ['APPROVED_WITH_CONDITION','APPROVED_WITH_LOADING','APPROVED_WITH_EXCLUSION'];
+BANCA.UW_APPROVED_CLEAN     = ['APPROVED_STP','APPROVED'];
+BANCA.UW_APPROVED_ALL       = BANCA.UW_APPROVED_CLEAN.concat(BANCA.UW_APPROVED_WITH_TERMS);
+BANCA.isApprovedDecision      = function(d){ return BANCA.UW_APPROVED_ALL.indexOf(d) >= 0; };
+BANCA.isApprovedWithTerms     = function(d){ return BANCA.UW_APPROVED_WITH_TERMS.indexOf(d) >= 0; };
 BANCA.POLICY_LIFECYCLE = {
   NOT_STARTED:{label:'Chưa phát hành'}, ISSUING:{label:'Đang phát hành'},
   ISSUED:{label:'Đã phát hành'}, ISSUE_FAILED:{label:'Phát hành lỗi'}
@@ -30,9 +40,11 @@ BANCA.POLICY_LIFECYCLE = {
 /* ---- Map legacy app.uw.decision → underwritingDecision enum ---- */
 function _mapUwDecision(d){
   if(!d) return 'NONE';
-  if(d==='APPROVED') return 'APPROVED';
-  if(d==='REJECTED') return 'DECLINED';
-  if(/CONDITION|LOADING|EXCLUSION/.test(d)) return 'APPROVED_WITH_CONDITION';
+  if(d==='APPROVED'||d==='APPROVED_STP') return d;
+  if(d==='REJECTED'||d==='DECLINED') return 'DECLINED';
+  if(/LOADING/.test(d)) return 'APPROVED_WITH_LOADING';
+  if(/EXCLUSION/.test(d)) return 'APPROVED_WITH_EXCLUSION';
+  if(/CONDITION/.test(d)) return 'APPROVED_WITH_CONDITION';
   return 'APPROVED';
 }
 
@@ -74,8 +86,8 @@ BANCA.caseStates = function(app){
       payStatus='PENDING';
     } else {
       // Chưa được duyệt → payment chưa khả dụng.
-      const approved = ['APPROVED_STP','APPROVED'].includes(uwDecision)
-        || (uwDecision==='APPROVED_WITH_CONDITION' && app.confirm);
+      const approved = BANCA.UW_APPROVED_CLEAN.includes(uwDecision)
+        || (BANCA.isApprovedWithTerms(uwDecision) && app.confirm);
       payStatus = approved ? 'METHOD_REQUIRED' : 'NOT_AVAILABLE';
     }
   }
@@ -121,22 +133,24 @@ BANCA._payAmount = function(app){
 };
 // Xác nhận khách hàng đã hoàn tất chưa.
 //  - Health (multi-insured có theo dõi per-member): TẤT CẢ thành viên bắt buộc phải CONFIRMED.
-//  - PA: luôn cần confirmation package riêng trước thanh toán/phát hành.
-//  - Motor chấp thuận-có-điều-kiện: cần app.confirm (OTP verified / confirmedAt).
-//  - Motor chấp thuận thường (APPROVED/APPROVED_STP): xác nhận đã thực hiện khi nộp.
+//  - MỌI quyết định chấp thuận khác (kể cả STP sạch APPROVED_STP/APPROVED của Motor/Health/PA
+//    và chấp thuận-có-điều-kiện/phụ phí/loại trừ): bắt buộc có xác nhận khách hàng
+//    (OTP VERIFIED / confirmedAt) trước khi thanh toán.
+//  Nguyên tắc (§corrective §4): STP KHÔNG miễn OTP —
+//    APPROVED_STP → CUSTOMER_CONFIRMATION_PENDING → OTP_VERIFIED/CUSTOMER_CONFIRMED → PAYMENT.
 BANCA.confirmationComplete = function(app){
   app = app || {};
   const s = BANCA.caseStates(app);
-  if(app.productId==='pa') return !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt));
+  const otpOk = !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt));
   if(app.productId==='health' && Array.isArray(app.insuredMembers)
      && app.insuredMembers.some(function(m){ return m.confirmation || m.underwriting; })){
     const active = app.insuredMembers.filter(function(m){ return m.active!==false; });
     if(!active.length) return false;
     return active.every(function(m){ return (m.confirmation||{}).status==='CONFIRMED'; });
   }
-  if(s.underwritingDecision==='APPROVED_WITH_CONDITION')
-    return !!(app.confirm && (app.confirm.otp==='VERIFIED' || app.confirm.confirmedAt));
-  return ['APPROVED','APPROVED_STP'].includes(s.underwritingDecision);
+  // Chưa được chấp thuận thì không có gì để xác nhận; đã chấp thuận thì phải có OTP/confirmation.
+  if(BANCA.isApprovedDecision(s.underwritingDecision)) return otpOk;
+  return false;
 };
 
 /* ---------------------------------------------------------------
@@ -148,7 +162,7 @@ BANCA.deriveCaseViewState = function(app){
   // ---- Business gating: canInitiatePayment ----
   // Chỉ true khi: đã chấp thuận + xác nhận đủ + quote còn hiệu lực + amount>0
   // + không có blocker + chưa có payment đang chạy/đã thành công.
-  const _approved  = ['APPROVED_STP','APPROVED'].includes(s.underwritingDecision) || s.underwritingDecision==='APPROVED_WITH_CONDITION';
+  const _approved  = BANCA.isApprovedDecision(s.underwritingDecision);
   const _confirmed = BANCA.confirmationComplete(app);
   const _amount    = BANCA._payAmount(app);
   // §9.2 — GATE DUY NHẤT: paymentEnableRule. Resolver không tự suy luận điều kiện thanh toán

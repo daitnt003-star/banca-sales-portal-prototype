@@ -10,49 +10,90 @@ BANCA.offer = BANCA.offer || {};
   var e = (BANCA.ui && BANCA.ui._esc) ? BANCA.ui._esc : function (s) { return String(s == null ? '' : s); };
   var vnd = function (n) { return (BANCA.vnd ? BANCA.vnd(n) : ((n || 0).toLocaleString('vi-VN') + 'đ')); };
 
-  // ---- Mock package + add-on catalog (§3.2/§3.3) — dữ liệu, không hard-code trong page ----
-  BANCA.PACKAGE_CATALOG = {
-    health: [
-      { id: 'H_BASIC', name: 'Cơ bản', premium: 3200000, recommended: false, deductible: '500.000đ', benefits: ['Nội trú 100 triệu', 'Không có ngoại trú'] },
-      { id: 'H_STD', name: 'Tiêu chuẩn', premium: 5100000, recommended: true, deductible: '300.000đ', benefits: ['Nội trú 200 triệu', 'Ngoại trú 10 triệu', 'Nha khoa cơ bản'] },
-      { id: 'H_ADV', name: 'Nâng cao', premium: 8400000, recommended: false, deductible: '0đ', benefits: ['Nội trú 500 triệu', 'Ngoại trú 20 triệu', 'Nha khoa', 'Thai sản'] }
-    ],
-    motor: [
-      { id: 'M_TNDS', name: 'TNDS bắt buộc', premium: 480700, recommended: false, deductible: '—', benefits: ['Trách nhiệm dân sự bắt buộc'] },
-      { id: 'M_STD', name: 'Vật chất tiêu chuẩn', premium: 6800000, recommended: true, deductible: '500.000đ', benefits: ['Vật chất xe', 'TNDS', 'Cứu hộ 24/7'] },
-      { id: 'M_ADV', name: 'Vật chất toàn diện', premium: 9200000, recommended: false, deductible: '0đ', benefits: ['Vật chất xe', 'Mất cắp bộ phận', 'Thủy kích', 'Cứu hộ 24/7'] }
-    ],
-    pa: [
-      { id: 'PA_10', name: 'PA 100 triệu', premium: 550000, recommended: true, deductible: '—', benefits: ['Tử vong/thương tật 100tr', 'Trợ cấp nằm viện'] },
-      { id: 'PA_20', name: 'PA 200 triệu', premium: 990000, recommended: false, deductible: '—', benefits: ['Tử vong/thương tật 200tr', 'Trợ cấp nằm viện', 'Chi phí y tế'] }
-    ]
+  // Package code/metadata chỉ được đọc từ canonical product schemas.
+  function pkgList(app) {
+    var source = app.productId === 'motor' ? BANCA.motorPackages
+      : app.productId === 'pa' ? BANCA.paPackages : BANCA.healthPackages;
+    return Object.keys(source || {}).map(function (code) {
+      var p = source[code];
+      var premium = 0;
+      if (app.productId === 'motor' && BANCA.rateMotor && app.vehicle && app.vehicle.value) {
+        var mr = BANCA.rateMotor({ packageCode:p.code, sumInsured:app.vehicle.value, termMonths:12,
+          addOns:p.defaultAddOns || [], deductible:p.defaultDeductible, ncdPercent:0, vehicleAgeYears:0 });
+        premium = mr ? mr.totalPremium : 0;
+      } else if (app.productId === 'pa' && BANCA.ratePA) {
+        var pr = BANCA.ratePA({ packageCode:p.code, sumInsured:p.sumInsured,
+          age:app.insuredAge || 30, occupationClass:app.occupationClass || 'CLASS_1' });
+        premium = pr && !pr.ineligible ? pr.totalPremium : 0;
+      } else if (app.productId === 'health' && BANCA.rateHealth) {
+        var hr = BANCA.rateHealth({ packageCode:p.code, members:[{ age:app.insuredAge || 30 }] });
+        premium = hr ? hr.totalPremium : 0;
+      }
+      var benefits = app.productId === 'motor'
+        ? (p.coverageList || []).map(function (x) { return (BANCA.coverageLabels || {})[x] || x; })
+        : app.productId === 'pa'
+          ? (p.coverageList || []).map(function (x) { return (BANCA.paCoverageLabels || {})[x] || x; })
+          : [
+            'Nội trú ' + vnd(p.inpatientLimit),
+            p.outpatientLimit ? 'Ngoại trú ' + vnd(p.outpatientLimit) : 'Không có ngoại trú',
+            p.dentalLimit ? 'Nha khoa ' + vnd(p.dentalLimit) : null,
+            p.maternityLimit ? 'Thai sản ' + vnd(p.maternityLimit) : null
+          ].filter(Boolean);
+      return { id:p.code, code:p.code, name:p.name, premium:premium,
+        recommended:['STANDARD','PA_STD','HEALTH_STD'].indexOf(p.code) >= 0,
+        deductible:p.defaultDeductible != null ? vnd(p.defaultDeductible) : '—',
+        benefits:benefits, raw:p };
+    });
+  }
+  function addonList(app) {
+    if (app.productId !== 'motor') return [];
+    return Object.keys(BANCA.motorAddOns || {}).map(function (code) {
+      var a = BANCA.motorAddOns[code];
+      return { id:a.code, name:a.name, premium:0 };
+    });
+  }
+  BANCA.offer.normalizePackageCode = function (app, value) {
+    if (value == null || String(value).trim() === '') return null;
+    var productId = app && app.productId;
+    var packs = pkgList(app || {});
+    var raw = String(value).trim();
+    var direct = packs.find(function (p) {
+      return p.code.toLowerCase() === raw.toLowerCase() || String(p.name || '').toLowerCase() === raw.toLowerCase();
+    });
+    if (direct) return direct.code;
+    var key = raw.normalize ? raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '') : raw.toLowerCase();
+    var aliases = {
+      pa:{basic:'PA_BASIC',coban:'PA_BASIC',pa10:'PA_BASIC',standard:'PA_STD',tieuchuan:'PA_STD',pa20:'PA_STD',premium:'PA_PLUS',plus:'PA_PLUS',nangcao:'PA_PLUS'},
+      health:{basic:'HEALTH_BASIC',coban:'HEALTH_BASIC',hbasic:'HEALTH_BASIC',standard:'HEALTH_STD',tieuchuan:'HEALTH_STD',hstd:'HEALTH_STD',premium:'HEALTH_PLUS',plus:'HEALTH_PLUS',nangcao:'HEALTH_PLUS',hadv:'HEALTH_PLUS'},
+      motor:{basic:'BASIC',coban:'BASIC',mtnds:'BASIC',standard:'STANDARD',tieuchuan:'STANDARD',mstd:'STANDARD',premium:'PREMIUM',plus:'PREMIUM',nangcao:'PREMIUM',madv:'PREMIUM'}
+    };
+    return (aliases[productId] || {})[key] || null;
   };
-  BANCA.ADDON_CATALOG = {
-    health: [
-      { id: 'A_DENTAL', name: 'Nha khoa nâng cao', premium: 600000 },
-      { id: 'A_MATERNITY', name: 'Thai sản', premium: 1800000, requiresPackage: ['H_STD', 'H_ADV'] },
-      { id: 'A_HOSP', name: 'Trợ cấp nằm viện', premium: 350000 }
-    ],
-    motor: [
-      { id: 'A_FLOOD', name: 'Bảo hiểm thủy kích', premium: 900000 },
-      { id: 'A_NEWPART', name: 'Thay mới không khấu hao', premium: 700000 }
-    ],
-    pa: [{ id: 'A_MED', name: 'Chi phí y tế mở rộng', premium: 200000 }]
+  BANCA.offer.resolvePackageCode = function (app, extraCandidates) {
+    var o = (BANCA.overlay && BANCA.overlay.applications && BANCA.overlay.applications[app.id]) || {};
+    var candidates = (extraCandidates || []).concat([
+      o.packageCode, o.package, o.selectedPackageId,
+      app.packageCode, app.package, app.selectedPackageId
+    ]);
+    for (var i = 0; i < candidates.length; i += 1) {
+      var canonical = BANCA.offer.normalizePackageCode(app, candidates[i]);
+      if (canonical) return canonical;
+    }
+    return null;
   };
-  function pkgList(app) { return BANCA.PACKAGE_CATALOG[app.productId] || BANCA.PACKAGE_CATALOG.health; }
-  function addonList(app) { return BANCA.ADDON_CATALOG[app.productId] || []; }
 
   // ---- Selection state (persist qua overlay) ----
   function sel(app) {
     var o = (BANCA.overlay && BANCA.overlay.applications && BANCA.overlay.applications[app.id]) || {};
     var packs = pkgList(app);
-    var pkgId = o.selectedPackageId || app.selectedPackageId || (packs.find(function (p) { return p.recommended; }) || packs[0]).id;
-    var addons = o.selectedAddonIds || app.selectedAddonIds || [];
+    var pkgId = BANCA.offer.resolvePackageCode(app);
+    var validAddons = addonList(app).map(function (a) { return a.id; });
+    var addons = (o.selectedAddonIds || app.selectedAddonIds || []).filter(function (id) { return validAddons.indexOf(id) >= 0; });
     return { pkgId: pkgId, addons: addons };
   }
-  function pkgById(app, id) { return pkgList(app).find(function (p) { return p.id === id; }) || pkgList(app)[0]; }
+  function pkgById(app, id) { return pkgList(app).find(function (p) { return p.id === id; }) || null; }
   function total(app, s) {
-    var t = pkgById(app, s.pkgId).premium;
+    var t = (pkgById(app, s.pkgId) || {}).premium || 0;
     addonList(app).forEach(function (a) { if (s.addons.indexOf(a.id) >= 0) t += a.premium; });
     return t;
   }
@@ -86,7 +127,7 @@ BANCA.offer = BANCA.offer || {};
   };
   BANCA.offer._render = function (app) {
     var s = sel(app), packs = pkgList(app), addons = addonList(app), locked = !!app.productLocked;
-    var recPkg = pkgById(app, s.pkgId);
+    var recPkg = pkgById(app, s.pkgId) || packs.find(function (p) { return p.recommended; }) || packs[0];
     // 3.1 Recommended product card
     var rec = '<div class="ows-panel"><div class="oc-title">Sản phẩm đề nghị</div>' +
       '<div class="ows-rec"><div class="ows-prod">' + e(app.productName || 'Sản phẩm') + '</div>' +
@@ -126,9 +167,9 @@ BANCA.offer = BANCA.offer || {};
       addons.filter(function (a) { return s.addons.indexOf(a.id) >= 0; }).map(function (a) {
         return '<div class="sos-line"><span>' + e(a.name) + '</span><span>' + vnd(a.premium) + '</span></div>';
       }).join('');
-    var summary = '<div class="ows-panel selected-offer-summary"><div class="oc-title">Phương án đã chọn</div>' + lines +
+    var summary = s.pkgId ? '<div class="ows-panel selected-offer-summary"><div class="oc-title">Phương án đã chọn</div>' + lines +
       '<div class="sos-total"><span>Phí dự kiến</span><b>' + vnd(total(app, s)) + '/năm</b></div>' +
-      '<div class="sos-note">Phí chính thức được chốt ở bước “Gói, phí &amp; điều kiện” sau khai báo rủi ro.</div></div>';
+      '<div class="sos-note">Phí chính thức được chốt ở bước “Gói, phí &amp; điều kiện” sau khai báo rủi ro.</div></div>' : '';
     return rec + pkgSel + addSel + summary;
   };
   BANCA.offer._catalog = function (app) {
@@ -146,8 +187,20 @@ BANCA.offer = BANCA.offer || {};
   function appById(id) { return (BANCA.applications || []).find(function (a) { return a.id === id; }) || { id: id, productId: 'health' }; }
 
   BANCA.offer.selectPackage = function (appId, pkgId) {
-    var app = appById(appId); app.selectedPackageId = pkgId;
-    persist(appId, { selectedPackageId: pkgId });
+    var app = appById(appId);
+    var canonical = pkgById(app, pkgId);
+    if (!canonical || canonical.id !== pkgId) return;
+    var validAddons = addonList(app).map(function (a) { return a.id; });
+    var addons = (app.selectedAddonIds || []).filter(function (id) { return validAddons.indexOf(id) >= 0; });
+    app.package = pkgId; app.packageCode = pkgId; app.selectedPackageId = pkgId; app.selectedAddonIds = addons;
+    var patch = { package:pkgId, packageCode:pkgId, selectedPackageId:pkgId, selectedAddonIds:addons };
+    if (app.productId === 'health' && Array.isArray(app.insuredMembers)) {
+      app.insuredMembers = app.insuredMembers.map(function (m) {
+        return m.package ? m : Object.assign({}, m, { package:pkgId });
+      });
+      patch.insuredMembers = app.insuredMembers;
+    }
+    persist(appId, patch);
     // §3.3 đổi package → kiểm tra lại add-on compatibility (giữ lại cái còn hợp lệ)
     rerender(app);
   };
@@ -171,11 +224,26 @@ BANCA.offer = BANCA.offer || {};
   };
   BANCA.offer.toggleCatalog = function (appId) { var el = document.getElementById('alt-catalog'); if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
   BANCA.offer.switchProduct = function (appId, prodId) {
-    if (!confirm('Đổi sản phẩm sẽ đặt lại gói, add-on và phí dự kiến. Tiếp tục?')) return;
-    var app = appById(appId); var prod = (BANCA.products || []).find(function (p) { return p.id === prodId; }) || {};
-    app.productId = prodId; app.productName = prod.name || prodId; app.selectedPackageId = null; app.selectedAddonIds = [];
-    persist(appId, { productId: prodId, productName: app.productName, selectedPackageId: null, selectedAddonIds: [] });
-    rerender(app);
+    var app = appById(appId);
+    var currentProduct = (BANCA.products || []).find(function (p) { return p.id === app.productId; });
+    var canQuote = !BANCA.capabilities || (currentProduct && BANCA.capabilities(currentProduct).indexOf('can_quote') >= 0);
+    if (app.submissionState === 'SUBMITTED' || app.productLocked || app.owner !== BANCA.current() || !canQuote) return;
+    var prod = (BANCA.products || []).find(function (p) { return p.id === prodId; });
+    if (!prod || prodId === app.productId) return;
+    if (!confirm('Đổi sang ' + prod.name + '? Thông tin người được bảo hiểm, khai báo rủi ro, gói và báo giá hiện tại sẽ được đặt lại. Thông tin khách hàng vẫn được giữ.')) return;
+    var reset = {
+      productId:prodId, productName:prod.name, currentStage:'CUSTOMER_INFO',
+      package:null, packageCode:null, selectedPackageId:null, selectedAddonIds:[],
+      quote:null, quoteVersions:[], activeQuoteVersionId:null, activeQuoteApproved:false,
+      premium:null, sumInsured:null, riskAnswers:{}, vehicle:null, mortgage:null,
+      insuredMembers:[], insuredName:null, insuredDob:null, insuredAge:null,
+      occupationClass:null, beneficiaries:[], docsUploaded:[], underwritingStatus:null,
+      underwritingDecision:null, uw:null, stpDecision:null, confirm:null, confirmation:null,
+      payment:null, paymentStatus:null, policyId:null, policyStatus:null
+    };
+    Object.assign(app, reset);
+    persist(appId, reset);
+    location.href = '?id=' + encodeURIComponent(appId) + '&step=CUSTOMER_INFO';
   };
   BANCA.offer.confirmSwitchSource = function (appId) {
     if (!confirm('Thay đổi nguồn sẽ đặt lại: thông tin khách hàng, sản phẩm đề xuất, đối tượng bảo hiểm, phí dự kiến. Bạn có muốn tiếp tục?')) return;

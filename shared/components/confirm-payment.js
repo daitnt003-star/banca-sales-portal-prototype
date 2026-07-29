@@ -30,22 +30,19 @@ BANCA.ui = BANCA.ui || {};
       '<ul style="margin:6px 0 0;padding-left:18px;">' + items + '</ul></div>';
   };
 
-  // --- PaymentMethodCard (§9.3) — CÙNG layout/icon/CTA/state cho mọi sản phẩm ---
+  // --- PaymentMethodCard (§9.3) — 1 NÚT / 1 phương thức, cùng nhãn + state cho mọi sản phẩm.
+  // Mô tả và "phù hợp với" chuyển thành tooltip để khối thanh toán gọn, chỉ còn 3 nút.
   BANCA.ui.paymentMethodCard = function (m, cfg) {
     cfg = cfg || {};
     var blocked = m.blockedReason || cfg.blockedReason;
     var enabled = cfg.enabled && !blocked;
-    var cls = 'pay-method' + (enabled ? '' : ' is-disabled');
-    var btn = enabled
-      ? '<button class="btn btn-primary btn-sm" onclick="' + (cfg.onclick || '') + '">Bắt đầu</button>'
-      : '<button class="btn btn-primary btn-sm" disabled title="' + e(blocked || cfg.disabledHint || 'Chưa đủ điều kiện thanh toán') + '">Chưa khả dụng</button>';
-    return '<div class="' + cls + '">' +
-      '<div class="pm-icon" aria-hidden="true">' + e(m.icon) + '</div>' +
-      '<b class="pm-title">' + e(m.label) + '</b>' +
-      '<div class="pm-desc">' + e(m.desc) + '</div>' +
-      '<div class="pm-best">Phù hợp: ' + e(m.bestFor) + '</div>' +
-      (blocked ? '<div class="pm-blocked">⚠ ' + e(blocked) + '</div>' : '') +
-      btn + '</div>';
+    var hint = enabled
+      ? [m.desc, m.bestFor ? 'Phù hợp: ' + m.bestFor : ''].filter(Boolean).join(' — ')
+      : (blocked || cfg.disabledHint || 'Chưa đủ điều kiện thanh toán');
+    return '<button type="button" class="btn btn-primary pay-method-btn" title="' + e(hint) + '"' +
+      (enabled ? ' onclick="' + (cfg.onclick || '') + '"' : ' disabled') + '>' +
+      '<span aria-hidden="true">' + e(m.icon) + '</span> ' + e(m.label) +
+      (enabled ? '' : ' — Chưa khả dụng') + '</button>';
   };
 
   // --- PaymentMethodGroup (§9.3) — 3 phương thức HIỂN THỊ TRỰC TIẾP, không mở modal để chọn ---
@@ -59,8 +56,12 @@ BANCA.ui = BANCA.ui || {};
         onclick: cfg.onPick ? cfg.onPick(m) : "openPayFlow('" + m.experience + "')"
       });
     }).join('');
+    // Lý do khoá của TỪNG phương thức phải hiện thành chữ, không chỉ làm mờ nút (§15.3).
+    var blockedNotes = methods.filter(function (m) { return m.blockedReason; })
+      .map(function (m) { return m.label + ': ' + m.blockedReason; });
     return BANCA.ui.blockedReasons(gate.reasons) +
       '<div class="pay-method-grid">' + cards + '</div>' +
+      (blockedNotes.length ? '<div class="pm-note pm-note--warn">⚠ ' + e(blockedNotes.join(' · ')) + '</div>' : '') +
       '<div class="pm-note">Chưa tạo yêu cầu thanh toán cho tới khi xác nhận cấu hình trong từng cách.</div>';
   };
 
@@ -139,25 +140,34 @@ BANCA.ui = BANCA.ui || {};
       body = '<div class="alert2" style="margin:8px 0 0;background:var(--teal-100);color:var(--teal-600);">✓ Khách đã xác nhận lúc ' + e(cfg.confirmedAt || '—') + '</div>';
     } else if (mode === 'SELLER_ASSISTED') {
       // Seller nhập mã khách đọc — KHÔNG có nút tự xác nhận thay khách.
+      // inputId phải duy nhất khi có nhiều phiên trên cùng trang (mỗi người được bảo hiểm 1 phiên).
+      var inputId = cfg.inputId || 'otp-code';
       body = '<div class="otp-entry">' +
-        '<label class="otp-label" for="otp-code">Mã OTP khách cung cấp</label>' +
-        '<input id="otp-code" class="otp-input" inputmode="numeric" maxlength="6" placeholder="______" aria-label="Mã OTP">' +
+        '<div><label class="otp-label" for="' + e(inputId) + '">Mã OTP khách cung cấp</label>' +
+        '<input id="' + e(inputId) + '" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="______" aria-label="Mã OTP" aria-describedby="' + e(inputId) + '-error"></div>' +
         '<button class="btn btn-primary btn-sm"' + (cfg.onSubmit ? ' onclick="' + cfg.onSubmit + '"' : ' disabled') + '>Xác nhận mã</button>' +
         '</div>' +
+        '<div class="otp-error" id="' + e(inputId) + '-error" role="alert"></div>' +
         '<div class="otp-meta">' +
+        (cfg.sentAt ? '<span>Gửi lúc ' + e(cfg.sentAt) + '</span>' : '') +
+        (cfg.expiry ? '<span>Hết hạn ' + e(cfg.expiry) + '</span>' : '') +
         (cfg.countdown ? '<span>Mã còn hiệu lực ' + e(cfg.countdown) + '</span>' : '') +
         (cfg.attemptsLeft != null ? '<span>Số lần thử còn lại: ' + e(cfg.attemptsLeft) + '</span>' : '') +
         (cfg.onResend ? '<button class="btn btn-secondary btn-sm" onclick="' + cfg.onResend + '">Gửi lại mã</button>' : '') +
         '</div>' +
-        '<div class="otp-note">Nhân viên tư vấn không được xác nhận thay khách hàng.</div>';
+        (cfg.link ? '<div class="otp-link">Liên kết đã gửi: <a href="' + e(cfg.link) + '">' + e(cfg.link) + '</a></div>' : '') +
+        '<div class="otp-note">Khách hàng đọc mã, nhân viên tư vấn nhập giúp — không được xác nhận thay khách hàng.</div>';
     } else {
       // Customer self-service — seller chỉ theo dõi.
       body = '<div class="otp-selfserve">' +
         (cfg.link ? '<div class="otp-link">Liên kết đã gửi: <a href="' + e(cfg.link) + '">' + e(cfg.link) + '</a></div>' : '') +
+        (cfg.blockedReasons && cfg.blockedReasons.length ? BANCA.ui.blockedReasons(cfg.blockedReasons, 'Chưa thể gửi xác nhận:') : '') +
         '<div class="otp-meta">' +
         (cfg.sentAt ? '<span>Gửi lúc ' + e(cfg.sentAt) + '</span>' : '') +
         (cfg.expiry ? '<span>Hết hạn ' + e(cfg.expiry) + '</span>' : '') +
-        (cfg.onResend ? '<button class="btn btn-secondary btn-sm" onclick="' + cfg.onResend + '">Gửi lại</button>' : '') +
+        (st === 'PENDING' && cfg.onSend ? '<button class="btn btn-primary btn-sm" onclick="' + cfg.onSend + '">Gửi yêu cầu xác nhận</button>' : '') +
+        (cfg.onResend ? '<button class="btn btn-secondary btn-sm" onclick="' + cfg.onResend + '">' +
+          (st === 'EXPIRED' ? 'Gửi lại yêu cầu xác nhận' : 'Gửi lại') + '</button>' : '') +
         '</div>' +
         '<div class="otp-note">Khách tự xác nhận trên liên kết — nhân viên tư vấn chỉ theo dõi trạng thái.</div>' +
         '</div>';
@@ -196,14 +206,14 @@ BANCA.ui = BANCA.ui || {};
 
   // ============================================================
   // ConfirmationPaymentPanel (§9.3) — MỘT thành phần cho cả Motor và Health.
-  // Sở hữu THỨ TỰ và ĐÁNH SỐ của 7 phần bắt buộc, để 2 sản phẩm không thể
+  // Sở hữu THỨ TỰ và ĐÁNH SỐ của các phần bắt buộc, để 2 sản phẩm không thể
   // trôi lệch bố cục theo thời gian. Trang chỉ cung cấp nội dung từng phần.
   //   1 Thông tin khách xác nhận (gồm điều khoản/loại trừ + trạng thái OTP)
-  //   2 Phí cần thanh toán
-  //   3 Ba phương thức thanh toán
-  //   4 Trạng thái thanh toán hiện tại
-  //   5 Lịch sử thanh toán
-  //   6 Trạng thái phát hành
+  //   2 Phí cần thanh toán + cách thanh toán; sau khi tạo yêu cầu thì chính khối này
+  //     mang trạng thái của yêu cầu (mã QR / liên kết / tạo lại) — không tách mục riêng.
+  //   3 Lịch sử thanh toán
+  // Trạng thái phát hành KHÔNG nằm trong panel này: bước "Phát hành hợp đồng" của
+  // workspace sau nộp đã sở hữu nội dung đó (quyết định user, 2026-07-28).
   // ============================================================
   BANCA.ui.cpCard = function (num, title, inner, sub) {
     return '<section class="card cp-card">' +
@@ -217,13 +227,13 @@ BANCA.ui = BANCA.ui || {};
     cfg = cfg || {};
     var C = BANCA.ui.cpCard;
     var out = '';
+    var feeAndMethods = (cfg.feeHtml || '') +
+      (cfg.methodsHtml
+        ? '<div class="cp-methods"><div class="label">' + e(cfg.methodsLabel || 'Cách thanh toán') + '</div>' + cfg.methodsHtml + '</div>'
+        : '');
     out += C(1, 'Xác nhận khách hàng', cfg.confirmHtml || '');
-    out += C(2, 'Phí cần thanh toán', cfg.feeHtml || '');
-    out += C(3, 'Cách thanh toán', cfg.methodsHtml || '');
-    out += C(4, 'Trạng thái thanh toán', cfg.paymentStatusHtml || '');
-    out += C(5, 'Lịch sử thanh toán', cfg.historyHtml || '');
-    // §9.3 mục 7 — trạng thái phát hành PHẢI nằm trong panel này, không để tab khác.
-    out += C(6, 'Trạng thái phát hành', cfg.issueHtml || BANCA.ui.issueStatusBlock(app));
+    out += C(2, 'Phí và cách thanh toán', feeAndMethods);
+    out += C(3, 'Lịch sử thanh toán', cfg.historyHtml || '');
     return '<div class="confirmation-payment-panel">' + out + '</div>';
   };
 
@@ -268,13 +278,14 @@ BANCA.ui = BANCA.ui || {};
   // STP không hiện khối manual underwriting (§15.2 progressive disclosure).
   BANCA.ui.underwritingStatusPanel = function (app, cfg) {
     cfg = cfg || {};
-    var s = BANCA.caseStates(app);
+    var s = cfg.state || BANCA.caseStates(app);
     var mode = s.underwritingMode;
     var dec = s.underwritingDecision;
-    var decLabel = (BANCA.UNDERWRITING_DECISION_ENUM[dec] || {}).label || '—';
-    var stLabel = (BANCA.UNDERWRITING_STATUS[s.underwritingStatus] || {}).label || s.underwritingStatus;
+    var decLabel = cfg.decisionLabel || (BANCA.UNDERWRITING_DECISION_ENUM[dec] || {}).label || '—';
+    var stLabel = cfg.statusLabel || (BANCA.UNDERWRITING_STATUS[s.underwritingStatus] || {}).label || 'Chờ thẩm định';
+    var withTerms = BANCA.isApprovedWithTerms ? BANCA.isApprovedWithTerms(dec) : dec === 'APPROVED_WITH_CONDITION';
     var tone = dec === 'DECLINED' ? 'danger'
-      : dec === 'APPROVED_WITH_CONDITION' ? 'info'
+      : withTerms ? 'info'
         : ['APPROVED', 'APPROVED_STP'].indexOf(dec) >= 0 ? 'ok' : 'wait';
     var toneColor = { ok: 'var(--teal-600)', wait: 'var(--amber-600)', info: 'var(--brand-600)', danger: 'var(--red-600)' }[tone];
 
@@ -285,7 +296,7 @@ BANCA.ui = BANCA.ui || {};
 
     // STP đã duyệt → không hiện khối manual UW.
     var manual = '';
-    if (mode !== 'STP' || dec === 'APPROVED_WITH_CONDITION' || s.underwritingStatus === 'NEED_MORE_INFORMATION') {
+    if (mode !== 'STP' || withTerms || s.underwritingStatus === 'NEED_MORE_INFORMATION') {
       manual = (cfg.requirements && cfg.requirements.length
         ? '<div class="uw-block"><div class="label">Yêu cầu bổ sung</div>' + BANCA.ui.requirementList(cfg.requirements) + '</div>' : '') +
         BANCA.ui.conditionAcceptance({ conditions: cfg.conditions, accepted: cfg.conditionAccepted, onSend: cfg.onSendCondition });

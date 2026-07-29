@@ -38,7 +38,7 @@ Hiểu môi trường làm việc, bài học đã trải qua, và triết lý:
 
 Hiểu sản phẩm, nghiệp vụ, personas:
 
-5. **`projects/banca-sales-portal/PROJECT_OVERVIEW.md`** ⭐ SPEC V1 CHÍNH THỨC
+5. **`../banca-sales-portal/PROJECT_OVERVIEW.md`** ⭐ SPEC V1 CHÍNH THỨC
    - Prototype Specification v1 (26KB)
    - 3-tier architecture (CORE / DISTRIBUTION / **SALES PORTAL**)
    - Personas (Seller: RM/Telesales, Manager: TL/BM/Regional)
@@ -47,11 +47,11 @@ Hiểu sản phẩm, nghiệp vụ, personas:
    - 10 module HTML entry points
    - Sprint plan (0-5)
 
-6. **`sprint1/docs/product-overview.md`**
+6. **`docs/product-overview.md`**
    - Product baseline
    - Features overview
 
-7. **`sprint1/docs/persona-and-permission.md`**
+7. **`docs/persona-and-permission.md`**
    - Personas details
    - Permission model
 
@@ -219,3 +219,7 @@ Workflow, routing, governance:
 
 **Last updated:** 2026-07-29  
 **For:** ChatGPT, Claude, or any new AI collaborator entering the project
+I collaborator entering the project
+ect
+project
+ new AI collaborator entering the project

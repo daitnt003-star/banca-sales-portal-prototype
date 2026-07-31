@@ -79,7 +79,11 @@ Danh sách sự kiện vòng đời: Quote Created → Application Submitted →
 
 Ranh giới: Portal chỉ **Create Request · Upload Document · Tracking · Notification · View Result**. KHÔNG Approve/Reject/Premium recalculation/Policy update/Issue. Workflow: Portal → Core → Checking → Approved → Policy Updated → Callback Portal.
 
-**Acceptance:** AC-END-1 tab tên "Sửa đổi bổ sung". AC-END-2 tạo request trong tab. AC-END-3 status theo 5 bước. AC-END-4 không có nút duyệt/từ chối trong Portal.
+**Thuật ngữ chính thức (Health CS):** tab = "Sửa đổi bổ sung"; CTA tạo = **"Tạo yêu cầu bổ sung"** (modal title, empty state, toast, timeline dùng "yêu cầu bổ sung"). Identifier kỹ thuật giữ nguyên (`serviceRequests`, `openService`, `SERVICE_REQUEST_TYPES`). Legacy Motor/PA chưa migrate vẫn hiển thị "Yêu cầu dịch vụ" cho tới khi nhân bộ CS.
+
+> Lưu ý ngữ nghĩa (advisor): "yêu cầu bổ sung" dễ bị hiểu là bổ sung hồ sơ/tài liệu, trong khi tab còn gồm đổi người thụ hưởng / tất toán khoản vay. Đây là chủ ý của PO (chốt 2026-07-29). Nếu sau này muốn bao quát hơn, cân nhắc "Tạo yêu cầu sửa đổi/bổ sung".
+
+**Acceptance:** AC-END-1 tab tên "Sửa đổi bổ sung". AC-END-2 tạo request trong tab (CTA "Tạo yêu cầu bổ sung"). AC-END-3 status theo 5 bước. AC-END-4 không có nút duyệt/từ chối trong Portal.
 
 ---
 

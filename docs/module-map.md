@@ -1,11 +1,84 @@
-# Module Map — Baseline (KEEP / PATCH / NEW)
+# Module Map — Verified Implementation Inventory
 
-**Phase:** PHASE 1 — Audit & Requirement Baseline
-**Status:** Baseline — pending confirmation before any code change
+**Reconciled:** 2026-07-30 (against actual `sprint1/` source)
+**Status:** Implementation inventory / navigation reference — reflects the built baseline.
 
-Nguyên tắc Portal Prototype Builder: patch-only, không regenerate module không bị impact.
+> **Reconciliation note (2026-07-30).** The previous version of this file (preserved below from
+> "§ Historical Phase-1 plan") was an **outdated pre-implementation KEEP/PATCH/NEW plan** written
+> before code existed. It no longer matched the built baseline. This top section replaces it as the
+> **verified inventory** of what is actually implemented.
+>
+> - **`BUILD-SPECIFICATION.md` remains the build contract** (what must be built + acceptance).
+> - **This file is an implementation inventory / navigation reference only** — it describes what
+>   currently exists, not what is contractually required.
+> - Where the two disagree, see "§ Contradictions vs build contract" — those are reported, NOT
+>   silently reconciled, and the build spec is left unchanged pending user decision.
 
 ---
+
+## A. Verified module inventory (12 module folders)
+
+**Authoritative nav source at runtime = `shared/js/navigation-config.js`** (`BANCA.NAV_CONFIG`).
+`app-manifest.json` is **stale** (older labels, missing `quick-advisory`/`advisory-workspace`) — see
+contradiction C5.
+
+Status legend: **IMPLEMENTED** (functional-mock, renders via shared `shell()`/`BANCA.ui.*`) ·
+**SUPERSEDED** (folder removed) · **PLACEHOLDER** · **P1** (deferred by build contract).
+
+| # | Module (folder) | Status | Nav placement (live config) | Route / entry | Notes |
+|---|---|---|---|---|---|
+| 1 | `auth` | IMPLEMENTED | `dev` — "Demo setup / Persona" | `modules/auth/index.html` (+auth.js/.css/.mock.js) | Persona + channel switcher, access validation, demo-state reset. `status: skeleton+functional-mock`. |
+| 2 | `seller-workspace` | IMPLEMENTED | `primary` — "Trang chủ" (`defaultModule`) | `modules/seller-workspace/index.html` (+js/css/mock) | Home: KPI strip, offers-recent, need-more-info, processing, policies, notifications. |
+| 3 | `quick-advisory` | IMPLEMENTED | `primary` — "Tư vấn nhanh" (`sellingOnly`) | `modules/quick-advisory/index.html` | **Not in `app-manifest.json`.** Standalone advisory entry (see C3). |
+| 4 | `advisory-workspace` | IMPLEMENTED | **none** (not in nav-config nor manifest) | `modules/advisory-workspace/index.html` | Deep advisory flow (1202 lines, inline styles). Reached from `app-shell.js` / quick-advisory (see C3). |
+| 5 | `unsubmitted-applications` | IMPLEMENTED | `primary` as **"Bản chào"** (id `offers`), PREPARING lifecycle | `modules/unsubmitted-applications/index.html` | Thin wrapper over `quote-list-shell`. Filter by `currentStage`. |
+| 6 | `submitted-applications` | IMPLEMENTED | under **"Bản chào"** (PROCESSING/WAIT_CUST/ISSUED/FAILED lifecycles) | `modules/submitted-applications/index.html` | Thin wrapper over `quote-list-shell`. Not a separate primary nav item. |
+| 7 | `application-workspace` | IMPLEMENTED | `hidden` | `modules/application-workspace/index.html` (+app-workspace.js) | Core Edit/Tracking workspace; Motor journey, rating, docs, payment, timeline. `owns: Application/Quote/SalesCase`. |
+| 8 | `policies` | IMPLEMENTED | `primary` — "Hợp đồng" | `modules/policies/index.html` | **Policy list + Policy Detail (Policy Cockpit) merged in one module** (`?view/id`). No separate `policy-detail` folder. |
+| 9 | `team-workspace` | IMPLEMENTED | `primary` — "Đội nhóm" (`VIEW_TEAM_WORKSPACE`) | `modules/team-workspace/index.html` | Manager overview/pipeline/seller-perf/needs-help + commission KPIs. |
+| 10 | `help` | IMPLEMENTED | `primary` — "Trợ giúp" | `modules/help/index.html` | FAQ + contact. **Exists in P0 baseline** — contradicts build contract OQ-BUILD-03 (see C4). |
+| 11 | `employee-profile` | IMPLEMENTED | `avatar` — "Hồ sơ nhân viên" | `modules/employee-profile/index.html` | **Merge DONE**: seller-profile + seller-readiness + product-access → 3 tabs (info/certs/products). |
+| — | `seller-profile`, `seller-readiness`, `product-access` | **SUPERSEDED** | removed | — | Folders deleted; listed in `app-manifest.json.removedModules`. Merged into `employee-profile`. |
+
+**Component (not a page):** Start-Sale = `shared/components/sales-context-offer.js` (entry-mode/offer
+context). Build spec calls this `start-sale-modal` — implemented as a shared component, as intended.
+
+**Dev tooling:** `dev/state-gallery.html`, `dev/design-reference.html` (token reference).
+
+## B. Shared layer (verified present)
+
+- `shared/js/`: `app-manifest.js, app-shell.js, formatters.js, head-loader.js, mock-store.js,
+  navigation-config.js, navigation.js, permissions.js, router.js, session-guard.js, terminology.js`.
+- `shared/components/`: `confirm-payment, empty-state, error-state, foundation-components,
+  loading-skeleton, modal, notification-drawer, permission-state, policy-cockpit, quote-list-shell,
+  readiness-banner, sales-context-offer, status-badge, toast`.
+- `shared/styles/`: `tokens.css, globals.css, layout.css, components.css` (+ `.bak`).
+
+## C. Contradictions vs build contract (REPORTED — build spec left unchanged)
+
+These are real divergences between the **built baseline** and `BUILD-SPECIFICATION.md` /
+`PROJECT_OVERVIEW.md`. Per task constraint, they are reported here and **not** auto-reconciled; the
+build spec is untouched pending user decision.
+
+| ID | Baseline reality | Build-contract expectation | Type |
+|---|---|---|---|
+| **C1** | Single **"Bản chào" (Offers)** nav object with 5 status-group filters (PREPARING/PROCESSING/WAIT_CUST/ISSUED/FAILED); unsubmitted+submitted are lifecycle views under it. | Two separate menu items **"Hồ sơ chưa nộp"** + **"Hồ sơ đã nộp"** (BUILD-SPEC §2 M04/M05, PROJECT_OVERVIEW §II). | Navigation model |
+| **C2** | Terminology = **"Bản chào / Yêu cầu bảo hiểm"** (via `terminology.js`, `BRIEF-TERMINOLOGY.md`). | Terminology = **"Hồ sơ / HSYCBH"**. | Wording |
+| **C3** | **`quick-advisory`** is a primary nav item + **`advisory-workspace`** deep flow exist as modules. | "Tư vấn nhanh" is only entry-mode #3 inside the Start-Sale modal, not standalone nav. | Scope/structure |
+| **C4** | **`help`** fully implemented and in primary nav in P0. | Standalone Help **deferred to P1** (OQ-BUILD-03); P0 = in-context help only. | Scope/phase |
+| **C5** | Two nav sources disagree: `navigation-config.js` (live) vs stale `app-manifest.json`. | Single coherent nav registry. | Source inconsistency |
+| **C6** | Baseline already includes commission/KPI, channel switcher, NTH/mortgage flow, document matrix. | These are beyond the documented P0 build-spec module scope. | Scope-ahead |
+
+> **Action required from user:** decide per-contradiction whether the build spec should be updated to
+> match the baseline, or the baseline realigned to the spec. Until then, BUILD-SPECIFICATION.md is
+> unchanged (task constraint: report contradictions, do not modify the contract).
+
+---
+
+## § Historical Phase-1 plan (SUPERSEDED — kept for provenance)
+
+> The content below is the original pre-implementation KEEP/PATCH/NEW plan and the 2026-07-20/21
+> batch changelog. Retained as history. For current state use §A–§C above.
 
 ## 1. Module hiện có trong `sprint1/modules/`
 

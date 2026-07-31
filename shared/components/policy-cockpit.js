@@ -167,9 +167,9 @@ BANCA.ui = BANCA.ui || {};
       'Việc sửa đổi hợp đồng do hệ thống nghiệp vụ thực hiện.</div>';
 
     var cta = cfg.canRequest === false
-      ? '<button class="btn btn-primary btn-sm" disabled title="Hợp đồng không ở trạng thái cho phép tạo yêu cầu">Tạo yêu cầu dịch vụ</button>'
+      ? '<button class="btn btn-primary btn-sm" disabled title="Hợp đồng không ở trạng thái cho phép tạo yêu cầu">Tạo yêu cầu bổ sung</button>'
       : '<button class="btn btn-primary btn-sm" onclick="' +
-        (cfg.onCreate || "BANCA.ui.postSale.openService('" + pol.id + "','" + (cfg.productId || '') + "')") + '">Tạo yêu cầu dịch vụ</button>';
+        (cfg.onCreate || "BANCA.ui.postSale.openService('" + pol.id + "','" + (cfg.productId || '') + "')") + '">Tạo yêu cầu bổ sung</button>';
 
     var table = BANCA.ui.dataTable([
       { label: 'Mã yêu cầu', cell: function (s) { return '<b>' + e(s.id) + '</b>'; } },
@@ -192,7 +192,7 @@ BANCA.ui = BANCA.ui || {};
           return '<span class="pc-mini">Theo dõi trạng thái từ hệ thống xử lý</span>';
         }
       }
-    ], list, { empty: 'Chưa có yêu cầu dịch vụ nào cho hợp đồng này.' });
+    ], list, { empty: 'Chưa có yêu cầu bổ sung nào cho hợp đồng này.' });
 
     var avail = '<div class="pc-mini" style="margin-top:8px;">Loại yêu cầu khả dụng cho sản phẩm này: ' +
       e(types.map(function (t) { return t.label; }).join(' · ')) + '</div>';
@@ -286,7 +286,7 @@ BANCA.ui = BANCA.ui || {};
         field('Kênh tiếp nhận', '<select id="ps-channel"><option value="Tại quầy">Tại quầy</option><option value="Điện thoại">Điện thoại</option><option value="Email">Email</option></select>') +
         field('Nội dung khách yêu cầu', '<textarea id="ps-note" rows="3" placeholder="Ghi lại đúng yêu cầu của khách hàng"></textarea>') +
         '<div class="ps-field"><label>Tài liệu cần kèm theo</label><div id="ps-docs" class="pc-mini"></div></div>';
-      modal('Tạo yêu cầu dịch vụ', body,
+      modal('Tạo yêu cầu bổ sung', body,
         '<button class="btn btn-secondary" onclick="document.getElementById(\'post-sale-modal\').remove()">Hủy</button>' +
         '<button class="btn btn-primary" onclick="BANCA.ui.postSale.submitService(\'' + policyId + '\')">Ghi nhận & gửi xử lý</button>');
       BANCA.ui.postSale.syncDocs();
@@ -307,7 +307,7 @@ BANCA.ui = BANCA.ui || {};
       });
       var el = document.getElementById('post-sale-modal');
       if (el) el.remove();
-      modal('Đã ghi nhận yêu cầu dịch vụ',
+      modal('Đã ghi nhận yêu cầu bổ sung',
         '<div class="alert2" style="margin:0;background:var(--teal-100);color:var(--teal-600);">✓ Đã tạo yêu cầu <b>' + e(rec.id) +
         '</b> và gửi sang hệ thống xử lý.</div>' +
         '<div class="pc-kv"><div class="k">Tham chiếu bên xử lý</div><div class="v"><span class="code">' + e(rec.externalRef) + '</span></div></div>' +
@@ -415,9 +415,9 @@ BANCA.ui = BANCA.ui || {};
   // Nguồn quyết định: docs/rework-v2/F-policy-cockpit-cs-workspace.md
   // ============================================================
   BANCA.POLICY_TABS_CS = [
-    { id: 'overview',    label: 'Overview' },
+    { id: 'overview',    label: 'Tổng quan' },
     { id: 'payment',     label: 'Thu phí' },
-    { id: 'lifecycle',   label: 'Life Cycle' },
+    { id: 'lifecycle',   label: 'Dòng thời gian' },
     { id: 'endorsement', label: 'Sửa đổi bổ sung' },
     { id: 'claims',      label: 'Bồi thường' },
     { id: 'care',        label: 'Chăm sóc KH' }
@@ -439,6 +439,7 @@ BANCA.ui = BANCA.ui || {};
       '.pc-drawer-ov{position:fixed;inset:0;background:rgba(15,23,42,.38);opacity:0;visibility:hidden;transition:opacity .2s;z-index:var(--z-drawer);}' +
       '.pc-drawer-ov.open{opacity:1;visibility:visible;}' +
       '.pc-drawer{position:fixed;top:0;right:0;height:100%;width:min(480px,92vw);background:var(--paper-card);box-shadow:var(--shadow-3);transform:translateX(100%);transition:transform .22s;z-index:var(--z-drawer);display:flex;flex-direction:column;}' +
+      '.pc-drawer-wide{width:min(760px,96vw);}' +
       '.pc-drawer-ov.open .pc-drawer{transform:translateX(0);}' +
       '.pc-drawer-h{display:flex;align-items:center;justify-content:space-between;padding:var(--space-lg);border-bottom:1px solid var(--line);}' +
       '.pc-drawer-h b{font-size:var(--text-lg);}' +
@@ -463,9 +464,10 @@ BANCA.ui = BANCA.ui || {};
       '</style>';
   };
 
-  BANCA.ui.pcDrawer = function (id, title, bodyHtml) {
+  BANCA.ui.pcDrawer = function (id, title, bodyHtml, opts) {
+    opts = opts || {};
     return '<div class="pc-drawer-ov" id="' + id + '" onclick="if(event.target===this)this.classList.remove(\'open\')">' +
-      '<div class="pc-drawer"><div class="pc-drawer-h"><b>' + e(title) + '</b>' +
+      '<div class="pc-drawer' + (opts.wide ? ' pc-drawer-wide' : '') + '"><div class="pc-drawer-h"><b>' + e(title) + '</b>' +
       '<button class="pc-drawer-x" onclick="document.getElementById(\'' + id + '\').classList.remove(\'open\')">&times;</button></div>' +
       '<div class="pc-drawer-b">' + bodyHtml + '</div></div></div>';
   };
@@ -661,21 +663,7 @@ BANCA.ui = BANCA.ui || {};
         (careOv.remainingDays <= 120
           ? '<button class="btn btn-primary btn-sm" onclick="BANCA.ui.postSale.openContactLog(\'' + pol.id + '\')">Đề nghị liên hệ khách</button>'
           : '<span class="pc-mini" style="margin:0;">Chưa tới kỳ nhắc tái tục</span>') + '</div>';
-      // 2.3 Tóm tắt quyền lợi = chip + highlight số + nút mở drawer
-      if ((ovc.benefitChips || []).length) {
-        sec += card('Tóm tắt quyền lợi',
-          '<div class="pc-benefit-chips">' + ovc.benefitChips.map(function (c) {
-            return '<span class="pc-bchip' + (c.on === false ? ' off' : '') + '">' + (c.on === false ? '✕' : '✔') + ' ' + e(c.label) + '</span>';
-          }).join('') + '</div>' +
-          ((ovc.benefitHighlights || []).length
-            ? '<div class="pc-facts" style="margin-bottom:var(--space-md);">' + ovc.benefitHighlights.map(function (h) {
-                return '<div class="pc-fact"><span>' + e(h[0]) + '</span><b>' + (h[1] == null ? '—' : h[1]) + '</b></div>';
-              }).join('') + '</div>'
-            : '') +
-          (ovc.benefitDetailHtml ? '<button class="btn btn-secondary btn-sm" onclick="BANCA.ui.pcOpenDrawer(\'pc-dw-benefit\')">Xem chi tiết quyền lợi</button>' : ''));
-        if (ovc.benefitDetailHtml) drawers += BANCA.ui.pcDrawer('pc-dw-benefit', 'Chi tiết quyền lợi', ovc.benefitDetailHtml);
-      }
-      // 2.4 Thanh toán (summary giàu: %/quá hạn + số tiền + ngày + phương thức + txn)
+      // Thanh toán (summary giàu: %/quá hạn + số tiền + ngày + phương thức + txn)
       var ps = ovc.paymentSummary;
       if (ps) {
         sec += card('Thanh toán',
@@ -686,16 +674,11 @@ BANCA.ui = BANCA.ui || {};
           (ps.nextDue ? '<div><div class="n">' + e(ps.nextAmount || '—') + '</div><div class="l">Kỳ tiếp theo · ' + e(ps.nextDue) + '</div></div>' : '') +
           (ps.txn ? '<div><div class="l">Mã giao dịch</div><div><span class="code">' + e(ps.txn) + '</span></div></div>' : '') + '</div>');
       }
-      // 2.6 Thông tin sản phẩm (drawer lớp 2)
-      if (ovc.productInfoHtml) {
-        sec += '<div style="margin-bottom:var(--space-lg);"><button class="pc-expand" onclick="BANCA.ui.pcOpenDrawer(\'pc-dw-product\')"><span>Thông tin sản phẩm · điều khoản · tài liệu</span><span>▸</span></button></div>';
-        drawers += BANCA.ui.pcDrawer('pc-dw-product', 'Thông tin sản phẩm', ovc.productInfoHtml);
-      }
-      // 2.5 Quick Action
-      if ((ovc.quickActions || []).length) {
-        sec = card('Thao tác nhanh', '<div class="pc-qa">' + ovc.quickActions.map(function (a) {
-          return '<button class="btn btn-secondary btn-sm"' + (a.disabled ? ' disabled title="Không khả dụng với trạng thái hợp đồng"' : ' onclick="' + a.js + '"') + '>' + e(a.label) + '</button>';
-        }).join('') + '</div>') + sec;
+      // Layout A (lean): 1 drawer RỘNG gộp Tài liệu + Điều khoản + Quyền lợi. Bỏ Thao tác nhanh, bỏ Tóm tắt quyền lợi riêng.
+      var docBody = (ovc.productInfoHtml || '');
+      if (docBody) {
+        sec += '<div style="margin-bottom:var(--space-lg);"><button class="pc-expand" onclick="BANCA.ui.pcOpenDrawer(\'pc-dw-doc\')"><span>Tài liệu & điều khoản</span><span>▸</span></button></div>';
+        drawers += BANCA.ui.pcDrawer('pc-dw-doc', 'Tài liệu & điều khoản', docBody, { wide: true });
       }
       // Người được BH — thẻ gọn (tên + badge + N quyền lợi + Xem chi tiết → drawer/người)
       var insBlock = '';

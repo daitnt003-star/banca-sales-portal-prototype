@@ -38,7 +38,8 @@ if(p.status!=='ACTIVE'){
    const evts = [];
    (p.audit||[]).forEach(a=>evts.push({at:a.at, by:a.by, text:a.action}));
    policyDocEvents().forEach(ev=>evts.push({at:ev.at, by:ev.by, text:ev.timelineText||ev.action}));
-   BANCA.serviceRequestsOf(p.id).forEach(s=>evts.push({at:s.createdAt, by:(BANCA.personas[s.createdBy]||{}).name||s.createdBy, text:'Yêu cầu dịch vụ '+s.id+' — '+((BANCA.SERVICE_REQUEST_TYPES.find(t=>t.id===s.type)||{}).label||s.type)}));
+   BANCA.serviceRequestsOf(p.id).forEach(s=>evts.push({at:s.createdAt, by:(BANCA.personas[s.createdBy]||{}).name||s.createdBy, text:'Yêu cầu bổ sung '+s.id+' — '+((BANCA.SERVICE_REQUEST_TYPES.find(t=>t.id===s.type)||{}).label||s.type)}));
+   // (nhãn timeline đồng bộ với tab "Sửa đổi bổ sung")
    BANCA.claimsOf(p.id).forEach(c=>evts.push({at:c.notifiedAt, by:(BANCA.personas[c.notifiedBy]||{}).name||c.notifiedBy, text:'Khai báo tổn thất '+c.id}));
    return evts.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
   }
@@ -66,7 +67,7 @@ if(p.status!=='ACTIVE'){
    return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative;">
     <button class="btn btn-primary btn-sm" type="button" onclick="policyOpenDocuments()">Tài liệu & gửi khách</button>
     ${canClaim?`<button class="btn btn-secondary btn-sm" type="button" onclick="BANCA.ui.postSale.openClaim('${pol.id}','${pol.productId||(pol.id.indexOf('HEALTH')>0?'health':(pol.id.indexOf('PA')>0?'pa':'motor'))}')">Khai báo tổn thất</button>`:''}
-    <button class="btn btn-secondary btn-sm" type="button" onclick="BANCA.ui.postSale.openService('${pol.id}','${pol.productId||(pol.id.indexOf('HEALTH')>0?'health':(pol.id.indexOf('PA')>0?'pa':'motor'))}')">Yêu cầu dịch vụ</button>
+    <button class="btn btn-secondary btn-sm" type="button" onclick="BANCA.ui.postSale.openService('${pol.id}','${pol.productId||(pol.id.indexOf('HEALTH')>0?'health':(pol.id.indexOf('PA')>0?'pa':'motor'))}')">Yêu cầu bổ sung</button>
     ${canRenew?`<button class="btn btn-secondary btn-sm" type="button" onclick="policyDemoToast('Đã mở luồng tái tục demo.')">Tạo tái tục</button>`:''}
     <button class="btn btn-secondary btn-sm" type="button" onclick="const m=document.getElementById('policy-more-actions');m.style.display=m.style.display==='none'?'block':'none'">Khác ▾</button>
     <div id="policy-more-actions" style="display:none;position:absolute;right:0;top:38px;min-width:260px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(10,25,60,.18);z-index:90;padding:8px;">

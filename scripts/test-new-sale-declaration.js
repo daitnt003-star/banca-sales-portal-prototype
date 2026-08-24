@@ -137,12 +137,27 @@ ok('  …cổng đóng lại', !B.paymentEnableRule(m2, { me:ME }).enabled);
 /* 6 — giao diện có đủ chỗ để làm hai việc trên ----------------------- */
 grp('6. Giao diện PHẢI có chỗ làm hai việc đó (nếu không là ngõ cụt)');
 const ws = fs.readFileSync(path.join(ROOT, 'modules/application-workspace/app-workspace.js'), 'utf8');
-ok('có khối chọn "ai trả lời"', /declarationSourceBlock/.test(ws) && /setDeclarationSource/.test(ws));
-ok('  …xuất hiện ở bước khai báo của cả motor/pa và sức khoẻ',
-  (ws.match(/declarationSourceBlock\(app\)/g) || []).length >= 2);
+// GỌI THẬT hàm dựng HTML, không grep chuỗi. Bài học 2026-08-24: assertion cũ chỉ
+// kiểm "có nhắc tên hàm trong file" nên vẫn xanh trong khi khối KHÔNG BAO GIỜ
+// hiện — hàm được gán bằng `window.x = function` ở đoạn NẰM SAU chỗ dựng HTML,
+// lúc render vẫn undefined, guard `window.x ? ... : ''` âm thầm trả rỗng.
+const hlt = B.appById('DRAFT-2026-HLT2');
+const pickerHtml = B.ui.declarationSourcePicker(hlt, { readOnly:false, handler:'setDeclarationSource' });
+ok('khối chọn "ai trả lời" DỰNG RA HTML thật', pickerHtml.length > 0, 'rỗng — khối không bao giờ hiện');
+ok('  …có đủ hai lựa chọn và gắn đúng hàm xử lý',
+  /Khách tự trả lời/.test(pickerHtml) && /Nhân viên nhập hộ/.test(pickerHtml)
+  && /setDeclarationSource\('DRAFT-2026-HLT2'/.test(pickerHtml));
+ok('  …dựng được cho cả hồ sơ nháp lẫn hồ sơ đã nộp (khối dùng chung, không nằm trong 1 nhánh)',
+  B.ui.declarationSourcePicker(B.appById('APP-2026-107'), { handler:'submittedSetDeclarationSource', bare:true }).length > 0);
+const readBackHtml = B.ui.declarationReadBack(hlt);
+ok('bảng đọc lại bản khai DỰNG RA HTML thật', readBackHtml.length > 0, 'rỗng');
+ok('  …liệt kê đúng câu của thành viên (sức khoẻ khai theo từng người)',
+  /Trịnh Mỹ Linh/.test(readBackHtml), 'không thấy tên thành viên');
+ok('app-workspace gọi khối dùng chung ở CẢ hai bước khai báo',
+  (ws.match(/BANCA\.ui\.declarationSourcePicker\(app/g) || []).length >= 2);
 ok('setRiskAnswer ghi lại ai trả lời', /answeredBy\[code\]\s*=\s*app\.declarationAnsweredBy/.test(ws));
 ok('sức khoẻ ghi quy kết theo từng người', /m\.answeredBy\[code\]=app\.declarationAnsweredBy/.test(ws));
-ok('có đọc lại bản khai cho khách trước khi nộp (IF3 2/4)', /declarationReadBackHtml/.test(ws));
+ok('có đọc lại bản khai cho khách trước khi nộp (IF3 2/4)', /BANCA\.ui\.declarationReadBack\(app\)/.test(ws));
 ok('nộp hồ sơ thì GHI bản ghi bản khai', /statementOfFact\.confirm\(app/.test(ws));
 
 console.log('\n' + (fail ? ('✗ FAIL ' + fail + ' / PASS ' + pass) : '✓ TẤT CẢ PASS (' + pass + ')'));

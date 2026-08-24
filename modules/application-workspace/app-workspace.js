@@ -1114,7 +1114,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
      <span style="font-size:12px;color:var(--ink-500);">Khai báo sức khỏe cho</span> <b style="font-size:13px;">${unit.name||'—'} · ${unit.age!=null?unit.age+' tuổi':'?'} · ${unit.isChild?'bộ câu hỏi TRẺ EM':'bộ câu hỏi NGƯỜI LỚN'}</b>${inactive?' <span class="chip" style="background:#fdecec;color:var(--red-600);">Đã loại</span>':''}
     </div>` : '';
   const main = `<div class="alert2 info" style="margin-bottom:12px;">Khai báo sức khỏe theo từng người (questionnaireMode PER_MEMBER). Câu trả lời không dùng chung giữa các thành viên; đổi câu trả lời có thể kích hoạt thẩm định/phụ phí/loại trừ.</div>
-   ${window.declarationSourceBlock?window.declarationSourceBlock(app):''}
+   ${BANCA.ui.declarationSourcePicker(app,{readOnly:readOnly,handler:'setDeclarationSource'})}
    ${header}${inactive?'<div class="alert2 warn">Thành viên đã bị loại khỏi yêu cầu — không cần khai báo.</div>':qHtml+branchNote}`;
   stepBody = healthWithNav(app, curUnitId, 'RISK_DECLARATION', main);
  } else if(cur.id==='RISK_DECLARATION'){
@@ -1156,7 +1156,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
     </div>
     <div class="alert2 warn" style="margin-top:10px;">Khai báo này kích hoạt referral/loading result. Nếu là hoạt động chuyên nghiệp hoặc tần suất cao, yêu cầu chuyển thẩm định.</div>
    </div>` : '';
-  stepBody = `${window.declarationSourceBlock?window.declarationSourceBlock(app):''}${mgLine}${qHtml}${paBranch}
+  stepBody = `${BANCA.ui.declarationSourcePicker(app,{readOnly:readOnly,handler:'setDeclarationSource'})}${mgLine}${qHtml}${paBranch}
  <div id="firm-quote-panel" style="margin-top:6px;">${window.firmQuotePanelHtml?window.firmQuotePanelHtml(app):''}</div>`;
  } else if(cur.id==='DOCUMENTS'){
   if(app.productId==='health'){
@@ -1421,7 +1421,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
    <div class="label">Tóm tắt yêu cầu <span class="chip" style="font-size:9px;">${jrn.reviewLayout||'review'}</span></div>
    <table class="dtable"><tbody>${reviewRows}</tbody></table>
   </div>` + healthMatrix + `
-  ${window.declarationReadBackHtml?window.declarationReadBackHtml(app):''}
+  ${BANCA.ui.declarationReadBack(app)}
   <div class="card" style="padding:16px;margin-top:12px;">
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;"><input type="checkbox" id="c1" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ.</label>
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-top:8px;"><input type="checkbox" id="c2" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Tôi (nhân viên tư vấn) xác nhận đã tư vấn đầy đủ quyền lợi, điều khoản loại trừ.</label>
@@ -1593,36 +1593,6 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const panel = document.getElementById('firm-quote-panel');
   if(panel && window.firmQuotePanelHtml) panel.innerHTML = window.firmQuotePanelHtml(app);
  };
- // ĐỌC LẠI BẢN KHAI CHO KHÁCH NGHE trước khi nộp.
- // [CII IF3 2/4] câu trả lời phải được "repeated back" cho khách xác nhận —
- // ô tick "khách xác nhận kê khai đúng và đầy đủ" mà không cho khách thấy mình
- // đã khai gì thì chỉ là tick mù.
- window.declarationReadBackHtml = function(a){
-  if(!BANCA.statementOfFact) return '';
-  const sof = BANCA.statementOfFact.build(a);
-  if(!sof.lines.length) return '';
-  const fmt = function(v){
-   if(v===true) return 'Có'; if(v===false) return 'Không';
-   if(v===null||v===undefined||v==='') return '—';
-   return String(v);
-  };
-  const rows = sof.lines.filter(function(l){return l.applicable;}).map(function(l){
-   return `<tr>
-    <td style="font-size:12px;">${l.label}</td>
-    <td style="font-size:12px;font-weight:600;white-space:nowrap;">${fmt(l.answer)}</td>
-    <td style="font-size:11px;color:${l.answeredBy?'var(--ink-500)':'var(--red-600)'};white-space:nowrap;">${l.answeredByLabel||'chưa ghi ai trả lời'}</td>
-   </tr>`;
-  }).join('');
-  const missingBy = sof.unattributed.length;
-  return `<div class="card" style="padding:16px;margin-top:12px;${missingBy?'border-left:4px solid var(--red-600);':''}">
-   <div class="label" style="margin-bottom:6px;">Đọc lại bản khai cho khách xác nhận</div>
-   <div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">
-    Đây là nội dung sẽ ràng buộc hợp đồng. Đọc lại từng câu cho khách nghe trước khi tick xác nhận bên dưới.
-   </div>
-   <table class="dtable"><thead><tr><th>Câu hỏi</th><th>Trả lời</th><th>Ai trả lời</th></tr></thead><tbody>${rows}</tbody></table>
-   ${missingBy?`<div class="alert2 danger" style="margin-top:10px;">Còn ${missingBy} câu chưa ghi nhận ai trả lời — quay lại bước <b>Khai báo rủi ro</b> và chọn "Ai trả lời các câu khai báo này?".</div>`:''}
-  </div>`;
- };
  // AI TRẢ LỜI BẢN KHAI — người bán khai rõ, hệ thống KHÔNG tự đoán (IF3 2/4).
  // Chọn xong thì áp cho cả những câu đã trả lời trước đó: đây là lời khai của
  // người bán về nguồn câu trả lời, không phải hệ thống tự suy.
@@ -1644,27 +1614,6 @@ if(app.submissionState==='NOT_SUBMITTED'){
   }
   BANCA.patchApp(id, patch);
   location.href='?id='+id+'&step=RISK_DECLARATION'+(qs.get('unit')?'&unit='+qs.get('unit'):'')+(isNew?'&new=1':'');
- };
- // Khối chọn nguồn — đặt ĐẦU bước khai báo, không giấu dưới đáy.
- window.declarationSourceBlock = function(a){
-  const cur = a.declarationAnsweredBy || null;
-  const opt = function(code,label,desc){
-   const on = cur===code;
-   return `<button type="button" class="btn ${on?'btn-primary':'btn-secondary'} btn-sm" ${readOnly?'disabled':''}
-     onclick="setDeclarationSource('${a.id}','${code}')" style="text-align:left;flex:1;min-width:220px;">
-     <b>${label}</b><div style="font-size:11px;font-weight:400;opacity:.85;">${desc}</div></button>`;
-  };
-  return `<div class="card" style="padding:14px;margin-bottom:10px;${cur?'':'border-left:4px solid var(--amber-600);'}">
-   <div class="label" style="margin-bottom:6px;">Ai trả lời các câu khai báo này? ${cur?'':'<span class="badge badge-blocked">Bắt buộc</span>'}</div>
-   <div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">
-    Bản khai là cơ sở để doanh nghiệp bảo hiểm chấp nhận rủi ro. Khi có tranh chấp, việc khách tự khai hay nhân viên nhập hộ dẫn tới hậu quả khác nhau — nên phải ghi lại, không được mặc định.
-   </div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    ${opt('CUSTOMER','Khách tự trả lời','Khách trực tiếp đọc và trả lời từng câu')}
-    ${opt('SELLER_ON_BEHALF','Nhân viên nhập hộ','Nhân viên nhập theo lời khách, đã đọc lại cho khách nghe')}
-   </div>
-   ${cur?'':'<div class="alert2 warn" style="margin:10px 0 0;">Chưa chọn thì không thu được phí — bản khai không xác định được ai chịu trách nhiệm về nội dung.</div>'}
-  </div>`;
  };
  // Panel "Báo giá chính thức" — riskAnswers vào rating, hiển thị chênh lệch (structured).
  window.firmQuotePanelHtml = function(a){
@@ -2695,18 +2644,9 @@ function declarationFixPanel(a){
  }
 
  const cur = a.declarationAnsweredBy || null;
- const srcBtn = function(code,label,desc){
-  const on = cur===code;
-  return `<button type="button" class="btn ${on?'btn-primary':'btn-secondary'} btn-sm" ${readOnly?'disabled':''}
-    onclick="submittedSetDeclarationSource('${a.id}','${code}')" style="text-align:left;flex:1;min-width:210px;">
-    <b>${label}</b><div style="font-size:11px;font-weight:400;opacity:.85;">${desc}</div></button>`;
- };
- const srcPart = needSrc ? `<div style="margin-top:12px;">
-   <div class="label" style="margin-bottom:6px;">Ai đã trả lời các câu này?</div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    ${srcBtn('CUSTOMER','Khách tự trả lời','Khách trực tiếp đọc và trả lời từng câu')}
-    ${srcBtn('SELLER_ON_BEHALF','Nhân viên nhập hộ','Nhân viên nhập theo lời khách, đã đọc lại cho khách nghe')}
-   </div></div>` : '';
+ const srcPart = needSrc
+   ? BANCA.ui.declarationSourcePicker(a,{readOnly:readOnly, handler:'submittedSetDeclarationSource', bare:true})
+   : '';
  const confirmPart = (!needSrc && !needAns) ? `<div style="margin-top:12px;">
    <button class="btn btn-primary btn-sm" ${readOnly?'disabled':''} onclick="submittedConfirmDeclaration('${a.id}')">
     Khách xác nhận nội dung bản khai</button>
@@ -2719,7 +2659,7 @@ function declarationFixPanel(a){
    <div style="font-weight:700;color:var(--amber-600);font-size:14px;">Bản khai chưa hoàn tất — chưa thu được phí</div>
    <div style="font-size:13px;color:var(--ink-900);font-weight:600;margin-top:6px;">${head}</div>
    <div style="font-size:12px;color:var(--ink-500);margin-top:4px;line-height:1.7;">${why}</div>
-   ${window.declarationReadBackHtml?window.declarationReadBackHtml(a):''}
+   ${BANCA.ui.declarationReadBack(a)}
    ${srcPart}${confirmPart}${backPart}
   </div>`;
 }

@@ -70,7 +70,11 @@ ok('  …được gắn vào đúng màn Xác nhận & thanh toán',
   /return declarationFixPanel\(app\) \+ BANCA\.ui\.confirmationPaymentPanel/.test(ws));
 ok('  …có hành động ghi nhận người trả lời', /submittedSetDeclarationSource/.test(ws));
 ok('  …có hành động ghi nhận khách xác nhận', /submittedConfirmDeclaration/.test(ws));
-ok('  …và đọc lại bản khai cho khách ngay tại đó', /declarationReadBackHtml\(a\)/.test(ws));
+ok('  …và đọc lại bản khai cho khách ngay tại đó', /BANCA\.ui\.declarationReadBack\(a\)/.test(ws));
+// Gọi thật: khối phải DỰNG RA HTML, không chỉ được nhắc tên trong file.
+ok('  …khối gỡ dựng ra HTML thật cho hồ sơ đã nộp',
+  B.ui.declarationSourcePicker(a, { handler:'submittedSetDeclarationSource', bare:true }).length > 0
+  && B.ui.declarationReadBack(a).length > 0);
 
 grp('4. Người bán chọn nguồn → gỡ được, KHÔNG cần khai lại câu nào');
 const before = JSON.stringify(a.riskAnswers);

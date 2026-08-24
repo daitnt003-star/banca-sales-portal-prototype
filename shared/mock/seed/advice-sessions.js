@@ -229,6 +229,12 @@ BANCA.adviceSelection = {
       .find(function (item) { return item.packageRef === packageRef; });
     if (!offer) return null;
     state.selectedPackageId = offer.packageRef;
+    // CƠ SỞ KHUYẾN NGHỊ phải đi cùng phương án, không chỉ hiện trên màn hình.
+    // [CII IF1 tr.212 mục H5] trung gian phải "give reasons for any advice given in
+    // relation to a policy". Trước đây `why` chỉ được render rồi bỏ, nên bàn giao
+    // sang bán hàng chỉ còn chuỗi rỗng nghĩa "Đề xuất <tên gói>".
+    // [VN] Mức độ bắt buộc lưu hồ sơ tư vấn phải đối chiếu Luật KDBH 2022.
+    var _exp = BANCA.explainOffer ? BANCA.explainOffer(offer, state.budgetBand) : null;
     state.selectedOffer = {
       productRef: offer.productRef,
       productName: offer.productName,
@@ -237,6 +243,17 @@ BANCA.adviceSelection = {
       premiumBand: offer.premiumBand,
       fit: offer.fit,
       issueTime: offer.issueTime,
+      why: offer.why || null,
+      adviceBasis: _exp ? {
+        recommended: _exp.recommended,
+        pros: (_exp.pros || []).slice(),
+        cons: (_exp.cons || []).slice(),
+        fit: offer.fit,
+        budgetBand: state.budgetBand || null,
+        needsMet: (offer.meets || []).slice(),
+        needsGap: (offer.gaps || []).slice(),
+        capturedAt: BANCA._todayISO ? BANCA._todayISO() : null
+      } : null,
       recommendationVersion: BANCA.RECOMMENDATION_VERSION
     };
     state.selectedPlan = null;
@@ -295,6 +312,41 @@ BANCA.adviceSelection = {
     }
     return state;
   }
+};
+
+// Sự đồng ý của khách khi bàn giao PHẢI suy từ trạng thái truy cập dữ liệu thật.
+// Trước đây luồng chuyển bán gán cứng consent:'VALID' — phiên ẩn danh cũng được
+// đóng dấu "Hợp lệ", màn Tiếp nhận hiện badge xanh cho một thứ chưa xin phép ai.
+//
+// Ba mức, dùng lại đúng từ vựng app-workspace đã có (dataSharingGrantStatus):
+//   · chưa định danh          → PENDING          · basis NONE
+//   · đã định danh, có bản ghi → VALID           · basis CUSTOMER_RECORD
+//   · đã định danh, không bản ghi → VALID        · basis SOURCE_SYSTEM
+// Mức 3 là đường banca thật: ngân hàng đã lấy đồng ý ở đầu bên kia rồi mới truyền
+// ngữ cảnh sang. Portal KHÔNG giữ chứng từ đó, nên phải nói rõ là "theo hệ nguồn"
+// chứ không giả vờ mình có bản ghi.
+// [VN] Giá trị pháp lý của đồng ý lấy từ hệ nguồn phải đối chiếu Luật KDBH 2022
+//      và quy định bảo vệ dữ liệu cá nhân — sách Anh/Mỹ không quyết được.
+BANCA.CONSENT_BASIS_LABEL = {
+  CUSTOMER_RECORD: 'Khách đồng ý — có bản ghi',
+  SOURCE_SYSTEM:   'Theo hệ nguồn (ngân hàng) — portal không giữ bản ghi',
+  NONE:            'Chưa có đồng ý'
+};
+BANCA.adviceConsentForHandoff = function (state) {
+  state = state || {};
+  var stage = state.dataAccessStage || null;
+  var identified = BANCA.dataAccess ? BANCA.dataAccess.canShowPII(stage) : false;
+  if (!identified) {
+    return { consent: 'PENDING', consentBasis: 'NONE', consentRecord: null, consentStage: stage };
+  }
+  // Không tự sinh bản ghi consent mới — sinh mới là bịa ra một lần đồng ý không có thật.
+  var rec = (state.consent && state.consent.consentId) ? state.consent : null;
+  return {
+    consent: 'VALID',
+    consentBasis: rec ? 'CUSTOMER_RECORD' : 'SOURCE_SYSTEM',
+    consentRecord: rec,
+    consentStage: stage
+  };
 };
 
 BANCA.adviceConversionDecision = function (channelId, state) {

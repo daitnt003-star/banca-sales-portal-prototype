@@ -59,7 +59,65 @@ BANCA.quoteVersion = {
     return app;
   },
   // Premium chỉ đến từ rating strategy — chặn chỉnh tay (§8.3).
-  setPremiumManual: function () { throw new Error('Không cho phép chỉnh sửa phí thủ công — phí do rating engine tính.'); }
+  setPremiumManual: function () { throw new Error('Không cho phép chỉnh sửa phí thủ công — phí do rating engine tính.'); },
+
+  // ĐÓNG BĂNG KHI NỘP HỒ SƠ.
+  // Trước đây quoteVersions chỉ được khởi tạo trong luồng sửa nháp và không hồ sơ
+  // nào mang nó, nên nhánh "phiên báo giá hiện tại chưa được duyệt" trong
+  // paymentEnableRule KHÔNG BAO GIỜ chạy — chốt chặn có mà không hoạt động.
+  // Nộp hồ sơ = chốt giá đã chào khách ⇒ v1 APPROVED. Về sau phí đổi (phụ phí sau
+  // thẩm định, sửa dữ liệu) thì reRate đẩy sang v2 DRAFT và cổng thanh toán đóng
+  // cho tới khi khách xác nhận điều kiện mới → approve lại.
+  // Trả về PATCH FIELDS để gọi kèm patchApp, vì mutate object không tự lưu overlay.
+  freezeOnSubmit: function (app, premium) {
+    app = app || {};
+    var work = {
+      quoteVersions: (app.quoteVersions || []).map(function (v) { return Object.assign({}, v); }),
+      activeQuoteVersionId: app.activeQuoteVersionId,
+      activeQuoteApproved: app.activeQuoteApproved
+    };
+    if (!work.quoteVersions.length) {
+      BANCA.quoteVersion.init(work, premium);
+      BANCA.quoteVersion.approve(work);
+    }
+    return {
+      quoteVersions: work.quoteVersions,
+      activeQuoteVersionId: work.activeQuoteVersionId,
+      activeQuoteApproved: work.activeQuoteApproved
+    };
+  },
+
+  // Phí đổi SAU khi đã nộp (phụ phí thẩm định…) → sang phiên mới, cổng đóng lại.
+  reRateFields: function (app, newPremium, reason) {
+    var work = {
+      quoteVersions: (app.quoteVersions || []).map(function (v) { return Object.assign({}, v); }),
+      activeQuoteVersionId: app.activeQuoteVersionId,
+      activeQuoteApproved: app.activeQuoteApproved,
+      warningFlags: (app.warningFlags || []).slice()
+    };
+    BANCA.quoteVersion.reRate(work, newPremium, reason);
+    return {
+      quoteVersions: work.quoteVersions,
+      activeQuoteVersionId: work.activeQuoteVersionId,
+      activeQuoteApproved: work.activeQuoteApproved,
+      warningFlags: work.warningFlags
+    };
+  },
+
+  // Khách xác nhận điều kiện/phụ phí mới → duyệt phiên hiện tại, mở cổng.
+  approveFields: function (app) {
+    var work = {
+      quoteVersions: (app.quoteVersions || []).map(function (v) { return Object.assign({}, v); }),
+      activeQuoteVersionId: app.activeQuoteVersionId,
+      activeQuoteApproved: app.activeQuoteApproved
+    };
+    BANCA.quoteVersion.approve(work);
+    return {
+      quoteVersions: work.quoteVersions,
+      activeQuoteVersionId: work.activeQuoteVersionId,
+      activeQuoteApproved: work.activeQuoteApproved
+    };
+  }
 };
 
 // ============================================================

@@ -611,6 +611,8 @@ function advConvertConfirmModal(){
   const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
   const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
   const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  // Đồng ý suy từ trạng thái truy cập dữ liệu thật, KHÔNG gán cứng 'VALID'.
+  const _advConsent=BANCA.adviceConsentForHandoff?BANCA.adviceConsentForHandoff(Object.assign({},state,{dataAccessStage:accessStage})):{consent:'PENDING',consentBasis:'NONE',consentRecord:null,consentStage:accessStage};
   const cust=canShowPII&&state.customerRef?BANCA.customerById(state.customerRef):null;
   const customerSummary=canShowPII
     ? `<b>${state.customerName||(cust&&cust.name)||'Khách hàng'}</b>${cust&&cust.cif?' · CIF '+cust.cif:''}`
@@ -657,12 +659,19 @@ window.advDoConvert = function(){
   const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
   const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
   const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  const _advConsent=BANCA.adviceConsentForHandoff?BANCA.adviceConsentForHandoff(Object.assign({},state,{dataAccessStage:accessStage})):{consent:'PENDING',consentBasis:'NONE',consentRecord:null,consentStage:accessStage};
   const base={ type:'SALES_HANDOFF', customerId:state.customerRef||null, externalCustomerRef:state.externalCustomerRef||state.customerRef||null,
     customerName:canShowPII?state.customerName:null,
     cif:canShowPII&&state.customerRef?((BANCA.customerById(state.customerRef)||{}).cif||null):null,
     productRef:o.productRef, productName:o.productName, packageName:o.packageName,
     source: state.leadId?'REFERRAL':(state.customerRef?'BANK_CRM':'PORTAL'), sourceSystem:'PORTAL', leadRef:state.leadId||null, campaign:state.campaign||null, adviceId:state.id,
-    recommendationReason:o.why||('Đề xuất '+(o.packageName||'')), needSummary:BANCA.needLabel?BANCA.needLabel(state.primaryNeed):state.primaryNeed, budget:state.budgetBand?BANCA.budgetLabel(state.budgetBand):null, consent:'VALID',
+    recommendationReason:o.why||('Đề xuất '+(o.packageName||'')),
+    // Cơ sở khuyến nghị đi CÙNG bàn giao (IF1 tr.212 H5) — trước đây chỉ hiện trên
+    // màn tư vấn rồi mất, người bán nhận được đúng chuỗi "Đề xuất <gói>".
+    adviceBasis:o.adviceBasis||null, adviceFit:o.fit!=null?o.fit:null,
+    adviceIndicativePremium:o.premiumBand||null,
+    needSummary:BANCA.needLabel?BANCA.needLabel(state.primaryNeed):state.primaryNeed, budget:state.budgetBand?BANCA.budgetLabel(state.budgetBand):null,
+    consent:_advConsent.consent, consentBasis:_advConsent.consentBasis, consentRecord:_advConsent.consentRecord, consentStage:_advConsent.consentStage,
     priority:'MEDIUM', targetTeam:(BANCA.personas[me]||{}).team||null,
     participants:[...(refUser?[{participationRole:'REFERRER',userId:refUser,isPrimary:true,status:'ACTIVE',source:refSource}]:[]),{participationRole:'ADVISOR',userId:me,isPrimary:true,status:'ACTIVE'}],
     completeness:60 };

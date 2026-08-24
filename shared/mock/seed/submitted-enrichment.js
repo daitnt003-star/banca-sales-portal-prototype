@@ -95,6 +95,20 @@ window.BANCA = window.BANCA || {};
     if(bills.length===1) bills[0].amount = finalPremium;
   });
 
+  // ---- MẮT XÍCH RIÊNG CỦA BANCA: mã tham chiếu khách của ngân hàng ----
+  // ChannelProfile BANCA_INTEGRATED khai requiresExternalCustomerRef=true và
+  // makeBankCallback đã đọc app.externalCustomerRef. Cơ chế đủ, chỉ DỮ LIỆU MẪU
+  // thiếu — nên callback trả về ngân hàng không mang khoá đối chiếu nào, bên
+  // ngân hàng không ghép được về hồ sơ khách của họ.
+  // Mã dựng từ CIF thật của khách để đối soát được, không bịa chuỗi ngẫu nhiên.
+  (BANCA.applications||[]).forEach(function(a){
+    if(a.externalCustomerRef || !a.customerId) return;
+    const c=(BANCA.customers||[]).find(function(x){return x.id===a.customerId;});
+    // Khách KHÔNG có CIF thì KHÔNG bịa mã tham chiếu. Đó là khách chưa phải khách
+    // ngân hàng — đúng ra phải để trống, và kênh banca tích hợp phải chặn từ đầu.
+    if(c && c.cif) a.externalCustomerRef='JANUS-CIF-'+c.cif;
+  });
+
   const app103=BANCA.appById&&BANCA.appById('APP-2026-103');
   if(app103){
     app103.mortgage={mortgaged:true,lenderType:'Ngân hàng',bank:'Vietcombank',branch:'CN Tân Định',creditContract:'VCB-LOAN-2026-4431'};

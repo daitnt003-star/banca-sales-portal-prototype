@@ -79,6 +79,13 @@ BANCA.quoteVersion = {
     if (!work.quoteVersions.length) {
       BANCA.quoteVersion.init(work, premium);
       BANCA.quoteVersion.approve(work);
+    } else {
+      // Hồ sơ đã có phiên từ lúc sửa nháp (init tạo ra ở trạng thái DRAFT).
+      // Nếu để nguyên DRAFT sau khi nộp thì cổng §4 khoá vĩnh viễn với lý do
+      // "phiên báo giá hiện tại chưa được duyệt" mà KHÔNG có nút nào duyệt được
+      // — ngõ cụt. Nộp hồ sơ = chốt giá đã chào khách ⇒ duyệt phiên đang hoạt động.
+      var cur = BANCA.quoteVersion.active(work);
+      if (cur && cur.status === 'DRAFT') BANCA.quoteVersion.approve(work);
     }
     return {
       quoteVersions: work.quoteVersions,

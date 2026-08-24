@@ -62,7 +62,11 @@ const s2 = B.statementOfFact.build(noBy);
 ok('thiếu answeredBy → liệt kê vào unattributed', s2.unattributed.length === 4, JSON.stringify(s2.unattributed));
 ok('trạng thái NOT_READY', B.statementOfFact.status(noBy) === 'NOT_READY', B.statementOfFact.status(noBy));
 ok('  …lý do nói rõ là thiếu người trả lời',
-  /chưa ghi nhận ai trả lời/.test(B.statementOfFact.blockingReason(noBy) || ''), B.statementOfFact.blockingReason(noBy));
+  // Lý do phải phân biệt RÕ "thiếu người trả lời" với "chưa trả lời" — người bán
+  // vừa khai xong mà đọc nhầm là bị bắt khai lại (phản hồi thật 2026-08-24).
+  /NGƯỜI trả lời/.test(B.statementOfFact.blockingReason(noBy) || '')
+    && !/^Bản khai còn \d+ câu chưa trả lời/.test(B.statementOfFact.blockingReason(noBy) || ''),
+  B.statementOfFact.blockingReason(noBy));
 
 let threw = false;
 try { B.statementOfFact.confirm(noBy, {}); } catch (e) { threw = /chưa ghi nhận ai trả lời/.test(e.message); }

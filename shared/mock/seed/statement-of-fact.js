@@ -158,7 +158,13 @@ BANCA.statementOfFact = {
     var sof = BANCA.statementOfFact.build(app);
     if (st === 'NOT_READY') {
       if (sof.unanswered.length)   return 'Bản khai còn ' + sof.unanswered.length + ' câu chưa trả lời';
-      return 'Bản khai còn ' + sof.unattributed.length + ' câu chưa ghi nhận ai trả lời (khách tự khai hay nhân viên nhập hộ)';
+      // Phân biệt RÕ với câu trên: nội dung đã trả lời đủ, chỉ thiếu ghi nhận
+      // NGƯỜI đưa ra câu trả lời. Câu cũ ("chưa ghi nhận ai trả lời") bị đọc
+      // nhầm thành "chưa trả lời" — người bán vừa khai xong lại tưởng bị bắt
+      // khai lại.
+      var n = sof.unattributed.length;
+      return 'Đã trả lời đủ, còn thiếu ghi nhận NGƯỜI trả lời cho ' + n + ' câu '
+           + '(khách tự khai hay nhân viên nhập hộ) — chọn ngay ở mục Xác nhận & thanh toán';
     }
     if (st === 'STALE') return 'Nội dung khai báo đã thay đổi sau khi khách xác nhận — cần khách xác nhận lại';
     return 'Khách chưa xác nhận nội dung bản khai';

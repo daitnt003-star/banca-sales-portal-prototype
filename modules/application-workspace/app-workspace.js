@@ -2654,8 +2654,106 @@ function cpHistoryInner(){
 }
 // §9.3 — Motor và Health dùng CHUNG ConfirmationPaymentPanel; thứ tự & đánh số
 // do component quy định, trang chỉ cung cấp nội dung từng phần.
+// ------------------------------------------------------------------
+// BẢN KHAI CHƯA XONG — KHỐI XỬ LÝ NGAY TẠI MÀN THANH TOÁN.
+//
+// Hồ sơ ĐÃ NỘP chỉ còn 4 bước (created/underwriting/confirmation-payment/policy)
+// — không còn bước "Khai báo rủi ro". Nên hồ sơ nộp TRƯỚC khi có phần ghi nhận
+// "ai trả lời" sẽ bị khoá thu phí mà KHÔNG có chỗ nào gỡ: ngõ cụt cứng.
+// Lý do chặn phải đi kèm PHƯƠNG TIỆN gỡ, ngay trên màn hình đang chặn (§15.3).
+//
+// KHÔNG tự điền "khách đã trả lời" cho hồ sơ cũ — đó đúng là "assumptive answer"
+// mà IF3 2/4 cấm. Phải HỎI người bán, không được đoán hộ.
+function declarationFixPanel(a){
+ if(!BANCA.statementOfFact || !BANCA.riskQuestionsFor) return '';
+ if(!(BANCA.riskQuestionsFor(a.productId)||[]).length) return '';
+ const st = BANCA.statementOfFact.status(a);
+ if(st === 'CONFIRMED') return '';
+ const sof = BANCA.statementOfFact.build(a);
+ const answered = sof.lines.filter(function(l){return l.applicable && l.answered;}).length;
+ const total    = sof.lines.filter(function(l){return l.applicable;}).length;
+ const needSrc  = sof.unattributed.length > 0;
+ const needAns  = sof.unanswered.length > 0;
+
+ // Nói rõ đang thiếu GÌ — "chưa ghi nhận ai trả lời" rất dễ đọc nhầm thành
+ // "chưa trả lời", nhất là khi người bán vừa trả lời xong ở bước tạo bản chào.
+ let head, why;
+ if(needAns){
+  head = 'Bản khai còn ' + sof.unanswered.length + '/' + total + ' câu chưa trả lời';
+  why  = 'Cần quay lại hoàn tất nội dung khai báo.';
+ } else if(needSrc){
+  head = 'Đã trả lời đủ ' + answered + '/' + total + ' câu — còn thiếu MỘT thông tin: ai đã trả lời';
+  why  = 'Nội dung khai báo không thiếu gì. Thứ chưa có là ghi nhận <b>người đưa ra câu trả lời</b>: '
+       + 'khách tự khai, hay nhân viên nhập hộ theo lời khách. Khi có tranh chấp về khai báo, hai trường hợp này '
+       + 'dẫn tới hậu quả khác nhau, nên không được để trống và cũng không được đoán hộ.';
+ } else if(st === 'STALE'){
+  head = 'Nội dung khai báo đã thay đổi sau khi khách xác nhận';
+  why  = 'Cần đọc lại nội dung mới cho khách và xác nhận lại.';
+ } else {
+  head = 'Khách chưa xác nhận nội dung bản khai';
+  why  = 'Đọc lại các câu dưới đây cho khách nghe, rồi ghi nhận xác nhận.';
+ }
+
+ const cur = a.declarationAnsweredBy || null;
+ const srcBtn = function(code,label,desc){
+  const on = cur===code;
+  return `<button type="button" class="btn ${on?'btn-primary':'btn-secondary'} btn-sm" ${readOnly?'disabled':''}
+    onclick="submittedSetDeclarationSource('${a.id}','${code}')" style="text-align:left;flex:1;min-width:210px;">
+    <b>${label}</b><div style="font-size:11px;font-weight:400;opacity:.85;">${desc}</div></button>`;
+ };
+ const srcPart = needSrc ? `<div style="margin-top:12px;">
+   <div class="label" style="margin-bottom:6px;">Ai đã trả lời các câu này?</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    ${srcBtn('CUSTOMER','Khách tự trả lời','Khách trực tiếp đọc và trả lời từng câu')}
+    ${srcBtn('SELLER_ON_BEHALF','Nhân viên nhập hộ','Nhân viên nhập theo lời khách, đã đọc lại cho khách nghe')}
+   </div></div>` : '';
+ const confirmPart = (!needSrc && !needAns) ? `<div style="margin-top:12px;">
+   <button class="btn btn-primary btn-sm" ${readOnly?'disabled':''} onclick="submittedConfirmDeclaration('${a.id}')">
+    Khách xác nhận nội dung bản khai</button>
+   <div style="font-size:11px;color:var(--ink-500);margin-top:6px;">Chỉ bấm sau khi đã đọc lại đầy đủ cho khách nghe (IF3 2/4).</div>
+  </div>` : '';
+ const backPart = needAns ? `<div style="margin-top:12px;"><span style="font-size:12px;color:var(--ink-500);">
+   Nội dung khai báo thuộc hồ sơ đã nộp — liên hệ hỗ trợ để bổ sung.</span></div>` : '';
+
+ return `<div class="card" style="padding:16px;margin-bottom:14px;border-left:4px solid var(--amber-600);">
+   <div style="font-weight:700;color:var(--amber-600);font-size:14px;">Bản khai chưa hoàn tất — chưa thu được phí</div>
+   <div style="font-size:13px;color:var(--ink-900);font-weight:600;margin-top:6px;">${head}</div>
+   <div style="font-size:12px;color:var(--ink-500);margin-top:4px;line-height:1.7;">${why}</div>
+   ${window.declarationReadBackHtml?window.declarationReadBackHtml(a):''}
+   ${srcPart}${confirmPart}${backPart}
+  </div>`;
+}
+// Ghi nhận nguồn trả lời cho hồ sơ ĐÃ NỘP (không sửa nội dung câu trả lời).
+window.submittedSetDeclarationSource = function(id, src){
+ const a = BANCA.appById(id) || app;
+ const patch = { declarationAnsweredBy: src };
+ if(BANCA.statementOfFact.perMember(a) && Array.isArray(a.insuredMembers)){
+  patch.insuredMembers = a.insuredMembers.map(function(m){
+   const c = Object.assign({}, m);
+   c.answeredBy = Object.assign({}, c.answeredBy||{});
+   Object.keys(c.riskAnswers||{}).forEach(function(k){ if(!c.answeredBy[k]) c.answeredBy[k] = src; });
+   return c;
+  });
+ } else {
+  const by = Object.assign({}, a.answeredBy||{});
+  Object.keys(a.riskAnswers||{}).forEach(function(k){ if(!by[k]) by[k] = src; });
+  patch.answeredBy = by;
+ }
+ BANCA.patchApp(id, patch);
+ location.href='?id='+id+'&stage=confirmation-payment';
+};
+// Ghi nhận khách đã xác nhận nội dung bản khai.
+window.submittedConfirmDeclaration = function(id){
+ const a = BANCA.appById(id) || app;
+ try{
+  BANCA.statementOfFact.confirm(a, { by: a.declarationAnsweredBy || null, channel:'PORTAL', sourceSystem:'PORTAL' });
+  BANCA.patchApp(id, { statementOfFact: a.statementOfFact });
+ }catch(e){ alert('Chưa ghi nhận được: ' + e.message); return; }
+ location.href='?id='+id+'&stage=confirmation-payment';
+};
+
 function renderConfirmPay(){
- return BANCA.ui.confirmationPaymentPanel(app, {
+ return declarationFixPanel(app) + BANCA.ui.confirmationPaymentPanel(app, {
    confirmHtml:       cpConfirmInner(),
    feeHtml:           cpFeeInner(),
    methodsHtml:       cpMethodsInner(),

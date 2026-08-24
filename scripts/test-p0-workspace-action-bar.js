@@ -45,7 +45,19 @@ group('3. Equal sizing, responsive and focus');
 ok('Action group dùng equal grid columns', css.includes('grid-auto-columns:minmax(0,1fr)'));
 ok('Control cùng nhóm rộng và cao bằng group', css.includes('.workspace-action-group>.btn,.workspace-action-group>.workspace-action-more,.workspace-action-more>summary{width:100%;height:100%;}'));
 ok('Draft action bar sticky bằng token', css.includes('position:sticky;bottom:0;z-index:var(--z-sticky)'));
-ok('Submitted command row compact không bottom-sticky', css.includes('.workspace-command-bar{margin-top:var(--space-md);border-radius:var(--radius-md);}'));
+// Thanh lệnh của hồ sơ ĐÃ NỘP: dính TRÊN (hành động chính luôn với tới được khi
+// cuộn — quy tắc hệ thống ghi trong tokens.css), KHÔNG dính đáy như thanh nháp.
+// Trước đây assertion so chuỗi CSS y nguyên nên vỡ khi đổi cách dính; giờ kiểm ĐÚNG Ý ĐỊNH.
+// Gom MỌI khối luật của class (có cả khối dùng chung với .workspace-action-bar
+// và khối trong media query) rồi kiểm trên toàn bộ — bắt theo khối đầu tiên sẽ
+// dính nhầm khối selector gộp.
+const cmdBarRules = (css.match(/\.workspace-command-bar\{[^}]*\}/g) || []).join('\n');
+ok('Submitted command row KHÔNG bottom-sticky', !/bottom:\s*0/.test(cmdBarRules), cmdBarRules);
+ok('Submitted command row dính TRÊN khi cuộn', /position:sticky;\s*top:0/.test(cmdBarRules), cmdBarRules);
+ok('  …và thôi dính ở màn nhỏ (thanh xếp dọc sẽ che nội dung)',
+  /@media\(max-width:960px\)[\s\S]*?\.workspace-command-bar\{position:static/.test(css));
+ok('Header hồ sơ đã nộp KHÔNG dính (khối cao, ăn hết màn)',
+  !/\.submitted-case-header\{\s*position:sticky/.test(css));
 ok('Khác dùng elevation và z-index token', css.includes('z-index:var(--z-dropdown)')
   && css.includes('box-shadow:var(--shadow-2)'));
 ok('Responsive dùng breakpoint 960 đã duyệt', css.includes('@media(max-width:960px)'));

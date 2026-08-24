@@ -282,7 +282,14 @@ table.operational-list tr:hover td:last-child{background:var(--paper);}
 .workspace-action-bar--draft{
   position:sticky;bottom:0;z-index:var(--z-sticky);margin-top:var(--space-lg);box-shadow:var(--shadow-2);
 }
-.workspace-command-bar{margin-top:var(--space-md);border-radius:var(--radius-md);}
+.workspace-command-bar{
+  margin-top:var(--space-md);border-radius:var(--radius-md);
+  /* Quy tắc hệ thống (tokens.css): hành động chính phải với tới được khi cuộn.
+     Thanh này mỏng, giữ dính TRÊN; khối tiêu đề hồ sơ cao nên để nó cuộn đi. */
+  position:sticky;top:0;z-index:var(--z-sticky);
+  background:rgba(255,255,255,.97);backdrop-filter:blur(8px);
+  box-shadow:var(--shadow-2);
+}
 .workspace-action-bar__meta{display:flex;align-items:center;gap:var(--space-sm);font-size:var(--text-xs);color:var(--ink-500);}
 .workspace-action-group{
   display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:var(--space-sm);align-items:stretch;
@@ -299,6 +306,8 @@ table.operational-list tr:hover td:last-child{background:var(--paper);}
 .workspace-action-more__menu>.btn{width:100%;}
 @media(max-width:960px){
   .workspace-action-bar,.workspace-command-bar{align-items:stretch;flex-direction:column;}
+  /* Màn nhỏ: thanh xếp dọc nên cao, dính trên sẽ che nội dung → thôi dính. */
+  .workspace-command-bar{position:static;box-shadow:none;backdrop-filter:none;}
   .workspace-action-bar__meta,.workspace-action-group{width:100%;}
   .workspace-action-group{grid-auto-flow:row;grid-template-columns:minmax(0,1fr);}
   .workspace-action-more__menu{position:static;margin-top:var(--space-xs);min-width:0;}
@@ -307,7 +316,9 @@ table.operational-list tr:hover td:last-child{background:var(--paper);}
 /* ===== Submitted Offer Workspace anatomy (P0.5) ===== */
 .submitted-workspace{display:flex;flex-direction:column;gap:var(--space-lg);}
 .submitted-case-header{
-  position:sticky;top:0;z-index:var(--z-sticky);padding:var(--space-lg);
+  /* KHÔNG dính: khối này cao (mã hồ sơ · khách · sản phẩm · chip · chỉ số),
+     dính trên thì ăn gần nửa màn hình. Thứ cần dính là thanh hành động. */
+  padding:var(--space-lg);
   background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);
 }
 .submitted-case-header__inner{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-lg);}

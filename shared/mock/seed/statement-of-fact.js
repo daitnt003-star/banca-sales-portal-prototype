@@ -49,13 +49,14 @@ BANCA.statementOfFact = {
 
   // Dựng bản khai để ĐỌC LẠI CHO KHÁCH NGHE (IF3 2/4 "repeated back").
   // Trả về từng câu + câu trả lời + AI đã trả lời, không phải một cục JSON.
-  build: function (app) {
-    app = app || {};
-    var schemaId = (BANCA.journeyFor ? (BANCA.journeyFor(app.productId) || {}).declarationSchemaId : null) || null;
-    var questions = BANCA.riskQuestionsFor ? BANCA.riskQuestionsFor(app.productId) : [];
-    var answers = app.riskAnswers || {};
-    var by = app.answeredBy || {};
-    var lines = questions.map(function (q) {
+  //
+  // Sản phẩm nhiều người được bảo hiểm (journey.multiInsured.questionnaireMode
+  // = 'PER_MEMBER', ví dụ sức khoẻ) lưu câu trả lời TRÊN TỪNG THÀNH VIÊN, không
+  // ở app.riskAnswers. Đọc nhầm chỗ thì bản khai luôn rỗng và cổng chặn oan
+  // toàn bộ hồ sơ sức khoẻ.
+  _linesFor: function (questions, answers, by, memberLabel, memberId) {
+    answers = answers || {}; by = by || {};
+    return questions.map(function (q) {
       var src = by[q.code] || null;
       // Câu hỏi có điều kiện (branchOn): chỉ áp dụng khi câu cha được trả lời "có".
       // Không nhánh nào kích hoạt thì câu đó KHÔNG PHẢI câu chưa trả lời — nó
@@ -63,8 +64,11 @@ BANCA.statementOfFact = {
       var applicable = !q.branchOn || answers[q.branchOn] === true;
       var hasVal = (q.code in answers) && answers[q.code] !== null && answers[q.code] !== undefined && answers[q.code] !== '';
       return {
-        code: q.code,
-        label: q.label,
+        code: memberId ? (memberId + '.' + q.code) : q.code,
+        questionCode: q.code,
+        memberId: memberId || null,
+        memberLabel: memberLabel || null,
+        label: (memberLabel ? (memberLabel + ' — ') : '') + q.label,
         applicable: applicable,
         answer: hasVal ? answers[q.code] : null,
         answered: applicable ? hasVal : true,   // không áp dụng ⇒ coi như xong
@@ -72,10 +76,40 @@ BANCA.statementOfFact = {
         answeredByLabel: src ? (BANCA.ANSWER_SOURCE[src] || {}).label || src : null
       };
     });
+  },
+
+  // Bản khai theo từng người hay chung một bản?
+  perMember: function (app) {
+    app = app || {};
+    var j = BANCA.journeyFor ? (BANCA.journeyFor(app.productId) || {}) : {};
+    return !!(j.multiInsured && j.multiInsured.questionnaireMode === 'PER_MEMBER');
+  },
+
+  build: function (app) {
+    app = app || {};
+    var schemaId = (BANCA.journeyFor ? (BANCA.journeyFor(app.productId) || {}).declarationSchemaId : null) || null;
+    var questions = BANCA.riskQuestionsFor ? BANCA.riskQuestionsFor(app.productId) : [];
+    var lines = [], hashInput;
+
+    if (BANCA.statementOfFact.perMember(app) && Array.isArray(app.insuredMembers)) {
+      var actives = app.insuredMembers.filter(function (m) { return m.active !== false; });
+      hashInput = {};
+      actives.forEach(function (m, i) {
+        var mid = m.insuredUnitId || ('IU-' + (i + 1));
+        var label = m.name || ('Người được bảo hiểm ' + (i + 1));
+        lines = lines.concat(BANCA.statementOfFact._linesFor(questions, m.riskAnswers, m.answeredBy, label, mid));
+        Object.keys(m.riskAnswers || {}).forEach(function (k) { hashInput[mid + '.' + k] = m.riskAnswers[k]; });
+      });
+    } else {
+      lines = BANCA.statementOfFact._linesFor(questions, app.riskAnswers, app.answeredBy, null, null);
+      hashInput = app.riskAnswers || {};
+    }
+
     return {
       schemaId: schemaId,
+      perMember: BANCA.statementOfFact.perMember(app),
       lines: lines,
-      answersHash: BANCA.statementOfFact.hash(answers, schemaId),
+      answersHash: BANCA.statementOfFact.hash(hashInput, schemaId),
       unanswered: lines.filter(function (l) { return l.applicable && !l.answered; }).map(function (l) { return l.code; }),
       // IF3 2/4: không được để câu nào không rõ ai trả lời.
       unattributed: lines.filter(function (l) { return l.applicable && l.answered && !l.answeredBy; }).map(function (l) { return l.code; })

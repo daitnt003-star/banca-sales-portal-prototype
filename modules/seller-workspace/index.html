@@ -91,7 +91,7 @@ const notiHtml = notis.length? notis.map(n=>{
 // 7. KPI
 const kpiHtml=`<div class="kpi-strip light">
  <div class="kpi"><span>Premium tháng này</span><b>${BANCA.vnd(kpi.premium)}</b></div>
- ${showCommission?`<div class="kpi" style="cursor:pointer;" onclick="location.href='${r}modules/policies/index.html?commission=mine'"><span>Hoa hồng dự kiến tháng này<span class="help-hint" tabindex="0" title="Ước tính hoa hồng cộng dồn (accrued) cho các bản chào đã phát hành trong tháng. Số chính thức phụ thuộc đối soát và có thể bị thu hồi (clawback) nếu hủy hợp đồng trong thời gian cân nhắc.">?</span></span><b>${BANCA.vnd(commission.amount)}</b><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${commission.count} bản chào · accrued</div></div>`:''}
+ ${showCommission?`<div class="kpi" style="cursor:pointer;" onclick="location.href='${r}modules/policies/index.html?commission=mine'"><span>Hoa hồng dự kiến tháng này<span class="help-hint" tabindex="0" title="Ước tính hoa hồng cộng dồn (accrued) cho các bản chào đã phát hành trong tháng. Số chính thức phụ thuộc đối soát và có thể bị thu hồi (clawback) nếu hủy hợp đồng trong thời gian cân nhắc.">?</span></span><b>${BANCA.vnd(commission.amount)}</b><div style="font-size:12px;color:var(--ink-500);margin-top:2px;">${commission.count} bản chào · accrued</div>${commission.noRateCount?`<div style="font-size:11.5px;color:var(--amber-600);margin-top:3px;">⚠ ${commission.noRateCount} hợp đồng chưa có biểu hoa hồng — chưa tính vào tổng</div>`:''}</div>`:''}
  <div class="kpi"><span>Đã phát hành</span><b>${kpi.policies}</b></div>
  <div class="kpi"><span>Tỷ lệ chuyển đổi</span><b>${kpi.conversion}</b></div>
  <div class="kpi"><span>Tiến độ chỉ tiêu</span><b>${kpi.target}</b></div>

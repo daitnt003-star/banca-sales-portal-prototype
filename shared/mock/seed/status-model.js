@@ -48,7 +48,12 @@ BANCA.WARNING_FLAGS = {
   QUOTE_NEED_RERATE:              {label:'Cần tính phí lại',       cls:'badge-conditional'},
   QUOTE_EXPIRING:                 {label:'Báo giá sắp hết hạn',    cls:'badge-conditional'},
   PRODUCT_AUTH_CHANGED:           {label:'Quyền sản phẩm thay đổi',cls:'badge-blocked'},
-  CUSTOMER_CONFIRMATION_REQUIRED: {label:'Cần khách xác nhận',     cls:'badge-conditional'}
+  CUSTOMER_CONFIRMATION_REQUIRED: {label:'Cần khách xác nhận',     cls:'badge-conditional'},
+  // Nghĩa vụ khai báo SỐNG LẠI — đi song song với QUOTE_NEED_RERATE.
+  // QUOTE_NEED_RERATE nói "phí phải tính lại"; cờ này nói "KHAI BÁO phải hỏi lại".
+  // Hai việc khác nhau: đổi mức khấu trừ chỉ đổi phí, nhưng đổi khách hàng /
+  // sửa giữa kỳ / tái tục thì bản khai cũ không còn dùng được.
+  DECLARATION_NEEDS_RECONFIRM:    {label:'Cần xác nhận lại khai báo', cls:'badge-blocked'}
 };
 
 // Thẩm định decision (model riêng, không phải application_status)

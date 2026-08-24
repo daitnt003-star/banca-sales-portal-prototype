@@ -165,6 +165,14 @@ BANCA.changeCustomer = function(id, newCustId, newCustName, reason, actorId){
   const invalidated = !sellerOk;
   if(invalidated){ h.state='PENDING_ASSIGNMENT'; h.targetSeller=null; h.assignmentInvalidated=true; }
   h.quoteStatus='RE_RATING_REQUIRED'; // không giữ quote KH cũ cho KH mới
+  // Đổi khách thì BẢN KHAI cũ cũng hết giá trị, không chỉ báo giá (IF3 1/7 C3C).
+  // Trước đây chỉ reset quote → khai báo của khách CŨ đi tiếp sang khách MỚI.
+  if(BANCA.declaration){
+    BANCA.declaration.markNeedsReconfirm(h, 'Đã đổi khách hàng — bản khai của khách trước không dùng lại được');
+    const caseId=h.caseId||h.applicationId;
+    const app=caseId&&BANCA.applications?BANCA.applications.find(a=>a.id===caseId):null;
+    if(app) BANCA.declaration.markNeedsReconfirm(app, 'Đã đổi khách hàng trên bàn giao '+id);
+  }
   BANCA._persistHandoffs();
   BANCA.audit&&BANCA.audit({action:'CHANGE_CUSTOMER', handoff:id, actor:actorId, previous:prev, new:newCustId, reason, note:'Revalidate consent/portfolio/nhân viên tư vấn/quote'+(invalidated?' · assignment invalidated → PENDING_ASSIGNMENT':'')+' · quote RE_RATING_REQUIRED'});
   return {handoff:h, invalidated, reRating:true};

@@ -24,24 +24,81 @@ BANCA.netCommissionBase = function(policy){
   // Real system must use Core fee waterfall output and exclude VAT/collection pass-throughs.
   return Math.round((policy.premium||0) / 1.10);
 };
-BANCA.commissionRateFor = function(policy){
-  const pkg=policy.package||'Standard';
-  const r=(BANCA.commissionRates||[]).find(x=>x.product===policy.productName && x.package===pkg && x.channel==='BANCA');
-  return r || {rate:0, product:policy.productName, package:pkg, channel:'BANCA'};
+// ============================================================
+// Tra biểu hoa hồng — ĐỦ 4 CHIỀU: sản phẩm × gói × KÊNH × NGÀY HIỆU LỰC.
+// Trước đây lọc cứng x.channel==='BANCA' nên trường `channel` trong biểu là
+// trường chết: thêm dòng cho kênh đại lý cũng không bao giờ được chọn, và
+// fallback trả rate:0 nên sai tiền mà không ai biết. Nay:
+//   · không tìm thấy biểu  → found:false + reason (KHÔNG im lặng trả 0)
+//   · biểu hết hiệu lực    → found:false + reason
+// Cùng nguyên tắc §15.3 đã dùng cho thanh toán: lý do phải PHÁT RA THÀNH CHỮ.
+// ============================================================
+
+// Kênh ghi trên biểu phí ≠ id ChannelProfile ≠ nhãn kênh trên snapshot phân phối.
+// Bảng quy đổi để cả ba nói cùng một thứ tiếng. Thêm kênh mới thì sửa Ở ĐÂY.
+BANCA.COMMISSION_CHANNEL_OF = {
+  BANCA_INTEGRATED: 'BANCA',
+  BANCA_STANDALONE: 'BANCA',
+  AGENT_BROKER:     'AGENT_BROKER',
+  Bancassurance:    'BANCA',
+  Telesales:        'BANCA'
 };
-BANCA.commissionOfPolicy = function(policy){
-  const rt=BANCA.commissionRateFor(policy);
-  const base=BANCA.netCommissionBase(policy);
-  const amount=Math.round(base*rt.rate);
-  const cancelled=policy.status==='CANCELLED';
+
+// Kênh dùng để tính hoa hồng của MỘT hợp đồng.
+// Ưu tiên snapshot phân phối tại thời điểm phát hành — hoa hồng ăn theo hợp đồng
+// đại lý lúc BÁN, không theo kênh đang mở màn hình. Chỉ khi chưa có snapshot
+// (ước tính trước phát hành) mới lấy kênh phiên hiện hành.
+BANCA.commissionChannelOf = function(policy){
+  policy = policy || {};
+  let raw = null;
+  if (BANCA.policyDistributionOf) {
+    const dist = BANCA.policyDistributionOf(policy.id, policy.owner);
+    if (dist && !dist._fallback) raw = dist.channel;
+  }
+  if (!raw) raw = BANCA.channel ? BANCA.channel() : 'BANCA_INTEGRATED';
+  return BANCA.COMMISSION_CHANNEL_OF[raw] || raw;
+};
+
+BANCA._todayISO = function(){ return new Date().toISOString().slice(0,10); };
+
+// opts.asOf: 'YYYY-MM-DD' — cho phép tra biểu tại một ngày cụ thể (test/đối soát).
+BANCA.commissionRateFor = function(policy, opts){
+  opts = opts || {};
+  const pkg  = policy.package || 'Standard';
+  const chan = opts.channel || BANCA.commissionChannelOf(policy);
+  const asOf = opts.asOf || BANCA._todayISO();
+  const all  = BANCA.commissionRates || [];
+
+  const sameLine = all.filter(x => x.product === policy.productName && x.package === pkg);
+  const sameChan = sameLine.filter(x => x.channel === chan);
+  // Ngày dạng YYYY-MM-DD nên so chuỗi là đủ, không cần parse Date.
+  const hit = sameChan.find(x => (!x.validFrom || x.validFrom <= asOf) && (!x.validTo || asOf <= x.validTo));
+
+  if (hit) return Object.assign({}, hit, { found:true, channel:chan, asOf });
+
+  let reason;
+  if (!sameLine.length)      reason = `Chưa cấu hình biểu hoa hồng cho ${policy.productName||'sản phẩm này'} · gói ${pkg}`;
+  else if (!sameChan.length) reason = `Chưa cấu hình biểu hoa hồng cho kênh ${chan}`;
+  else                       reason = `Biểu hoa hồng kênh ${chan} không còn hiệu lực tại ngày ${asOf}`;
+  return { found:false, reason, rate:null, product:policy.productName, package:pkg, channel:chan, asOf };
+};
+
+BANCA.commissionOfPolicy = function(policy, opts){
+  const rt   = BANCA.commissionRateFor(policy, opts);
+  const base = BANCA.netCommissionBase(policy);
+  const cancelled = policy.status === 'CANCELLED';
+  // Không tìm thấy biểu → amount = null (KHÔNG phải 0). Phân biệt được
+  // "hoa hồng bằng không" với "chưa biết hoa hồng bao nhiêu".
+  const amount = rt.found ? Math.round(base * rt.rate) : null;
   return {
     policyId:policy.id, appId:policy.appId, owner:policy.owner, customerId:policy.customerId,
     productName:policy.productName, package:policy.package, premium:policy.premium,
-    base, rate:rt.rate, amount:cancelled?0:amount,
-    state:cancelled?'CLAWED_BACK':'ACCRUED',
-    stateLabel:cancelled?'Thu hồi':'Dự kiến',
+    base, rate:rt.rate, amount: rt.found ? (cancelled ? 0 : amount) : null,
+    noRate: !rt.found, noRateReason: rt.found ? null : rt.reason, channel: rt.channel,
+    state: !rt.found ? 'NO_RATE' : (cancelled ? 'CLAWED_BACK' : 'ACCRUED'),
+    stateLabel: !rt.found ? 'Chưa có biểu' : (cancelled ? 'Thu hồi' : 'Dự kiến'),
     issueDate:policy.issueDate, syncAt:(BANCA.partnerConfig||{}).syncAt||'20/07/2026 11:30',
-    clawback:cancelled? amount : 0
+    clawback: (rt.found && cancelled) ? Math.round(base * rt.rate) : 0
   };
 };
 BANCA.commissionRows = function(ownerOrScope){
@@ -55,10 +112,17 @@ BANCA.commissionRows = function(ownerOrScope){
   });
 };
 BANCA.commissionSummary = function(ownerOrScope){
-  const rows=BANCA.commissionRows(ownerOrScope).filter(x=>x.state==='ACCRUED');
+  const all=BANCA.commissionRows(ownerOrScope);
+  const rows=all.filter(x=>x.state==='ACCRUED');
   const amount=rows.reduce((s,x)=>s+x.amount,0);
   const base=rows.reduce((s,x)=>s+x.base,0);
-  return {amount, base, count:rows.length, rows, syncAt:(BANCA.partnerConfig||{}).syncAt||'20/07/2026 11:30'};
+  // Hợp đồng chưa có biểu KHÔNG được cộng 0 vào tổng — cộng vào là báo thiếu tiền
+  // mà nhìn không ra. Đếm riêng để UI nói được "còn n hợp đồng chưa có biểu".
+  const noRate=all.filter(x=>x.state==='NO_RATE');
+  return {amount, base, count:rows.length, rows,
+    noRateCount:noRate.length, noRateRows:noRate,
+    noRateReason:(noRate[0]||{}).noRateReason||null,
+    syncAt:(BANCA.partnerConfig||{}).syncAt||'20/07/2026 11:30'};
 };
 
 // ============================================================

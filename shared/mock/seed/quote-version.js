@@ -61,3 +61,53 @@ BANCA.quoteVersion = {
   // Premium chỉ đến từ rating strategy — chặn chỉnh tay (§8.3).
   setPremiumManual: function () { throw new Error('Không cho phép chỉnh sửa phí thủ công — phí do rating engine tính.'); }
 };
+
+// ============================================================
+// NGHĨA VỤ KHAI BÁO SỐNG LẠI  [CII IF3 ch.1 mục C3C / C3D]
+//   C3C — sửa hồ sơ giữa kỳ: "the duty is revived as if a new contract is formed"
+//   C3D — tái tục: phải kéo lại câu trả lời cũ và hỏi khách "còn đúng không"
+// Đây là cặp song song của quoteVersion.reRate: reRate lo TIỀN, cái này lo BẢN KHAI.
+// Cùng cơ chế cờ cảnh báo, cùng cách gỡ cờ, để không đẻ khái niệm mới.
+//
+// Ba mốc phải gọi markNeedsReconfirm:
+//   1. Đổi khách hàng trên handoff  → đã nối (handoffs.js changeCustomer)
+//   2. Sửa hồ sơ giữa kỳ / endorsement → nối khi làm luồng endorsement
+//   3. Tái tục                        → nối khi làm luồng tái tục
+// ============================================================
+BANCA.declaration = {
+  FLAG: 'DECLARATION_NEEDS_RECONFIRM',
+
+  needsReconfirm: function (app) {
+    app = app || {};
+    return (app.warningFlags || []).indexOf(BANCA.declaration.FLAG) >= 0
+        || (app.warnings     || []).indexOf(BANCA.declaration.FLAG) >= 0;
+  },
+
+  markNeedsReconfirm: function (app, reason) {
+    if (!app) return app;
+    app.warningFlags = app.warningFlags || [];
+    if (app.warningFlags.indexOf(BANCA.declaration.FLAG) < 0) app.warningFlags.push(BANCA.declaration.FLAG);
+    app.declarationReconfirm = {
+      required: true,
+      reason: reason || 'Dữ liệu nền của bản khai đã thay đổi',
+      raisedAt: new Date().toISOString(),
+      // Bản khai cũ trả lời trên schema nào — giữ lại để đối chiếu sau.
+      previousSchemaId: (app.declaration || {}).schemaId || app.declarationSchemaId || null
+    };
+    return app;
+  },
+
+  // Khách đã xác nhận lại → gỡ cờ. Ghi ai xác nhận, lúc nào, trên schema nào.
+  confirmed: function (app, by, schemaId) {
+    if (!app) return app;
+    app.warningFlags = (app.warningFlags || []).filter(function (w) { return w !== BANCA.declaration.FLAG; });
+    app.warnings     = (app.warnings     || []).filter(function (w) { return w !== BANCA.declaration.FLAG; });
+    app.declarationReconfirm = {
+      required: false,
+      confirmedBy: by || 'CUSTOMER',
+      confirmedAt: new Date().toISOString(),
+      schemaId: schemaId || (app.declaration || {}).schemaId || null
+    };
+    return app;
+  }
+};

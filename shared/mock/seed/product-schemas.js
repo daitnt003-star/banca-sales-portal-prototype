@@ -453,6 +453,23 @@ BANCA.evaluateUnderwriting = function(app){
   const productId = app.productId || 'motor';
   const j = BANCA.journeyFor(productId);
 
+  // ---- Hạn mức thẩm quyền cấp đơn (CPCU 520 A4, tr.4.12) -------------------
+  // Vượt hạn mức của người bán → PHẢI chuyển cấp duyệt cao hơn, kể cả khi mọi
+  // rule sản phẩm đều sạch. Đặt TRƯỚC nhánh STP: nếu đặt sau thì hồ sơ vượt
+  // thẩm quyền vẫn lọt qua đường tự động — đúng chỗ CPCU cảnh báo.
+  if(BANCA.checkBindAuthority){
+    const auth = BANCA.checkBindAuthority(app, app.owner);
+    if(auth.mustRefer){
+      return BANCA.makeRoutingResult('MANUAL_REVIEW', {
+        productId:productId, underwritingMode:'MANUAL',
+        reasons: auth.breaches.map(function(b){return b.msg;}),
+        ruleHits: auth.breaches.map(function(b){return b.code;}),
+        internalReasonCodes: auth.breaches.map(function(b){return b.code;}),
+        customerConfirmationRequired:false
+      });
+    }
+  }
+
   // ---- Health HYBRID underwriting (yêu cầu trực tiếp user; supersede "luôn manual/luôn STP") ----
   // Ca sạch → APPROVED_STP (không queue/officer/SLA). Thiếu dữ liệu/tài liệu do rule →
   // MORE_INFORMATION_REQUIRED. Chạm review rule → MANUAL_REVIEW. Hard-decline → DECLINED.

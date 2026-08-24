@@ -38,6 +38,43 @@ window.BANCA = window.BANCA || {};
       {q:'Khu vực đỗ xe thường xuyên có nguy cơ ngập?', a:(['APP-2026-109'].includes(a.id)?'Có':'Không'), flag:['APP-2026-109'].includes(a.id), note:'Có thể kích hoạt điều khoản loại trừ/thủy kích'},
       {q:'Người được bảo hiểm là chính chủ?', a:'Có — chính chủ', flag:false}
     ];
+    // ---- Bản khai (statement of fact) cho hồ sơ ĐÃ NỘP ----------------------
+    // Hồ sơ đã nộp thì về logic là khách ĐÃ khai và ĐÃ xác nhận — nếu không backfill
+    // thì cổng thanh toán chặn hết với lý do "còn N câu chưa trả lời".
+    // Suy từ CHÍNH a.declarations ở trên để text hiển thị và dữ liệu máy không lệch nhau.
+    if(BANCA.statementOfFact && BANCA.riskQuestionsFor){
+      const hasClaim = a.id==='APP-2026-105';
+      const hasFlood = a.id==='APP-2026-109';
+      const seedAnswer = {
+        claimCount:         hasClaim ? 2 : 0,
+        previousLossAmount: hasClaim ? 48000000 : 0,
+        commercialUse:      false,
+        floodExposure:      hasFlood,
+        modifiedVehicle:    false
+      };
+      a.riskAnswers = a.riskAnswers || {};
+      a.answeredBy  = a.answeredBy  || {};
+      (BANCA.riskQuestionsFor(a.productId)||[]).forEach(function(q){
+        if(!(q.code in a.riskAnswers)){
+          a.riskAnswers[q.code] = (q.code in seedAnswer) ? seedAnswer[q.code]
+            // Câu dạng cam kết (triggers:'consent') của hồ sơ ĐÃ NỘP phải là "có" —
+            // để false là nói khách đã nộp mà chưa cam kết khai trung thực.
+            : (q.triggers==='consent' ? true
+            : (q.type==='boolean' ? false : (q.type==='number' ? 0 : null)));
+        }
+        // Demo có chủ ý cả hai nguồn: hồ sơ telesales là nhân viên nhập hộ,
+        // còn lại khách tự trả lời. Đây chính là chỗ IF3 1/8–1/9 phân nhánh trách nhiệm.
+        if(!a.answeredBy[q.code]) a.answeredBy[q.code] = (a.owner==='TS-01') ? 'SELLER_ON_BEHALF' : 'CUSTOMER';
+      });
+      try{
+        BANCA.statementOfFact.confirm(a, {
+          by: (a.owner==='TS-01') ? 'CUSTOMER_VIA_OTP' : 'CUSTOMER',
+          channel: 'PORTAL', sourceSystem: 'PORTAL',
+          otp: (a.confirm&&a.confirm.otp) || 'VERIFIED'
+        });
+      }catch(e){ /* thiếu dữ liệu thì để trống — cổng sẽ chặn kèm lý do, đúng ý đồ */ }
+    }
+
     if(a.uw){
       a.uw.officer = a.uw.officer || (a.id==='APP-2026-105'?'Nguyễn Thị Thẩm':'Trần Quốc UW');
       a.uw.note = a.uw.note || (a.uw.decision==='APPROVED_WITH_LOADING'?'Tăng phí do lịch sử claim; cần khách xác nhận phí mới.': a.uw.decision==='APPROVED_WITH_EXCLUSION'?'Áp điều khoản loại trừ theo khu vực/nguy cơ.': a.uw.decision==='REJECTED'?'Ngoài khẩu vị nhận bảo hiểm.':'Yêu cầu đạt điều kiện phát hành tiêu chuẩn.');

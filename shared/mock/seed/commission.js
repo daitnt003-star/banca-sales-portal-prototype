@@ -39,7 +39,9 @@ BANCA.netCommissionBase = function(policy){
 BANCA.COMMISSION_CHANNEL_OF = {
   BANCA_INTEGRATED: 'BANCA',
   BANCA_STANDALONE: 'BANCA',
-  AGENT_BROKER:     'AGENT_BROKER',
+  AGENT_BROKER:     'AGENT_BROKER',   // tên kênh cũ, giữ để cấu hình cũ không vỡ
+  AGENT:            'AGENT',
+  BROKER:           'BROKER',
   Bancassurance:    'BANCA',
   Telesales:        'BANCA'
 };

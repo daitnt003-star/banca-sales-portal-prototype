@@ -126,6 +126,16 @@ BANCA.paymentEnableRule = function (app, opts) {
     reasons.push('Khách chưa xác nhận lại nội dung khai báo' + (dr.reason ? ' (' + dr.reason + ')' : ''));
   }
 
+  // 5c. Bản khai (statement of fact) phải được khách xác nhận (IF3 2/3 B, 2/2 A).
+  // Chỉ áp khi sản phẩm có bộ câu hỏi khai báo — không chặn oan sản phẩm chưa khai schema.
+  if (BANCA.statementOfFact && BANCA.riskQuestionsFor && app.productId) {
+    var qs = BANCA.riskQuestionsFor(app.productId) || [];
+    if (qs.length) {
+      var sofReason = BANCA.statementOfFact.blockingReason(app);
+      if (sofReason) reasons.push(sofReason);
+    }
+  }
+
   // 6. Không thanh toán 2 lần / đang có phiên chạy (§17).
   if (s.paymentStatus === 'SUCCESS') reasons.push('Yêu cầu đã thanh toán thành công');
   else if (['PENDING', 'PROCESSING'].indexOf(s.paymentStatus) >= 0) reasons.push('Đang có phiên thanh toán chờ xử lý');

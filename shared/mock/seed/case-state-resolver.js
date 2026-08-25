@@ -83,7 +83,12 @@ BANCA.caseStates = function(app){
     } else if(['PAID','ISSUED','PENDING_ISSUE'].includes(legacy)){
       payStatus='SUCCESS';
     } else if(legacy==='PENDING_PAYMENT'){
-      payStatus='PENDING';
+      // 'PENDING_PAYMENT' nghĩa là ĐANG CHỜ THU TIỀN, không đồng nghĩa "đã có
+      // phiên thanh toán đang chạy". Suy thành PENDING khi app.payment còn null
+      // sẽ khoá cổng bằng lý do "Đang có phiên thanh toán chờ xử lý" cho một
+      // phiên không tồn tại — và không có gì để huỷ hay theo dõi. Fail-open ở
+      // ĐÚNG chỗ này: chưa có phiên thì là "cần khởi tạo thanh toán".
+      payStatus = (app.payment && app.payment.status) ? 'PENDING' : 'METHOD_REQUIRED';
     } else {
       // Chưa được duyệt → payment chưa khả dụng.
       const approved = BANCA.UW_APPROVED_CLEAN.includes(uwDecision)
@@ -223,10 +228,24 @@ BANCA.deriveCaseViewState = function(app){
       paymentAccessible:false, workQueueType:'CONFIRM'});
 
   // 6. Đã xác nhận đủ, chưa khởi tạo thanh toán (payment method required)
-  if(s.paymentStatus==='METHOD_REQUIRED')
+  // §15.3 — "việc tiếp theo" phải là việc THẬT SỰ làm được. Trước đây nhánh này
+  // luôn ghi "Khởi tạo thanh toán cho khách" kể cả khi cổng đang khoá, tức là màn
+  // hình bảo người dùng làm đúng thứ duy nhất họ không bấm được, còn lý do thật
+  // thì nằm tít bên dưới. Bị khoá thì nêu ngay việc phải xử lý trước.
+  if(s.paymentStatus==='METHOD_REQUIRED'){
+    if(!canInitiatePayment){
+      var _blk = _payGate.reasons || [];
+      return R({phase:'PAYMENT_METHOD_REQUIRED', displayStatus:'Chờ thanh toán', statusTone:'wait',
+        primaryAction:A.chooseMethod, secondaryActions:[A.trackUw],
+        nextActionLabel: _blk.length
+          ? ('Cần xử lý trước khi thu tiền: ' + _blk[0] + (_blk.length > 1 ? ' (+' + (_blk.length - 1) + ' việc nữa)' : ''))
+          : 'Chưa đủ điều kiện thu tiền',
+        paymentAccessible:true, canCreatePaymentIntent:false, workQueueType:'CHOOSE_PAYMENT'});
+    }
     return R({phase:'PAYMENT_METHOD_REQUIRED', displayStatus:'Chờ thanh toán', statusTone:'info',
       primaryAction:A.chooseMethod, nextActionLabel:'Khởi tạo thanh toán cho khách',
       paymentAccessible:true, canCreatePaymentIntent:canInitiatePayment, workQueueType:'CHOOSE_PAYMENT'});
+  }
 
   // 7. Payment pending / failed / expired
   if(s.paymentStatus==='PENDING')

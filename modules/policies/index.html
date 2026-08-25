@@ -612,7 +612,10 @@ if(p.status!=='ACTIVE'){
       ${sideKv('Ngày ghi nhận hiệu lực', d.effectiveDate||pol.effectiveFrom||'—')}
       ${d._fallback?'<div class="pc-mini">Chưa có snapshot phân phối — hiển thị theo người phụ trách.</div>':''}
       <div class="pc-mini">Nhân viên phụ trách và người phục vụ là hai vai trò khác nhau; chuyển phục vụ không đổi người bán.</div></section>`; })()}
-      ${commission?`<section class="pc-card"><h2>Hoa hồng</h2>${sideKv('Hoa hồng dự kiến',`<b style="color:var(--teal-600);font-size:16px;">${BANCA.vnd(commission.amount)}</b>`)}${sideKv('Cơ sở tính HH',BANCA.vnd(commission.base))}${sideKv('Tỷ lệ',(commission.rate*100).toFixed(0)+'% · '+pol.package)}${sideKv('Trạng thái',`<span class="badge badge-ready">${commission.stateLabel}</span>`)}<div class="pc-mini">Chỉ xem · đồng bộ ${commission.syncAt}</div></section>`:''}`
+      ${commission?(commission.noRate
+        // Chưa có biểu → nói rõ LÝ DO, không hiện "0 ₫ · 0%" như thể hoa hồng bằng không (§15.3).
+        ? `<section class="pc-card"><h2>Hoa hồng</h2><div class="alert2 warn" style="margin:0;"><b>Chưa tính được hoa hồng</b><div style="margin-top:4px;font-size:12.5px;">${commission.noRateReason}</div></div>${sideKv('Cơ sở tính HH',BANCA.vnd(commission.base))}${sideKv('Kênh ghi nhận',commission.channel)}<div class="pc-mini">Liên hệ quản trị đối tác để cấu hình biểu hoa hồng cho kênh này.</div></section>`
+        : `<section class="pc-card"><h2>Hoa hồng</h2>${sideKv('Hoa hồng dự kiến',`<b style="color:var(--teal-600);font-size:16px;">${BANCA.vnd(commission.amount)}</b>`)}${sideKv('Cơ sở tính HH',BANCA.vnd(commission.base))}${sideKv('Tỷ lệ',(commission.rate*100).toFixed(0)+'% · '+pol.package)}${sideKv('Kênh ghi nhận',commission.channel)}${sideKv('Trạng thái',`<span class="badge badge-ready">${commission.stateLabel}</span>`)}<div class="pc-mini">Chỉ xem · đồng bộ ${commission.syncAt}</div></section>`):''}`
   });
 
   shell('Hợp đồng','Chi tiết hợp đồng '+pol.id,
@@ -699,7 +702,11 @@ if(p.status!=='ACTIVE'){
    const more=html=>html?`<details class="table-action-more"><summary class="btn btn-secondary btn-sm" aria-label="Các hành động khác">Khác</summary><div class="table-action-more__menu">${html}</div></details>`:'';
    if(x.isNew) return `<div class="table-action-stack"><button class="btn btn-primary btn-sm" onclick="alert('Gửi GCN cho khách (demo)')">Gửi GCN</button>${more(x.status==='ACTIVE'?claim:'')}</div>`;
    if(x.renewalStatus==='RENEWAL_DUE'){
-     const renew = x.renewalDraftId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="alert('Tạo yêu cầu tái tục (demo)')">Tái tục</button>`;
+     // Chưa có hồ sơ tái tục thì MỞ luồng tái tục thật (?renew=<id>) — trước đây
+     // chỉ alert 'demo' rồi đứng im, người dùng không đi tiếp được.
+     const renew = x.renewalDraftId
+       ? `<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`
+       : `<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?renew=${encodeURIComponent(x.id)}&new=1">Tái tục</a>`;
      return `<div class="table-action-stack">${renew}${more(x.status==='ACTIVE'?claim:'')}</div>`;
    }
    if(x.status!=='ACTIVE') return `<div class="table-action-stack">${more(`<button class="btn btn-secondary btn-sm" onclick="alert('Lý do hủy: ${(x.cancelReason||'Khách yêu cầu chấm dứt trước hạn').replace(/'/g,'')} (demo)')">Xem lý do hủy</button>`)}</div>`;

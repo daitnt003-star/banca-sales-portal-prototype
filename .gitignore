@@ -1,6 +1,7 @@
+# Ảnh chụp màn hình do bộ UAT trình duyệt tự sinh mỗi lần chạy — không theo dõi.
+# Chạy lại: node uat-browser/0X-*.js
+uat-browser/*.png
+uat-browser/trace-*.zip
+
 .DS_Store
 node_modules/
-*.log
-
-# backup do fix-design-tokens.js sinh
-*.bak

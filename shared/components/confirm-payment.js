@@ -256,6 +256,90 @@ BANCA.ui = BANCA.ui || {};
   // --- DocumentChecklist (§10 §14) — 1 checklist DÙNG CHUNG mọi bước/sản phẩm.
   // Bọc quanh BANCA.docItemHtml (DocumentItem chung). OCR KHÔNG có section riêng:
   // tài liệu đã bóc tách nằm cùng danh sách, chỉ khoá thay thế + có chip trạng thái OCR.
+  /* ============================================================
+   * BẢN KHAI — hai khối dùng CHUNG cho cả hồ sơ nháp và hồ sơ đã nộp.
+   *
+   * Đặt ở đây, KHÔNG đặt trong app-workspace.js: hai nhánh nháp/đã-nộp của
+   * file đó tách nhau bằng `return`, nên hàm khai trong nhánh nháp thì nhánh
+   * đã-nộp không thấy. Trước đó còn một lỗi nữa — hàm gán bằng
+   * `window.x = function` NẰM SAU chỗ dựng HTML, nên lúc render nó vẫn
+   * undefined và guard `window.x ? ... : ''` âm thầm trả về rỗng: khối không
+   * bao giờ hiện, không báo lỗi gì.
+   * ============================================================ */
+  function _declFmt(v) {
+    if (v === true) return 'Có';
+    if (v === false) return 'Không';
+    if (v === null || v === undefined || v === '') return '—';
+    return String(v);
+  }
+
+  // Đọc lại bản khai cho khách nghe trước khi xác nhận [CII IF3 2/4].
+  BANCA.ui.declarationReadBack = function (app) {
+    if (!BANCA.statementOfFact || !BANCA.riskQuestionsFor) return '';
+    if (!((BANCA.riskQuestionsFor((app || {}).productId) || []).length)) return '';
+    var sof = BANCA.statementOfFact.build(app);
+    var lines = sof.lines.filter(function (l) { return l.applicable; });
+    if (!lines.length) return '';
+    var rows = lines.map(function (l) {
+      return '<tr><td style="font-size:12px;">' + e(l.label) + '</td>' +
+        '<td style="font-size:12px;font-weight:600;white-space:nowrap;">' + e(_declFmt(l.answer)) + '</td>' +
+        '<td style="font-size:11px;white-space:nowrap;color:' + (l.answeredBy ? 'var(--ink-500)' : 'var(--red-600)') + ';">' +
+        e(l.answeredByLabel || 'chưa ghi ai trả lời') + '</td></tr>';
+    }).join('');
+    var missingBy = sof.unattributed.length;
+    return '<div class="card decl-readback" style="padding:16px;margin-top:12px;' +
+      (missingBy ? 'border-left:4px solid var(--red-600);' : '') + '">' +
+      '<div class="label" style="margin-bottom:6px;">Đọc lại bản khai cho khách xác nhận</div>' +
+      '<div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">' +
+      'Đây là nội dung sẽ ràng buộc hợp đồng. Đọc lại từng câu cho khách nghe trước khi ghi nhận xác nhận.</div>' +
+      '<div style="overflow-x:auto;"><table class="dtable"><thead><tr><th>Câu hỏi</th><th>Trả lời</th><th>Ai trả lời</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>' +
+      (missingBy ? '<div class="alert2 danger" style="margin-top:10px;">Còn ' + missingBy +
+        ' câu chưa ghi nhận ai trả lời — chọn ở khối "Ai trả lời các câu khai báo này?".</div>' : '') +
+      '</div>';
+  };
+
+  // Chọn NGƯỜI đưa ra câu trả lời. Hệ thống không được tự đoán [CII IF3 2/4]:
+  // khách tự khai và nhân viên nhập hộ dẫn tới hậu quả khác nhau khi tranh chấp.
+  // opts.handler — tên hàm window xử lý (nháp và đã-nộp dùng hai hàm khác nhau).
+  // opts.bare    — chỉ render hai nút, không kèm khung giải thích.
+  BANCA.ui.declarationSourcePicker = function (app, opts) {
+    opts = opts || {};
+    app = app || {};
+    if (!BANCA.riskQuestionsFor || !((BANCA.riskQuestionsFor(app.productId) || []).length)) return '';
+    var handler = opts.handler || 'setDeclarationSource';
+    var cur = app.declarationAnsweredBy || null;
+    var dis = opts.readOnly ? ' disabled' : '';
+    function b(code, label, desc) {
+      var on = cur === code;
+      return '<button type="button" class="btn ' + (on ? 'btn-primary' : 'btn-secondary') + ' btn-sm"' + dis +
+        ' onclick="' + handler + '(\'' + e(app.id) + '\',\'' + code + '\')"' +
+        // min-width cứng 210px làm nút không co được trên điện thoại → chữ mô tả
+        // tràn ra ngoài khung và đẩy cả trang. Dùng min() để nút co theo màn.
+        ' style="text-align:left;flex:1 1 210px;min-width:min(210px,100%);max-width:100%;' +
+        'display:block;white-space:normal;">' +
+        '<b>' + label + '</b><div style="font-size:11px;font-weight:400;opacity:.85;overflow-wrap:anywhere;">' +
+        desc + '</div></button>';
+    }
+    var buttons = '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      b('CUSTOMER', 'Khách tự trả lời', 'Khách trực tiếp đọc và trả lời từng câu') +
+      b('SELLER_ON_BEHALF', 'Nhân viên nhập hộ', 'Nhân viên nhập theo lời khách, đã đọc lại cho khách nghe') +
+      '</div>';
+    if (opts.bare) {
+      return '<div class="decl-source-picker" style="margin-top:12px;">' +
+        '<div class="label" style="margin-bottom:6px;">Ai đã trả lời các câu này?</div>' + buttons + '</div>';
+    }
+    return '<div class="card decl-source-picker" style="padding:14px;margin-bottom:10px;' +
+      (cur ? '' : 'border-left:4px solid var(--amber-600);') + '">' +
+      '<div class="label" style="margin-bottom:6px;">Ai trả lời các câu khai báo này? ' +
+      (cur ? '' : '<span class="badge badge-blocked">Bắt buộc</span>') + '</div>' +
+      '<div style="font-size:12px;color:var(--ink-500);margin-bottom:10px;">' +
+      'Bản khai là cơ sở để doanh nghiệp bảo hiểm chấp nhận rủi ro. Khi có tranh chấp, khách tự khai hay nhân viên nhập hộ ' +
+      'dẫn tới hậu quả khác nhau — nên phải ghi lại, không được mặc định.</div>' + buttons +
+      (cur ? '' : '<div class="alert2 warn" style="margin:10px 0 0;">Chưa chọn thì không thu được phí — bản khai không xác định được ai chịu trách nhiệm về nội dung.</div>') +
+      '</div>';
+  };
+
   BANCA.ui.documentChecklist = function (cfg) {
     cfg = cfg || {};
     var items = cfg.items || [];

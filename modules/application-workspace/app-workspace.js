@@ -85,6 +85,14 @@ if(isNew){
    sourceAdviceId:ctx.sourceAdviceId||null, sourceAdviceVersion:ctx.sourceAdviceVersion,
    adviceNeed:ctx.adviceNeed, adviceBudget:ctx.adviceBudget, adviceNote:ctx.adviceNote, adviceSessionId:ctx.adviceSessionId, leadId:ctx.leadId, campaign:ctx.campaign, leadNeed:ctx.leadNeed };
  if(ctx.sourceAdviceId && !sourceAdvice) sourceAdvice=(BANCA.adviceById&&BANCA.adviceById(ctx.sourceAdviceId))||null;
+ // TÁI TỤC = HỢP ĐỒNG MỚI, không phải gia hạn im lặng. Câu trả lời khai báo kỳ
+ // trước phải được kéo ra hỏi lại "còn đúng không" [CII IF3 1/7 mục C3D].
+ // Trước đây BANCA.startRenewal có sẵn nhưng KHÔNG chỗ nào trong giao diện gọi,
+ // nên hồ sơ tái tục kế thừa mù bản khai kỳ cũ.
+ if(app.renewalPolicyRef && BANCA.declaration && !BANCA.declaration.needsReconfirm(app)){
+  BANCA.declaration.markNeedsReconfirm(app,
+    'Tái tục — hợp đồng mới, cần rà lại câu trả lời khai báo kỳ trước (IF3 1/7 C3D)');
+ }
  // FIX (13:52): merge overlay đã patch (chọn gói/quote/risk answers…) vào draft mới —
  // trước đây app dựng literal nên mọi patchApp bị MẤT sau mỗi reload (không chọn được gói).
  const __ov = BANCA.overlay && BANCA.overlay.applications && BANCA.overlay.applications[app.id];
@@ -1114,6 +1122,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
      <span style="font-size:12px;color:var(--ink-500);">Khai báo sức khỏe cho</span> <b style="font-size:13px;">${unit.name||'—'} · ${unit.age!=null?unit.age+' tuổi':'?'} · ${unit.isChild?'bộ câu hỏi TRẺ EM':'bộ câu hỏi NGƯỜI LỚN'}</b>${inactive?' <span class="chip" style="background:#fdecec;color:var(--red-600);">Đã loại</span>':''}
     </div>` : '';
   const main = `<div class="alert2 info" style="margin-bottom:12px;">Khai báo sức khỏe theo từng người (questionnaireMode PER_MEMBER). Câu trả lời không dùng chung giữa các thành viên; đổi câu trả lời có thể kích hoạt thẩm định/phụ phí/loại trừ.</div>
+   ${BANCA.ui.declarationSourcePicker(app,{readOnly:readOnly,handler:'setDeclarationSource'})}
    ${header}${inactive?'<div class="alert2 warn">Thành viên đã bị loại khỏi yêu cầu — không cần khai báo.</div>':qHtml+branchNote}`;
   stepBody = healthWithNav(app, curUnitId, 'RISK_DECLARATION', main);
  } else if(cur.id==='RISK_DECLARATION'){
@@ -1155,7 +1164,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
     </div>
     <div class="alert2 warn" style="margin-top:10px;">Khai báo này kích hoạt referral/loading result. Nếu là hoạt động chuyên nghiệp hoặc tần suất cao, yêu cầu chuyển thẩm định.</div>
    </div>` : '';
-  stepBody = `${mgLine}${qHtml}${paBranch}
+  stepBody = `${BANCA.ui.declarationSourcePicker(app,{readOnly:readOnly,handler:'setDeclarationSource'})}${mgLine}${qHtml}${paBranch}
  <div id="firm-quote-panel" style="margin-top:6px;">${window.firmQuotePanelHtml?window.firmQuotePanelHtml(app):''}</div>`;
  } else if(cur.id==='DOCUMENTS'){
   if(app.productId==='health'){
@@ -1355,6 +1364,22 @@ if(app.submissionState==='NOT_SUBMITTED'){
     const pv = BANCA.validatePA({age:app.insuredAge, occupationClass:app.occupationClass, sumInsured:app.sumInsured, riskAnswers:app.riskAnswers, buyerIsInsured:app.buyerIsInsured});
     pv.errors.forEach(function(e){ blockers.push({t:e.msg, fix:'Sửa thông tin', step:'INSURED_PARTY'}); });
   }
+  // BẢN KHAI — hiện thành blocker NGAY TRÊN MÀN, không để bấm Nộp rồi mới alert.
+  // Phân biệt rõ hai thứ rất dễ lẫn:
+  //   · thiếu CÂU TRẢ LỜI  → phải quay lại bước Khai báo rủi ro
+  //   · thiếu NGƯỜI trả lời → xử lý ngay tại đây, không phải khai lại gì
+  // Trước đây gộp làm một và báo bằng alert "Quay lại bước Khai báo rủi ro",
+  // nên người bán vừa trả lời đủ xong lại tưởng bị bắt khai lại.
+  if(BANCA.statementOfFact && BANCA.riskQuestionsFor && (BANCA.riskQuestionsFor(app.productId)||[]).length){
+   const sofR = BANCA.statementOfFact.build(app);
+   if(sofR.unanswered.length){
+    blockers.push({t:'Bản khai còn '+sofR.unanswered.length+' câu chưa trả lời',
+      fix:'Hoàn tất khai báo', step:'RISK_DECLARATION'});
+   } else if(sofR.unattributed.length){
+    blockers.push({t:'Đã trả lời đủ — còn thiếu ghi nhận AI trả lời (khách tự khai hay nhân viên nhập hộ)',
+      fix:'Chọn ngay ở khối bên dưới', step:'REVIEW_AND_SUBMIT'});
+   }
+  }
   if(!caps.includes('can_submit')) blockers.push({t:'Bạn không có quyền nộp yêu cầu bảo hiểm sản phẩm này', fix:'', step:''});
   const missing=blockers.map(b=>b.t);
   const okData = missing.length===0;
@@ -1420,6 +1445,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
    <div class="label">Tóm tắt yêu cầu <span class="chip" style="font-size:9px;">${jrn.reviewLayout||'review'}</span></div>
    <table class="dtable"><tbody>${reviewRows}</tbody></table>
   </div>` + healthMatrix + `
+  ${BANCA.ui.declarationReadBack(app)}
+  ${(BANCA.statementOfFact && BANCA.statementOfFact.build(app).unattributed.length)
+     ? BANCA.ui.declarationSourcePicker(app,{readOnly:readOnly,handler:'setDeclarationSource'}) : ''}
   <div class="card" style="padding:16px;margin-top:12px;">
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;"><input type="checkbox" id="c1" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ.</label>
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-top:8px;"><input type="checkbox" id="c2" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Tôi (nhân viên tư vấn) xác nhận đã tư vấn đầy đủ quyền lợi, điều khoản loại trừ.</label>
@@ -1582,10 +1610,36 @@ if(app.submissionState==='NOT_SUBMITTED'){
  window.setRiskAnswer = function(id, code, val, kind){
   app.riskAnswers = app.riskAnswers || {};
   app.riskAnswers[code] = (kind==='number') ? (val===''?null:Number(val)) : val;
-  BANCA.patchApp(id, {riskAnswers: app.riskAnswers});
+  // GHI LẠI AI TRẢ LỜI. IF3 2/4 cấm "assumptive answer" — không được mặc định
+  // coi như khách tự khai. Nguồn lấy từ lựa chọn người bán khai ở đầu bước.
+  app.answeredBy = app.answeredBy || {};
+  if(app.declarationAnsweredBy) app.answeredBy[code] = app.declarationAnsweredBy;
+  BANCA.patchApp(id, {riskAnswers: app.riskAnswers, answeredBy: app.answeredBy});
   if(app.productId==='pa' && code==='hazardousActivity'){ location.reload(); return; }
   const panel = document.getElementById('firm-quote-panel');
   if(panel && window.firmQuotePanelHtml) panel.innerHTML = window.firmQuotePanelHtml(app);
+ };
+ // AI TRẢ LỜI BẢN KHAI — người bán khai rõ, hệ thống KHÔNG tự đoán (IF3 2/4).
+ // Chọn xong thì áp cho cả những câu đã trả lời trước đó: đây là lời khai của
+ // người bán về nguồn câu trả lời, không phải hệ thống tự suy.
+ window.setDeclarationSource = function(id, src){
+  const patch = {declarationAnsweredBy: src};
+  app.declarationAnsweredBy = src;
+  if(BANCA.statementOfFact && BANCA.statementOfFact.perMember(app) && Array.isArray(app.insuredMembers)){
+   const members = app.insuredMembers.map(function(m){
+    const c = Object.assign({}, m);
+    c.answeredBy = Object.assign({}, c.answeredBy||{});
+    Object.keys(c.riskAnswers||{}).forEach(function(k){ c.answeredBy[k] = src; });
+    return c;
+   });
+   app.insuredMembers = members; patch.insuredMembers = members;
+  } else {
+   app.answeredBy = Object.assign({}, app.answeredBy||{});
+   Object.keys(app.riskAnswers||{}).forEach(function(k){ app.answeredBy[k] = src; });
+   patch.answeredBy = app.answeredBy;
+  }
+  BANCA.patchApp(id, patch);
+  location.href='?id='+id+'&step=RISK_DECLARATION'+(qs.get('unit')?'&unit='+qs.get('unit'):'')+(isNew?'&new=1':'');
  };
  // Panel "Báo giá chính thức" — riskAnswers vào rating, hiển thị chênh lệch (structured).
  window.firmQuotePanelHtml = function(a){
@@ -1773,7 +1827,12 @@ if(app.submissionState==='NOT_SUBMITTED'){
  };
 
  window.healthUnitSetRisk = function(id, unitId, code, val, kind){
-  _healthMapUnit(id, unitId, function(m){ m.riskAnswers=m.riskAnswers||{}; m.riskAnswers[code]=(kind==='bool')?val:(val); }, false, true);
+  _healthMapUnit(id, unitId, function(m){
+    m.riskAnswers=m.riskAnswers||{}; m.riskAnswers[code]=(kind==='bool')?val:(val);
+    // Sức khoẻ khai theo TỪNG NGƯỜI ⇒ quy kết cũng theo từng người (IF3 2/4).
+    m.answeredBy=m.answeredBy||{};
+    if(app.declarationAnsweredBy) m.answeredBy[code]=app.declarationAnsweredBy;
+  }, false, true);
   // branchOn / eligibility có thể đổi hiển thị → reload nhẹ để cập nhật navigator + nhánh phụ.
   location.href='?id='+id+'&step=RISK_DECLARATION&unit='+unitId+(isNew?'&new=1':'');
  };
@@ -1921,6 +1980,25 @@ if(app.submissionState==='NOT_SUBMITTED'){
   </tbody></table></div>`;
  };
  window.submitApp = function(id){
+  // Ô tick "Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ" phải để lại
+  // BẢN GHI kiểm toán được, không chỉ là một cái tick rồi bay mất (IF3 2/3 B).
+  // Chặn ở đây — trước khi nộp — thay vì để lòi ra ở bước thu tiền.
+  if(BANCA.statementOfFact && BANCA.riskQuestionsFor && (BANCA.riskQuestionsFor(app.productId)||[]).length){
+   try{
+    BANCA.statementOfFact.confirm(app, {by: app.declarationAnsweredBy || null, channel:'PORTAL', sourceSystem:'PORTAL'});
+    BANCA.patchApp(id, {statementOfFact: app.statementOfFact});
+   }catch(e){
+    // Chỉ còn là lưới an toàn — blocker ở bước Rà soát đã chặn trước đó.
+    // Thiếu NGƯỜI trả lời thì giữ nguyên tại bước Rà soát (có sẵn khối chọn);
+    // chỉ khi thiếu CÂU TRẢ LỜI mới đưa về bước Khai báo rủi ro.
+    var _needAnswers = /chưa trả lời/.test(e.message);
+    alert(_needAnswers
+      ? ('Chưa nộp được — bản khai còn câu chưa trả lời:\n\n' + e.message)
+      : ('Chưa nộp được — các câu ĐÃ trả lời đủ, chỉ còn thiếu ghi nhận AI trả lời:\n\n'
+         + e.message + '\n\nChọn "Khách tự trả lời" hoặc "Nhân viên nhập hộ" ở khối ngay bên dưới. Không phải khai lại câu nào.'));
+    location.href='?id='+id+'&step='+(_needAnswers?'RISK_DECLARATION':'REVIEW_AND_SUBMIT')+(isNew?'&new=1':''); return;
+   }
+  }
   // P0.4/P0.6 — Decision router sau submit + KHÔNG ngắt hành trình.
   // UI CHỈ đọc ApplicationRoutingResult, không tự suy luận theo productId.
   if(app.productId==='pa'){
@@ -1958,6 +2036,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
         paymentStatus:'METHOD_REQUIRED', policyStatus:'NOT_STARTED',
         insuredMembers:members, routing: BANCA.makeRoutingResult('APPROVED_FOR_BIND',{reasons:['Mọi thành viên active đủ điều kiện phát hành.']}),
         stpDecision: stpH.error?null:stpH, payment:null, submittedAt:now3, premium:premiumH, sla:null});
+      BANCA.patchApp(id, (BANCA.quoteVersion?BANCA.quoteVersion.freezeOnSubmit(app,premiumH):{}));
       location.href='?id='+id+'&tab=uw&routed=1'; return;
     }
     BANCA.patchApp(id, {submissionState:'SUBMITTED', status:'PENDING_UW',
@@ -1965,6 +2044,7 @@ if(app.submissionState==='NOT_SUBMITTED'){
       insuredMembers:members,
       routing: BANCA.makeRoutingResult('UW_REQUIRED',{reasons:['Có thành viên cần thẩm định sức khỏe — trạng thái tổng tính theo từng người.']}),
       submittedAt:now3, premium:premiumH, sla:'2026-07-25 17:00', todo:'Chờ kết quả thẩm định theo thành viên'});
+    BANCA.patchApp(id, (BANCA.quoteVersion?BANCA.quoteVersion.freezeOnSubmit(app,premiumH):{}));
     location.href='?id='+id+'&tab=uw&routed=1'; return;
   }
   const routing = BANCA.evaluateUnderwriting({
@@ -2003,18 +2083,35 @@ if(app.submissionState==='NOT_SUBMITTED'){
       payment: null,                     // chưa có payment intent
       submittedAt: now2, premium: premium
     });
+    // Chốt phiên báo giá lúc nộp — nếu không, cổng §4 "phiên chưa duyệt" nằm chết.
+    BANCA.patchApp(id, (BANCA.quoteVersion?BANCA.quoteVersion.freezeOnSubmit(app,premium):{}));
     location.href = '?id='+id+'&tab=uw&routed=1';
     return;
   }
 
-  BANCA.patchApp(id, {
+  // Nhánh KHÔNG STP trước đây chỉ ghi mỗi `status`, bỏ trống underwritingStatus/
+  // Decision/paymentStatus. Resolver phải đoán từ status cũ, và với
+  // APPROVED_FOR_BIND (status 'PENDING_PAYMENT') nó suy ra:
+  //   uw = NOT_STARTED           → cổng báo "Hồ sơ chưa được thẩm định"
+  //   pay = PENDING              → cổng báo "Đang có phiên thanh toán chờ xử lý"
+  // trong khi app.payment còn null. Hồ sơ xe vừa nộp là kẹt cứng: cổng khoá
+  // bằng hai lý do mâu thuẫn nhau, không màn hình nào gỡ được.
+  // Ghi ĐỦ trạng thái ngay tại nguồn — cùng cách nhánh STP vẫn làm.
+  const _R = {
+    APPROVED_FOR_BIND:     {status:'PAYMENT_METHOD_REQUIRED', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED',  paymentStatus:'METHOD_REQUIRED', policyStatus:'NOT_STARTED'},
+    UW_REQUIRED:           {status:'PENDING_UW',              underwritingStatus:'PENDING', underwritingDecision:'NONE',      paymentStatus:'NOT_AVAILABLE',   policyStatus:'NOT_STARTED'},
+    NEED_MORE_INFORMATION: {status:'NEED_MORE_INFO',          underwritingStatus:'NEED_MORE_INFORMATION', underwritingDecision:'NONE', paymentStatus:'NOT_AVAILABLE', policyStatus:'NOT_STARTED'},
+    REJECTED:              {status:'REJECTED',                underwritingStatus:'DECIDED', underwritingDecision:'DECLINED',  paymentStatus:'NOT_AVAILABLE',   policyStatus:'NOT_STARTED'}
+  }[routing.code] || {status: routing.appStatus};
+  BANCA.patchApp(id, Object.assign({
     submissionState:'SUBMITTED',
-    status: routing.appStatus,
+    applicationStatus: routing.code==='REJECTED' ? 'COMPLETED' : 'PROCESSING',
     routing: routing,                       // lưu để tracking mode đọc lại
     submittedAt: now2,
     premium: premium,
-    sla:'2026-07-24'
-  });
+    sla: routing.code==='UW_REQUIRED' ? '2026-07-24' : null
+  }, _R));
+  BANCA.patchApp(id, (BANCA.quoteVersion?BANCA.quoteVersion.freezeOnSubmit(app,premium):{}));
   // Continuity: mở đúng bước tiếp theo TRONG cùng workspace (không về danh sách).
   const tabByStage = {PAYMENT:'confirmpay', UNDERWRITING:'uw', REVIEW_AND_SUBMIT:'supplement', null:'overview'};
   const tab = tabByStage[routing.nextStage] || 'overview';
@@ -2155,6 +2252,17 @@ function getSubmittedCaseActions(){
   // chooseMethod/trackPay/retryPay → thẳng sub-tab PAYMENT (nơi có nút); confirm → sub-tab confirm.
   const t=(act.key==='chooseMethod'||act.key==='trackPay'||act.key==='retryPay')?'payment':(act.key==='confirm'?'confirm':tab);
   const stage=LEGACY_TAB_STAGE[t]||latestEnabledSubmittedStage();
+  // Cổng đang khoá thì nút KHÔNG được ghi "Khởi tạo thanh toán" — nó dẫn tới màn
+  // thanh toán để đọc lý do, chứ không thu được tiền. Nói đúng việc nó làm (§15.3).
+  if(act.key==='chooseMethod' && caseView.canInitiatePayment===false){
+   return `<a class="btn btn-secondary btn-sm" href="?id=${app.id}&stage=${stage}">Xem việc cần xử lý</a>`;
+  }
+  // Đang ĐỨNG SẴN ở bước đích thì liên kết này không đưa đi đâu cả — bấm vào
+  // tưởng là làm việc gì đó nhưng trang y nguyên. Điều khiển thật nằm trong thân
+  // bước; đưa người dùng xuống đó thay vì để họ bấm vào khoảng không (§15.3).
+  if(stage === activeSubmittedStage){
+   return `<button type="button" class="btn ${cls} btn-sm" onclick="(document.querySelector('.submitted-content-main')||document.body).scrollIntoView({behavior:'smooth',block:'start'})">${act.label} ↓</button>`;
+  }
   return `<a class="btn ${cls} btn-sm" href="?id=${app.id}&stage=${stage}">${act.label}</a>`;
  };
  // Hợp đồng đã phát hành: gộp action ở header — "Xem hợp đồng" là hyperlink mở chi tiết hợp đồng,
@@ -2199,7 +2307,7 @@ const CONFIRMPAY_ALIASES=['confirmpay','confirm','payment','comm'];
 // P2-3: SLA countdown màu theo mức khẩn (mốc demo NOW = 2026-07-20 15:30)
 function slaHtml(sla){
  if(!sla) return '—';
- const now=new Date('2026-07-20T15:30:00'), d=new Date(sla.replace(' ','T'));
+ const now=BANCA.now?BANCA.now():new Date('2026-07-20T15:30:00'), d=new Date(sla.replace(' ','T'));
  const hrs=(d-now)/3600000;
  const color=hrs<0?'var(--red-600)':hrs<=24?'var(--red-600)':hrs<=72?'var(--amber-600)':'var(--teal-600)';
  const txt=hrs<0?'QUÁ HẠN':hrs<=24?('còn '+Math.round(hrs)+'h'):('còn '+Math.round(hrs/24)+' ngày');
@@ -2547,8 +2655,127 @@ function cpHistoryInner(){
 }
 // §9.3 — Motor và Health dùng CHUNG ConfirmationPaymentPanel; thứ tự & đánh số
 // do component quy định, trang chỉ cung cấp nội dung từng phần.
+// ------------------------------------------------------------------
+// BẢN KHAI CHƯA XONG — KHỐI XỬ LÝ NGAY TẠI MÀN THANH TOÁN.
+//
+// Hồ sơ ĐÃ NỘP chỉ còn 4 bước (created/underwriting/confirmation-payment/policy)
+// — không còn bước "Khai báo rủi ro". Nên hồ sơ nộp TRƯỚC khi có phần ghi nhận
+// "ai trả lời" sẽ bị khoá thu phí mà KHÔNG có chỗ nào gỡ: ngõ cụt cứng.
+// Lý do chặn phải đi kèm PHƯƠNG TIỆN gỡ, ngay trên màn hình đang chặn (§15.3).
+//
+// KHÔNG tự điền "khách đã trả lời" cho hồ sơ cũ — đó đúng là "assumptive answer"
+// mà IF3 2/4 cấm. Phải HỎI người bán, không được đoán hộ.
+function declarationFixPanel(a){
+ if(!BANCA.statementOfFact || !BANCA.riskQuestionsFor) return '';
+ if(!(BANCA.riskQuestionsFor(a.productId)||[]).length) return '';
+ const st = BANCA.statementOfFact.status(a);
+ const needsRe = BANCA.declaration && BANCA.declaration.needsReconfirm(a);
+ if(st === 'CONFIRMED' && !needsRe) return '';
+ // Cờ "cần xác nhận lại khai báo" (đổi khách hàng · sửa giữa kỳ · TÁI TỤC) khoá
+ // cổng thu phí nhưng trước đây KHÔNG màn hình nào gọi BANCA.declaration.confirmed
+ // để gỡ — bật lên là chặn vĩnh viễn. Cho gỡ ngay tại đây, sau khi đọc lại cho khách.
+ if(st === 'CONFIRMED' && needsRe){
+  const dr = a.declarationReconfirm || {};
+  return `<div class="card" style="padding:16px;margin-bottom:14px;border-left:4px solid var(--amber-600);">
+    <div style="font-weight:700;color:var(--amber-600);font-size:14px;">Cần khách xác nhận LẠI nội dung khai báo</div>
+    <div style="font-size:12px;color:var(--ink-500);margin-top:4px;line-height:1.7;">
+      ${dr.reason || 'Dữ liệu nền của bản khai đã thay đổi'}.
+      Nội dung khai báo cũ không tự động dùng lại được — đọc lại cho khách nghe rồi ghi nhận xác nhận.
+    </div>
+    ${BANCA.ui.declarationReadBack(a)}
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary btn-sm" ${readOnly?'disabled':''} onclick="submittedReconfirmDeclaration('${a.id}')">
+        Khách xác nhận lại nội dung khai báo</button>
+    </div>
+   </div>`;
+ }
+ const sof = BANCA.statementOfFact.build(a);
+ const answered = sof.lines.filter(function(l){return l.applicable && l.answered;}).length;
+ const total    = sof.lines.filter(function(l){return l.applicable;}).length;
+ const needSrc  = sof.unattributed.length > 0;
+ const needAns  = sof.unanswered.length > 0;
+
+ // Nói rõ đang thiếu GÌ — "chưa ghi nhận ai trả lời" rất dễ đọc nhầm thành
+ // "chưa trả lời", nhất là khi người bán vừa trả lời xong ở bước tạo bản chào.
+ let head, why;
+ if(needAns){
+  head = 'Bản khai còn ' + sof.unanswered.length + '/' + total + ' câu chưa trả lời';
+  why  = 'Cần quay lại hoàn tất nội dung khai báo.';
+ } else if(needSrc){
+  head = 'Đã trả lời đủ ' + answered + '/' + total + ' câu — còn thiếu MỘT thông tin: ai đã trả lời';
+  why  = 'Nội dung khai báo không thiếu gì. Thứ chưa có là ghi nhận <b>người đưa ra câu trả lời</b>: '
+       + 'khách tự khai, hay nhân viên nhập hộ theo lời khách. Khi có tranh chấp về khai báo, hai trường hợp này '
+       + 'dẫn tới hậu quả khác nhau, nên không được để trống và cũng không được đoán hộ.';
+ } else if(st === 'STALE'){
+  head = 'Nội dung khai báo đã thay đổi sau khi khách xác nhận';
+  why  = 'Cần đọc lại nội dung mới cho khách và xác nhận lại.';
+ } else {
+  head = 'Khách chưa xác nhận nội dung bản khai';
+  why  = 'Đọc lại các câu dưới đây cho khách nghe, rồi ghi nhận xác nhận.';
+ }
+
+ const cur = a.declarationAnsweredBy || null;
+ const srcPart = needSrc
+   ? BANCA.ui.declarationSourcePicker(a,{readOnly:readOnly, handler:'submittedSetDeclarationSource', bare:true})
+   : '';
+ const confirmPart = (!needSrc && !needAns) ? `<div style="margin-top:12px;">
+   <button class="btn btn-primary btn-sm" ${readOnly?'disabled':''} onclick="submittedConfirmDeclaration('${a.id}')">
+    Khách xác nhận nội dung bản khai</button>
+   <div style="font-size:11px;color:var(--ink-500);margin-top:6px;">Chỉ bấm sau khi đã đọc lại đầy đủ cho khách nghe (IF3 2/4).</div>
+  </div>` : '';
+ const backPart = needAns ? `<div style="margin-top:12px;"><span style="font-size:12px;color:var(--ink-500);">
+   Nội dung khai báo thuộc hồ sơ đã nộp — liên hệ hỗ trợ để bổ sung.</span></div>` : '';
+
+ return `<div class="card" style="padding:16px;margin-bottom:14px;border-left:4px solid var(--amber-600);">
+   <div style="font-weight:700;color:var(--amber-600);font-size:14px;">Bản khai chưa hoàn tất — chưa thu được phí</div>
+   <div style="font-size:13px;color:var(--ink-900);font-weight:600;margin-top:6px;">${head}</div>
+   <div style="font-size:12px;color:var(--ink-500);margin-top:4px;line-height:1.7;">${why}</div>
+   ${BANCA.ui.declarationReadBack(a)}
+   ${srcPart}${confirmPart}${backPart}
+  </div>`;
+}
+// Ghi nhận nguồn trả lời cho hồ sơ ĐÃ NỘP (không sửa nội dung câu trả lời).
+window.submittedSetDeclarationSource = function(id, src){
+ const a = BANCA.appById(id) || app;
+ const patch = { declarationAnsweredBy: src };
+ if(BANCA.statementOfFact.perMember(a) && Array.isArray(a.insuredMembers)){
+  patch.insuredMembers = a.insuredMembers.map(function(m){
+   const c = Object.assign({}, m);
+   c.answeredBy = Object.assign({}, c.answeredBy||{});
+   Object.keys(c.riskAnswers||{}).forEach(function(k){ if(!c.answeredBy[k]) c.answeredBy[k] = src; });
+   return c;
+  });
+ } else {
+  const by = Object.assign({}, a.answeredBy||{});
+  Object.keys(a.riskAnswers||{}).forEach(function(k){ if(!by[k]) by[k] = src; });
+  patch.answeredBy = by;
+ }
+ BANCA.patchApp(id, patch);
+ location.href='?id='+id+'&stage=confirmation-payment';
+};
+// Khách xác nhận LẠI sau khi bản khai bị đánh dấu cần rà lại (IF3 1/7 C3C/C3D).
+window.submittedReconfirmDeclaration = function(id){
+ const a = BANCA.appById(id) || app;
+ const schemaId = (BANCA.journeyFor(a.productId)||{}).declarationSchemaId || null;
+ BANCA.declaration.confirmed(a, a.declarationAnsweredBy || 'CUSTOMER', schemaId);
+ // Bản khai cũng phải đóng dấu lại theo nội dung hiện tại, không giữ hash cũ.
+ try{ BANCA.statementOfFact.confirm(a, { by: a.declarationAnsweredBy || null, channel:'PORTAL' }); }catch(e){}
+ BANCA.patchApp(id, { warningFlags:a.warningFlags||[], warnings:a.warnings||[],
+   declarationReconfirm:a.declarationReconfirm, statementOfFact:a.statementOfFact });
+ location.href='?id='+id+'&stage=confirmation-payment';
+};
+// Ghi nhận khách đã xác nhận nội dung bản khai.
+window.submittedConfirmDeclaration = function(id){
+ const a = BANCA.appById(id) || app;
+ try{
+  BANCA.statementOfFact.confirm(a, { by: a.declarationAnsweredBy || null, channel:'PORTAL', sourceSystem:'PORTAL' });
+  BANCA.patchApp(id, { statementOfFact: a.statementOfFact });
+ }catch(e){ alert('Chưa ghi nhận được: ' + e.message); return; }
+ location.href='?id='+id+'&stage=confirmation-payment';
+};
+
 function renderConfirmPay(){
- return BANCA.ui.confirmationPaymentPanel(app, {
+ return declarationFixPanel(app) + BANCA.ui.confirmationPaymentPanel(app, {
    confirmHtml:       cpConfirmInner(),
    feeHtml:           cpFeeInner(),
    methodsHtml:       cpMethodsInner(),
@@ -2937,7 +3164,10 @@ if(activeTab==='overview'){
    </div>
   </div>`;
  body = (app.policyId && caseView.states.policyStatus==='ISSUED')? issuedHead + gcnPanel(app)+`
- ${BANCA.commissionVisible('policy')?(()=>{const pol=BANCA.policyById(app.policyId); const cm=pol?BANCA.commissionOfPolicy(pol):null; return cm?`<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--teal-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>${BANCA.vnd(cm.amount)}</b> · trạng thái ${cm.stateLabel} · cơ sở tính HH ${BANCA.vnd(cm.base)} · tỷ lệ ${(cm.rate*100).toFixed(0)}%</div><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Read-only · cập nhật theo sync ${cm.syncAt}; clawback/đối soát xử lý ở màn admin đối tác.</div></div>`:''})():''}
+ ${BANCA.commissionVisible('policy')?(()=>{const pol=BANCA.policyById(app.policyId); const cm=pol?BANCA.commissionOfPolicy(pol):null; if(!cm) return '';
+   // Chưa có biểu → hiện lý do, không hiện "0 ₫ · 0%" (§15.3: lý do phải thành chữ).
+   if(cm.noRate) return `<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--amber-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>Chưa tính được</b> — ${cm.noRateReason}</div><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Kênh ghi nhận: ${cm.channel} · cơ sở tính HH ${BANCA.vnd(cm.base)}. Cấu hình biểu ở màn admin đối tác.</div></div>`;
+   return `<div class="card" style="padding:14px;margin-top:12px;border-left:3px solid var(--teal-600);"><div class="label">Hoa hồng dự kiến</div><div style="font-size:13px;color:var(--ink-700);margin-top:4px;"><b>${BANCA.vnd(cm.amount)}</b> · trạng thái ${cm.stateLabel} · cơ sở tính HH ${BANCA.vnd(cm.base)} · tỷ lệ ${(cm.rate*100).toFixed(0)}% · kênh ${cm.channel}</div><div style="font-size:11px;color:var(--ink-300);margin-top:2px;">Read-only · cập nhật theo sync ${cm.syncAt}; clawback/đối soát xử lý ở màn admin đối tác.</div></div>`;})():''}
  ` : (()=>{
    const ck=(done,label)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;"><span style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:${done?'var(--teal-600)':'var(--line)'};color:${done?'#fff':'var(--ink-500)'};">${done?'✓':'○'}</span><span style="${done?'':'color:var(--ink-500);'}">${label}</span></div>`;
    const uwOk = !!app.uw && !['REJECTED'].includes(st);
@@ -3264,6 +3494,10 @@ window.simulateUw = function(decision){
       condition:(uw.flags.conditions||[]).join(' '),
       reason:'Chấp thuận có điều kiện theo yếu tố rủi ro khai báo.',
       newPremium:newPremium}});
+ // Phụ phí sau thẩm định LÀ thay đổi phí ⇒ phiên báo giá cũ hết giá trị, phải để
+ // khách xác nhận mức phí mới rồi mới thu tiền (§8.3 + §9.2).
+ if(BANCA.quoteVersion&&BANCA.quoteVersion.reRateFields)
+  BANCA.patchApp(app.id, BANCA.quoteVersion.reRateFields(BANCA.appById(app.id)||app, newPremium, 'Phụ phí sau thẩm định'));
  alert('Kết quả: DUYỆT CÓ ĐIỀU KIỆN (demo). Phí điều chỉnh '+BANCA.vnd(newPremium)+' — cần gửi khách xác nhận trước khi thanh toán.');
  location.href='?id='+app.id+'&tab=uw';
 };
@@ -3271,6 +3505,9 @@ window.simulateUw = function(decision){
 window.simConfirm = function(){
  BANCA.patchApp(app.id,{status:'PAYMENT_METHOD_REQUIRED',todo:'Khởi tạo thanh toán',updatedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5),
   confirm:Object.assign({},app.confirm||{},{otp:'VERIFIED',confirmedAt:'2026-07-23 '+new Date().toTimeString().slice(0,5)})});
+ // Khách đã đồng ý mức phí/điều kiện mới → duyệt phiên báo giá hiện tại.
+ if(BANCA.quoteVersion&&BANCA.quoteVersion.approveFields)
+  BANCA.patchApp(app.id, BANCA.quoteVersion.approveFields(BANCA.appById(app.id)||app));
  alert('Khách đã xác nhận điều kiện (demo) → chọn cách thanh toán.');
  location.href='?id='+app.id+'&tab=payment';
 };
@@ -3456,6 +3693,10 @@ window.settlePayment = function(result){
    : [certNo];
  const bankCallback = BANCA.makeBankCallback ? BANCA.makeBankCallback({app:Object.assign({},app,{policyId:polId,payment:pay}), policyNumber:polId, certificateNumbers:certNos, issueStatus:'ISSUED', effectiveFrom:effFrom, effectiveTo:effTo, paymentStatus:'SUCCESS'}) : null;
  BANCA.patchApp(app.id,{status:'ISSUED',policyStatus:'ISSUED',policyId:polId,bankCallback:bankCallback,todo:'Xem hợp đồng',updatedAt:now});
+ // Giấy chứng nhận TẠM THỜI bị thay thế khi đơn chính thức được cấp
+ // [CII IF3 2/9–2/10 mục D2]. Để nó ACTIVE song song với hợp đồng là hai bằng
+ // chứng bảo hiểm cùng hiệu lực cho một rủi ro.
+ if(BANCA.supersedeCoverNote) BANCA.supersedeCoverNote(app.id, polId);
  location.href='?id='+app.id+'&tab=policy';
 };
 // §IX — thử phát hành lại (payment giữ SUCCESS, không thu lại tiền).
@@ -3480,6 +3721,7 @@ window.retryIssue = function(){
  } : {};
  const quoteRef = BANCA.policyQuoteRef ? BANCA.policyQuoteRef(app) : {};
  BANCA.patchApp(app.id,{status:'ISSUED',policyStatus:'ISSUED',policyId:polId,todo:'Xem hợp đồng',updatedAt:now});
+ if(BANCA.supersedeCoverNote) BANCA.supersedeCoverNote(app.id, polId);
  if(BANCA.addPolicyDemo) BANCA.addPolicyDemo(Object.assign({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:app.payment.amount,issueDate:'2026-07-23',effectiveFrom:effFrom,effectiveTo:effTo,status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:(app.productId==='pa'||app.productId==='health')?null:(app.vehicle||{}),payment:Object.assign({},app.payment),billing:[]}, quoteRef, paPolicyFields, healthPolicyFields));
  location.href='?id='+app.id+'&tab=policy';
 };
@@ -3510,49 +3752,9 @@ window.withdrawConfirm = function(id, btn){
    <button class="btn btn-primary btn-sm" onclick="alert('Tạo bản nháp mới từ snapshot (demo)')">Tạo bản nháp mới</button>
  </div>`;
 };
-window.payDemo = function(method){
- // §10 — chống thanh toán trùng (idempotency): đã SUCCESS/ISSUED thì không cho thanh toán lại.
- if(app.status==='ISSUED' || (app.payment && app.payment.status==='SUCCESS')){
-  alert('Yêu cầu đã thanh toán/đã phát hành — không thể thanh toán lại (chống trùng).'); return;
- }
- // §10 — chỉ cho thanh toán khi đủ điều kiện (APPROVED_FOR_BIND / đã duyệt). Nhân viên tư vấn không tự đánh dấu.
- if(!['PENDING_PAYMENT','PAID'].includes(app.status)){
-  alert('Chưa đủ điều kiện thanh toán — yêu cầu phải được duyệt phát hành trước.'); return;
- }
- const amount=(app.uw&&app.uw.newPremium)||app.premium;
- if(method==='QR'){
-  const polId=BANCA.genPolicyNo?BANCA.genPolicyNo(app.productId):('JB-POL-2026-0'+Math.floor(Math.random()*900+100));
-  const certNo=BANCA.genCertNo?BANCA.genCertNo(app.productId):('CERT-'+polId.slice(7));
-  BANCA.patchApp(app.id,{status:'ISSUED',policyId:polId,todo:'Xem hợp đồng',updatedAt:'2026-07-20 15:40',
-   payment:{method,reference:'PAY-2026-'+Math.floor(Math.random()*9000+1000),amount,status:'SUCCESS',paidAt:'2026-07-20 15:40',txnRef:'TXN-'+Math.floor(Math.random()*90000+10000)}});
-  BANCA.addPolicyDemo({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:amount,issueDate:'2026-07-20',effectiveFrom:'2026-07-20',effectiveTo:'2027-07-19',status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:app.vehicle||{},billing:[{date:'2026-07-20',amount,method,ref:'TXN-demo',status:'SUCCESS'}]});
-  location.href='?id='+app.id+'&tab=policy';
- } else if(method==='CARD'){
-  BANCA.patchApp(app.id,{updatedAt:'2026-07-20 15:40',payment:{method,reference:'PAY-2026-'+Math.floor(Math.random()*9000+1000),amount,status:'FAILED'}});
-  alert('❌ Thanh toán thẻ thất bại (demo scenario) — bấm "Thử lại (Retry)" để thanh toán thành công.');
-  location.reload();
- } else {
-  BANCA.patchApp(app.id,{updatedAt:'2026-07-20 15:40',payment:{method,reference:'PAY-2026-'+Math.floor(Math.random()*9000+1000),amount,status:'TIMEOUT'}});
-  alert('⏱ Chuyển khoản quá thời gian chờ (demo scenario) — có thể Retry.');
-  location.reload();
- }
-};
-window.sendSms = function(){
- const cur=((BANCA.overlay.applications&&BANCA.overlay.applications[app.id])||{}).__smsLog||[];
- const now='2026-07-20 '+new Date().toTimeString().slice(0,5);
- BANCA.patchApp(app.id,{__smsLog:[...cur,now]});
- location.reload();
-};
-window.payRetry = function(){
- if(app.status==='ISSUED' || (app.payment && app.payment.status==='SUCCESS')){
-  alert('Yêu cầu đã thanh toán/đã phát hành — không thể thanh toán lại (chống trùng).'); return;
- }
- const amount=(app.uw&&app.uw.newPremium)||app.premium;
- const polId=BANCA.genPolicyNo?BANCA.genPolicyNo(app.productId):('JB-POL-2026-0'+Math.floor(Math.random()*900+100));
- const certNo=BANCA.genCertNo?BANCA.genCertNo(app.productId):('CERT-'+polId.slice(7));
- BANCA.patchApp(app.id,{status:'ISSUED',policyId:polId,todo:'Xem hợp đồng',updatedAt:'2026-07-20 15:45',
-  payment:{status:'SUCCESS',paidAt:'2026-07-20 15:45',txnRef:'TXN-'+Math.floor(Math.random()*90000+10000)}});
- BANCA.addPolicyDemo({id:polId,certificate:certNo,owner:app.owner,customerId:app.customerId,productName:app.productName,package:app.package,premium:amount,issueDate:'2026-07-20',effectiveFrom:'2026-07-20',effectiveTo:'2027-07-19',status:'ACTIVE',renewalStatus:null,isNew:true,appId:app.id,vehicle:app.vehicle||{},billing:[{date:'2026-07-20',amount,method:'CARD',ref:'TXN-retry',status:'SUCCESS'}]});
- location.href='?id='+app.id+'&tab=policy';
-};
+// GỠ BỎ 2026-08-24 — payDemo()/payRetry() là mã chết: grep toàn repo không nút nào
+// gọi tới. Nguy hiểm ở chỗ cả hai KHÔNG đi qua BANCA.paymentEnableRule mà ghi thẳng
+// status:'ISSUED' + tạo hợp đồng. Nối nhầm một nút vào là vô hiệu toàn bộ cổng kiểm
+// soát (thẩm định · xác nhận khách · bản khai · phiên báo giá). Đường thanh toán
+// đang dùng là openPayFlow → createPaymentIntent → settlePayment.
 })();

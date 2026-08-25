@@ -60,7 +60,7 @@ BANCA.nextActor = function (app) {
 // SLA
 BANCA.slaHours = function (app) {
   if (!app || !app.sla) return null;
-  return (new Date(String(app.sla).replace(' ', 'T')) - new Date('2026-07-20T15:30:00')) / 3600000;
+  return (new Date(String(app.sla).replace(' ', 'T')) - (BANCA.now ? BANCA.now() : new Date('2026-07-20T15:30:00'))) / 3600000;
 };
 BANCA.isSlaSoon = function (app, h) { var x = BANCA.slaHours(app); return x != null && x <= (h || 24); };
 BANCA.isSlaOver = function (app) { var x = BANCA.slaHours(app); return x != null && x < 0; };

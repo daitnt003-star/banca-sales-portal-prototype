@@ -88,6 +88,8 @@ BANCA.claimTypesFor = function (productId) {
 // ============================================================
 BANCA.POST_SALE_KEY = 'banca_post_sale';
 // Nhãn thời gian dùng chung cho các bản ghi tạo tại portal (YYYY-MM-DD HH:MM).
+// Nhãn thời gian lấy từ đồng hồ demo dùng chung (demo-clock.js). Giữ fallback
+// phòng khi file này được require lẻ trong test.
 BANCA.nowLabel = BANCA.nowLabel || function () {
   var d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());

@@ -12,6 +12,58 @@ window.BANCA = window.BANCA || {};
 BANCA.PRICING_SOURCE = 'DEMO_TARIFF';
 
 /* =========================================================
+ * PHẦN KHÁCH TỰ CHỊU — HAI CƠ CHẾ KHÁC HẲN NHAU  [CII IF3 3/13]
+ *
+ * Khai ra ở đây kể cả cơ chế CHƯA dùng, để không ai lặp lại lỗi đã có tiền lệ:
+ * hệ demo BMI có RA04 "khấu trừ" chạy đủ công thức, còn RA03 "miễn thường"
+ * bị GÁN CỨNG = 0 — đặt chỗ nhưng chưa cài. Ai coi hai chữ là một rồi bảo
+ * "đã có khấu trừ là đủ" thì miễn thường sẽ không bao giờ được làm.
+ *
+ * IF3 3/13 định nghĩa:
+ *   excess/deductible = "the first amount of each and every claim for which
+ *                        the insured is responsible"        → LUÔN TRỪ
+ *   franchise         = "a fixed amount or period that acts as a THRESHOLD"
+ *                        → vượt ngưỡng: TRẢ TOÀN BỘ, không trừ gì
+ *                        → không vượt:  KHÔNG TRẢ GÌ
+ *
+ * Ví dụ của IF3 — miễn thường 7 ngày: nghỉ 6 ngày được 0đ; nghỉ 8 ngày được
+ * trọn 8 ngày. Nếu là khấu trừ 7 ngày thì nghỉ 8 ngày chỉ được 1 ngày.
+ * CÙNG CON SỐ, CHÊNH 8 LẦN TIỀN.
+ *
+ * ⚠️ IF3 cũng cảnh báo: "excess" và "deductible" ở một số thị trường THAY NHAU
+ * ĐƯỢC. Nhưng "franchise" thì KHÔNG BAO GIỜ.
+ * ========================================================= */
+BANCA.RETENTION_MECHANISMS = {
+  DEDUCTIBLE: {
+    code:'DEDUCTIBLE', vi:'Khấu trừ', en:'excess / deductible',
+    behaviour:'ALWAYS_SUBTRACT',
+    desc:'Trừ một khoản cố định khỏi MỌI vụ tổn thất.',
+    implemented:true,
+    appliesTo:['motor'],
+    config:'BANCA.deductibleOptions'
+  },
+  FRANCHISE: {
+    code:'FRANCHISE', vi:'Miễn thường', en:'franchise',
+    behaviour:'THRESHOLD_ALL_OR_NOTHING',
+    desc:'Ngưỡng ăn cả–mất cả: vượt ngưỡng trả TOÀN BỘ không trừ gì; không vượt thì không trả gì. Ngưỡng có thể tính theo TIỀN hoặc theo THỜI GIAN (ví dụ 7 ngày).',
+    implemented:false,
+    appliesTo:[],   // chưa sản phẩm nào dùng — KHAI RA, không để trống
+    note:'Không áp dụng cho Motor trong phạm vi hiện tại. Hay gặp ở gián đoạn kinh doanh và quyền lợi ốm đau dạng ngày. Khi làm sản phẩm đó thì cài công thức ngưỡng, TUYỆT ĐỐI không tái dùng công thức khấu trừ.'
+  }
+};
+
+// Chặn ở tầng code, không chỉ chặn bằng ghi chú: gán franchise vào chỗ khấu trừ
+// là hỏng tiền bồi thường mà test số học thông thường không bắt được.
+BANCA.retentionMechanism = function(code){
+  const m = BANCA.RETENTION_MECHANISMS[code];
+  if(!m) throw new Error('Cơ chế phần khách tự chịu không hợp lệ: '+code);
+  if(!m.implemented) throw new Error(
+    'Cơ chế "'+m.vi+'" ('+m.code+') chưa được cài đặt — '+m.note+
+    ' Không được thay bằng '+BANCA.RETENTION_MECHANISMS.DEDUCTIBLE.vi+': hai cơ chế cho ra số tiền khác hẳn nhau.');
+  return m;
+};
+
+/* =========================================================
  * PA — Bảo hiểm tai nạn cá nhân schemas
  * ======================================================= */
 
@@ -400,6 +452,23 @@ BANCA.computeFirmQuote = function(productId, inputs, indicativeQuote, prevFirmQu
 BANCA.evaluateUnderwriting = function(app){
   const productId = app.productId || 'motor';
   const j = BANCA.journeyFor(productId);
+
+  // ---- Hạn mức thẩm quyền cấp đơn (CPCU 520 A4, tr.4.12) -------------------
+  // Vượt hạn mức của người bán → PHẢI chuyển cấp duyệt cao hơn, kể cả khi mọi
+  // rule sản phẩm đều sạch. Đặt TRƯỚC nhánh STP: nếu đặt sau thì hồ sơ vượt
+  // thẩm quyền vẫn lọt qua đường tự động — đúng chỗ CPCU cảnh báo.
+  if(BANCA.checkBindAuthority){
+    const auth = BANCA.checkBindAuthority(app, app.owner);
+    if(auth.mustRefer){
+      return BANCA.makeRoutingResult('MANUAL_REVIEW', {
+        productId:productId, underwritingMode:'MANUAL',
+        reasons: auth.breaches.map(function(b){return b.msg;}),
+        ruleHits: auth.breaches.map(function(b){return b.code;}),
+        internalReasonCodes: auth.breaches.map(function(b){return b.code;}),
+        customerConfirmationRequired:false
+      });
+    }
+  }
 
   // ---- Health HYBRID underwriting (yêu cầu trực tiếp user; supersede "luôn manual/luôn STP") ----
   // Ca sạch → APPROVED_STP (không queue/officer/SLA). Thiếu dữ liệu/tài liệu do rule →

@@ -83,6 +83,12 @@
   @media(max-width:1024px){.adv-layout{grid-template-columns:1fr;}.adv-side{position:static;}}
   @media(prefers-reduced-motion:no-preference){.adv-drawer{transition:transform var(--duration-slow);}}
 </style></head><body><script>
+// Bọc IIFE: cho phép THOÁT SỚM bằng `return` khi không tìm thấy phiên tư vấn.
+// Trước đây dùng `throw 0` — trang hiện đúng nhưng ném lỗi chưa bắt ra console,
+// mọi bộ giám sát lỗi sẽ báo là trang crash. Mọi handler onclick đều đã được gán
+// qua `window.xxx = ...` nên bọc IIFE không làm mất hàm nào.
+(function(){
+
 const p = BANCA.persona(), me = BANCA.current(), r = rel();
 const qs = new URLSearchParams(location.search);
 
@@ -124,7 +130,7 @@ if(isNew || !id){
     const seed = BANCA.adviceById(id);
     if(seed){ state = JSON.parse(JSON.stringify(seed)); state.needProfile=state.needProfile||[]; state.priorities=state.priorities||{}; state.compareSet=state.compareSet||[]; persist(state); }
   }
-  if(!state){ shell('Tư vấn nhanh','Không tìm thấy',`<div class="card"><div class="empty-state">Không tìm thấy phiên tư vấn <b>${id}</b>. <a href="${r}modules/quick-advisory/index.html">Về danh sách</a></div></div>`,{startSale:false}); throw 0; }
+  if(!state){ shell('Tư vấn nhanh','Không tìm thấy',`<div class="card"><div class="empty-state">Không tìm thấy phiên tư vấn <b>${id}</b>. <a href="${r}modules/quick-advisory/index.html">Về danh sách</a></div></div>`,{startSale:false}); return; }
 }
 
 let step = qs.get('step') || (state.primaryNeed?'recommend':'needs');
@@ -611,6 +617,8 @@ function advConvertConfirmModal(){
   const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
   const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
   const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  // Đồng ý suy từ trạng thái truy cập dữ liệu thật, KHÔNG gán cứng 'VALID'.
+  const _advConsent=BANCA.adviceConsentForHandoff?BANCA.adviceConsentForHandoff(Object.assign({},state,{dataAccessStage:accessStage})):{consent:'PENDING',consentBasis:'NONE',consentRecord:null,consentStage:accessStage};
   const cust=canShowPII&&state.customerRef?BANCA.customerById(state.customerRef):null;
   const customerSummary=canShowPII
     ? `<b>${state.customerName||(cust&&cust.name)||'Khách hàng'}</b>${cust&&cust.cif?' · CIF '+cust.cif:''}`
@@ -657,12 +665,19 @@ window.advDoConvert = function(){
   const profile=BANCA.channelProfile?BANCA.channelProfile():{initialDataAccessStage:'ANONYMOUS_CONTEXT'};
   const accessStage=state.dataAccessStage||profile.initialDataAccessStage||'ANONYMOUS_CONTEXT';
   const canShowPII=BANCA.dataAccess?BANCA.dataAccess.canShowPII(accessStage):false;
+  const _advConsent=BANCA.adviceConsentForHandoff?BANCA.adviceConsentForHandoff(Object.assign({},state,{dataAccessStage:accessStage})):{consent:'PENDING',consentBasis:'NONE',consentRecord:null,consentStage:accessStage};
   const base={ type:'SALES_HANDOFF', customerId:state.customerRef||null, externalCustomerRef:state.externalCustomerRef||state.customerRef||null,
     customerName:canShowPII?state.customerName:null,
     cif:canShowPII&&state.customerRef?((BANCA.customerById(state.customerRef)||{}).cif||null):null,
     productRef:o.productRef, productName:o.productName, packageName:o.packageName,
     source: state.leadId?'REFERRAL':(state.customerRef?'BANK_CRM':'PORTAL'), sourceSystem:'PORTAL', leadRef:state.leadId||null, campaign:state.campaign||null, adviceId:state.id,
-    recommendationReason:o.why||('Đề xuất '+(o.packageName||'')), needSummary:BANCA.needLabel?BANCA.needLabel(state.primaryNeed):state.primaryNeed, budget:state.budgetBand?BANCA.budgetLabel(state.budgetBand):null, consent:'VALID',
+    recommendationReason:o.why||('Đề xuất '+(o.packageName||'')),
+    // Cơ sở khuyến nghị đi CÙNG bàn giao (IF1 tr.212 H5) — trước đây chỉ hiện trên
+    // màn tư vấn rồi mất, người bán nhận được đúng chuỗi "Đề xuất <gói>".
+    adviceBasis:o.adviceBasis||null, adviceFit:o.fit!=null?o.fit:null,
+    adviceIndicativePremium:o.premiumBand||null,
+    needSummary:BANCA.needLabel?BANCA.needLabel(state.primaryNeed):state.primaryNeed, budget:state.budgetBand?BANCA.budgetLabel(state.budgetBand):null,
+    consent:_advConsent.consent, consentBasis:_advConsent.consentBasis, consentRecord:_advConsent.consentRecord, consentStage:_advConsent.consentStage,
     priority:'MEDIUM', targetTeam:(BANCA.personas[me]||{}).team||null,
     participants:[...(refUser?[{participationRole:'REFERRER',userId:refUser,isPrimary:true,status:'ACTIVE',source:refSource}]:[]),{participationRole:'ADVISOR',userId:me,isPrimary:true,status:'ACTIVE'}],
     completeness:60 };
@@ -802,7 +817,16 @@ function footer(){
   const next = idx<STEPS.length-1?STEPS[idx+1][0]:null;
   let primary='';
   if(step==='result'){
-    if(locked){ primary = `<span class="chip" style="background:#eef0f4;color:var(--ink-500);">🔒 Phiên đã khoá (${['CONVERTED_TO_SALE','CUSTOMER_ACCEPTED'].includes(state.status)?'đã chuyển bán':'chưa quan tâm'})</span>`; }
+    if(locked){
+      const _conv = ['CONVERTED_TO_SALE','CUSTOMER_ACCEPTED'].includes(state.status);
+      // Phiên đã chuyển bán thì việc tiếp theo là MỞ BẢN CHÀO, không phải đứng nhìn
+      // cái ổ khoá. Trước đây chỉ hiện chip khoá: biết mã bản chào mà không mở được,
+      // phải quay ra danh sách tìm lại.
+      const _openOffer = (_conv && state.convertedCaseId)
+        ? `<a class="btn btn-primary" href="${r}modules/application-workspace/index.html?id=${encodeURIComponent(state.convertedCaseId)}">Mở bản chào ${state.convertedCaseId} →</a>`
+        : '';
+      primary = `<span class="chip" style="background:#eef0f4;color:var(--ink-500);">🔒 Phiên đã khoá (${_conv?'đã chuyển bán':'chưa quan tâm'})</span>${_openOffer}`;
+    }
     else { const chk = convertReady();
     primary = chk.ok
       ? `<button class="btn btn-primary" onclick="advConvert()">Tạo bản chào từ tư vấn này →</button>`
@@ -1147,7 +1171,7 @@ function bodyResult(){
     ? (state.customerName||state.customerRef||'Khách hàng')
     : ((state.externalCustomerRef||state.customerRef)?'Tham chiếu '+(state.externalCustomerRef||state.customerRef):'Ẩn danh');
   const _accepted = ['CONVERTED_TO_SALE','CUSTOMER_ACCEPTED'].includes(state.status);
-  const lockBanner = locked?`<div class="alert2 ${_accepted?'success':'warn'}" style="margin-bottom:12px;">🔒 <b>Phiên đã khoá — chỉ xem.</b> ${_accepted?'Đã chuyển sang bán hàng.':'Đã ghi nhận khách chưa quan tâm.'} Mở phiên tư vấn mới nếu khách quay lại.</div>`:'';
+  const lockBanner = locked?`<div class="alert2 ${_accepted?'success':'warn'}" style="margin-bottom:12px;">🔒 <b>Phiên đã khoá — chỉ xem.</b> ${_accepted?('Đã chuyển sang bán hàng'+(state.convertedCaseId?` — bản chào <a href="${r}modules/application-workspace/index.html?id=${encodeURIComponent(state.convertedCaseId)}"><b>${state.convertedCaseId}</b></a>.`:'.')):'Đã ghi nhận khách chưa quan tâm.'} Mở phiên tư vấn mới nếu khách quay lại.</div>`:'';
   return lockBanner + `<div class="card" style="padding:18px;border-left:4px solid var(--teal-600);margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
       <div><h3 style="margin:0;font-size:20px;">🎯 Kết quả tư vấn ${state.id}</h3><div style="font-size:13px;color:var(--ink-500);margin-top:2px;">${customerLabel} · nhu cầu chính ${state.primaryNeed?BANCA.needLabel(state.primaryNeed):'chưa xác định'}</div></div>
@@ -1199,4 +1223,6 @@ const layout = `<div class="adv-layout">
 
 shell('Tư vấn nhanh','Không gian tư vấn', layout, {startSale:false});
 }
+
+})();
 </script></body></html>

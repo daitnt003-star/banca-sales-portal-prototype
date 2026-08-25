@@ -4,6 +4,7 @@
  const r = location.pathname.includes('/modules/') ? '../../' : location.pathname.includes('/dev/') ? '../' : '';
  const files = [
   'shared/js/terminology.js',
+  'shared/mock/seed/demo-clock.js',
   'shared/mock/seed/sellers.js',
   'shared/mock/seed/products.js',
   'shared/mock/seed/status-model.js',
@@ -16,6 +17,7 @@
   'shared/mock/seed/offer-filters.js',
   'shared/mock/seed/vehicle-master.js',
   'shared/mock/seed/product-schemas.js',
+  'shared/mock/seed/statement-of-fact.js',
   'shared/mock/seed/insured-units.js',
   'shared/mock/seed/case-state-resolver.js',
   'shared/mock/seed/customers.js',
@@ -32,6 +34,8 @@
   'shared/mock/seed/manager-profiles.js',
   'shared/mock/seed/org-units.js',
   'shared/mock/seed/handoffs.js',
+  'shared/mock/seed/issued-links.js',
+  'shared/mock/seed/lifecycle-documents.js',
   'shared/mock/seed/post-sale.js',
   'shared/mock/scenarios/rm-01-ready.js',
   'shared/mock/scenarios/rm-02-conditional.js',

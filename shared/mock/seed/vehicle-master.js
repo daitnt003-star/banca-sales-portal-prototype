@@ -91,7 +91,9 @@ BANCA.inputHashOf = inputs => JSON.stringify([inputs.packageCode,inputs.sumInsur
 BANCA.quoteStatus = function(quote, currentInputs){
   if(!quote) return null;
   if(currentInputs && quote.inputHash && BANCA.inputHashOf(currentInputs)!==quote.inputHash) return 'STALE';
-  const now = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Saigon'}));
+  // Dùng đồng hồ demo dùng chung — trước đây lấy giờ máy thật nên toàn bộ báo
+  // giá mẫu hết hạn theo thời gian và không hồ sơ nào nộp được nữa.
+  const now = BANCA.now ? BANCA.now() : new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Saigon'}));
   const vu = new Date(quote.validUntil+'T23:59:59');
   if(now > vu) return 'EXPIRED';
   if((vu - now) <= 2*24*3600*1000) return 'EXPIRING_SOON';

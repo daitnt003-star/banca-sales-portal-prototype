@@ -53,7 +53,20 @@ console.log('\n3. Shared compact responsive anatomy');
 ok('Stepper uses compact inline chips', css.includes('.progress-stepper__step{display:flex;align-items:center') && css.includes('padding:var(--space-xs) var(--space-md)'));
 ok('Completed is teal, current tones are distinct, disabled is grey', css.includes('.progress-stepper__step.is-complete{color:var(--teal-600)') && css.includes('background:var(--amber-600)') && css.includes('.progress-stepper__step.is-disabled{color:var(--ink-300)'));
 ok('Status is represented by check/ordinal and text', foundation.includes("stateLabel = state === 'complete'") && foundation.includes("state === 'complete' ? '✓'") && foundation.includes('progress-stepper__status'));
-ok('Narrow layout remains one scrollable row', css.includes('.progress-stepper{margin-bottom:var(--space-md);overflow-x:auto;}') && css.includes('.progress-stepper ol{min-width:max-content;flex-wrap:nowrap;}'));
+// Kiểm theo Ý ĐỊNH, không so chuỗi CSS y nguyên (assertion cũ vỡ ngay khi thêm
+// thuộc tính vào cùng khối). Ý định: thanh bước là MỘT hàng ngang cuộn được.
+// Siết thêm điều kiện phát hiện 2026-08-25: khung PHẢI có position:relative —
+// bên trong có nhãn cho trình đọc màn hình đặt position:absolute, khung không
+// định vị thì chúng thoát khỏi vùng cuộn và đẩy cả trang tràn 403px trên điện
+// thoại (mắt thường không thấy).
+const _stepperRule = (css.match(/\.progress-stepper\{[^}]*\}/) || [''])[0];
+ok('Narrow layout remains one scrollable row',
+  /overflow-x:\s*auto/.test(_stepperRule) && css.includes('.progress-stepper ol{min-width:max-content;flex-wrap:nowrap;}'),
+  _stepperRule);
+ok('  …khung cuộn được ĐỊNH VỊ để nhãn ẩn không thoát ra ngoài',
+  /position:\s*relative/.test(_stepperRule), _stepperRule);
+ok('  …và không nở quá bề ngang màn hình',
+  /max-width:\s*100%/.test(_stepperRule), _stepperRule);
 ok('Links retain visible focus', css.includes('.progress-stepper a:focus-visible'));
 ok('Registry lists the shared component', registry.includes('**progressStepper**') && registry.includes('Draft + Submitted'));
 

@@ -97,7 +97,16 @@ ok('Output order is identity, command, summary, stepper, content', app.includes(
 group('5. Responsive and accessibility styling');
 ok('Desktop stepper uses compact shared row', css.includes('.progress-stepper ol{display:flex;'));
 ok('Responsive stepper remains one horizontal track', css.includes('.progress-stepper ol{min-width:max-content;flex-wrap:nowrap;}'));
-ok('Responsive track is horizontally scrollable', css.includes('.progress-stepper{margin-bottom:var(--space-md);overflow-x:auto;}'));
+// Kiểm theo Ý ĐỊNH, không so chuỗi CSS y nguyên (assertion cũ vỡ ngay khi thêm
+// thuộc tính vào cùng khối). Ý định: thanh bước là MỘT hàng ngang cuộn được.
+// Siết thêm điều kiện phát hiện 2026-08-25: khung PHẢI có position:relative —
+// bên trong có nhãn cho trình đọc màn hình đặt position:absolute, khung không
+// định vị thì chúng thoát khỏi vùng cuộn và đẩy cả trang tràn 403px trên điện
+// thoại (mắt thường không thấy).
+const _stepperRule = (css.match(/\.progress-stepper\{[^}]*\}/) || [''])[0];
+ok('Responsive track is horizontally scrollable', /overflow-x:\s*auto/.test(_stepperRule), _stepperRule);
+ok('  …khung cuộn được định vị (nhãn ẩn không đẩy trang tràn ngang)',
+  /position:\s*relative/.test(_stepperRule), _stepperRule);
 ok('Enabled steps retain visible focus', css.includes('.progress-stepper a:focus-visible'));
 ok('No new stage motion is introduced', !css.includes('.progress-stepper__step{transition:'));
 

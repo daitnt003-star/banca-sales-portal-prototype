@@ -39,6 +39,19 @@ window.BANCA = window.BANCA || {};
   BANCA.overlay.policies = BANCA.overlay.policies||{};
   BANCA.overlay.policies[policy.id]={__new:true, data:policy};
   localStorage.setItem(KEY, JSON.stringify(BANCA.overlay));
+  // ĐÓNG BĂNG kênh phân phối ngay khi hợp đồng ra đời. Đặt ở đây (chứ không chỉ ở
+  // luồng thanh toán) để KHÔNG đường phát hành nào lọt ra mà thiếu snapshot —
+  // thiếu snapshot thì hoa hồng rơi về "kênh đang mở màn hình", tức là tiền của
+  // một hợp đồng đã bán lại đổi theo người đang nhìn.
+  if(BANCA.registerPolicyDistribution && BANCA.buildPolicyDistribution){
+   var dist = policy.distribution;
+   if(!dist){
+    var srcApp = (policy.appId && BANCA.appById) ? BANCA.appById(policy.appId) : null;
+    dist = BANCA.buildPolicyDistribution(srcApp || {id:policy.appId||null, owner:policy.owner, effectiveDate:policy.effectiveFrom},
+                                         {effectiveDate:policy.effectiveFrom});
+   }
+   BANCA.registerPolicyDistribution(policy.id, dist);
+  }
   BANCA.applyOverlay();
  };
  BANCA.resetDemo = function(){ localStorage.removeItem(KEY); BANCA.overlay={}; location.reload(); };

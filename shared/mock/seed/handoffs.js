@@ -139,6 +139,81 @@ BANCA.participantsOf = function(id, ownerFallback){
   const o=ownerFallback||null;
   return {referrer:o, advisor:o, sellingProducer:o, caseOwner:o, source:'PORTAL', leadRef:null, branch:(BANCA.personas[o]||{}).branch, team:(BANCA.personas[o]||{}).team, _fallback:true};
 };
+/* ============================================================
+ * SNAPSHOT PHÂN PHỐI TẠI THỜI ĐIỂM PHÁT HÀNH
+ *
+ * Trước đây chỉ có 3 hợp đồng seed nằm sẵn trong POLICY_DISTRIBUTION. Hợp đồng
+ * phát hành MỚI không đăng ký gì cả → policyDistributionOf trả _fallback → hoa
+ * hồng rơi về "kênh đang mở màn hình". Hậu quả: cùng một hợp đồng đã bán, mở ở
+ * màn Banca ra một số tiền, mở ở màn Đại lý ra số khác.
+ *
+ * Hoa hồng phải ăn theo hợp đồng đại lý lúc BÁN, không theo kênh đang xem
+ * [CII IF1 3/12–3/13 tr.96–97 mục G3]. Vì vậy kênh phải được ĐÓNG BĂNG vào hợp
+ * đồng ngay lúc phát hành, không suy lại về sau.
+ * ============================================================ */
+// ChannelProfile → nhãn kênh trên snapshot. Nhãn này phải là thứ
+// COMMISSION_CHANNEL_OF hiểu được, nếu không hoa hồng sẽ không tra được biểu.
+BANCA.DISTRIBUTION_CHANNEL_OF_PROFILE = {
+  BANCA_INTEGRATED: 'Bancassurance',
+  BANCA_STANDALONE: 'Bancassurance',
+  AGENT:            'AGENT',
+  BROKER:           'BROKER',
+  AGENT_BROKER:     'AGENT'
+};
+// Dựng snapshot từ hồ sơ tại thời điểm phát hành.
+BANCA.buildPolicyDistribution = function(app, opts){
+  app = app || {}; opts = opts || {};
+  var parts = BANCA.participantsOf ? BANCA.participantsOf(app.id, app.owner) : {};
+  var profId = opts.channelProfileId || (BANCA.channel ? BANCA.channel() : 'BANCA_INTEGRATED');
+  if (BANCA.CHANNEL_ALIAS && BANCA.CHANNEL_ALIAS[profId]) profId = BANCA.CHANNEL_ALIAS[profId];
+  // Telesales là kênh con của banca — nhận diện theo phòng ban của người bán,
+  // KHÔNG suy từ ChannelProfile (profile không phân biệt quầy với tổng đài).
+  var producer = parts.sellingProducer || app.owner || null;
+  var persona = (BANCA.personas || {})[producer] || {};
+  var chan = BANCA.DISTRIBUTION_CHANNEL_OF_PROFILE[profId] || profId;
+  if (chan === 'Bancassurance' && persona.department === 'Telesales') chan = 'Telesales';
+  return {
+    referrer:        parts.referrer || null,
+    advisor:         parts.advisor || null,
+    sellingProducer: producer,
+    servicingSeller: opts.servicingSeller || producer,
+    branch:          parts.branch || persona.branch || null,
+    team:            parts.team || persona.team || null,
+    channel:         chan,
+    channelProfileId: profId,
+    campaign:        app.campaign || parts.campaign || null,
+    externalRef:     app.externalCustomerRef || null,
+    effectiveDate:   opts.effectiveDate || app.effectiveDate || null,
+    frozenAt:        opts.frozenAt || new Date().toISOString(),
+    source:          'ISSUE_TIME_SNAPSHOT'
+  };
+};
+// Đăng ký snapshot cho một hợp đồng. Đã có thì KHÔNG ghi đè — snapshot là bằng
+// chứng tại thời điểm phát hành, phát hành lại không được viết lại lịch sử.
+BANCA.registerPolicyDistribution = function(policyId, dist){
+  if (!policyId || !dist) return null;
+  BANCA.POLICY_DISTRIBUTION = BANCA.POLICY_DISTRIBUTION || {};
+  if (BANCA.POLICY_DISTRIBUTION[policyId]) return BANCA.POLICY_DISTRIBUTION[policyId];
+  BANCA.POLICY_DISTRIBUTION[policyId] = dist;
+  try {
+    var K = 'banca_policy_distribution';
+    var store = JSON.parse(localStorage.getItem(K) || '{}');
+    store[policyId] = dist;
+    localStorage.setItem(K, JSON.stringify(store));
+  } catch (e) {}
+  BANCA.audit && BANCA.audit({action:'POLICY_DISTRIBUTION_FROZEN', policy:policyId, channel:dist.channel, producer:dist.sellingProducer});
+  return dist;
+};
+// Nạp lại snapshot đã đóng băng ở phiên trước (demo chạy trên localStorage).
+(function(){
+  try {
+    var store = JSON.parse(localStorage.getItem('banca_policy_distribution') || '{}');
+    Object.keys(store).forEach(function(k){
+      if (!BANCA.POLICY_DISTRIBUTION[k]) BANCA.POLICY_DISTRIBUTION[k] = store[k];
+    });
+  } catch (e) {}
+})();
+
 BANCA.policyDistributionOf = function(id, ownerFallback){
   const s=BANCA.POLICY_DISTRIBUTION[id];
   if(s) return s;
@@ -165,6 +240,14 @@ BANCA.changeCustomer = function(id, newCustId, newCustName, reason, actorId){
   const invalidated = !sellerOk;
   if(invalidated){ h.state='PENDING_ASSIGNMENT'; h.targetSeller=null; h.assignmentInvalidated=true; }
   h.quoteStatus='RE_RATING_REQUIRED'; // không giữ quote KH cũ cho KH mới
+  // Đổi khách thì BẢN KHAI cũ cũng hết giá trị, không chỉ báo giá (IF3 1/7 C3C).
+  // Trước đây chỉ reset quote → khai báo của khách CŨ đi tiếp sang khách MỚI.
+  if(BANCA.declaration){
+    BANCA.declaration.markNeedsReconfirm(h, 'Đã đổi khách hàng — bản khai của khách trước không dùng lại được');
+    const caseId=h.caseId||h.applicationId;
+    const app=caseId&&BANCA.applications?BANCA.applications.find(a=>a.id===caseId):null;
+    if(app) BANCA.declaration.markNeedsReconfirm(app, 'Đã đổi khách hàng trên bàn giao '+id);
+  }
   BANCA._persistHandoffs();
   BANCA.audit&&BANCA.audit({action:'CHANGE_CUSTOMER', handoff:id, actor:actorId, previous:prev, new:newCustId, reason, note:'Revalidate consent/portfolio/nhân viên tư vấn/quote'+(invalidated?' · assignment invalidated → PENDING_ASSIGNMENT':'')+' · quote RE_RATING_REQUIRED'});
   return {handoff:h, invalidated, reRating:true};
@@ -177,3 +260,35 @@ BANCA.reattribute = function(id, role, newUserId, reason){
   BANCA.audit&&BANCA.audit({action:'RE_ATTRIBUTION', handoff:id, role, previous:prev, new:newUserId, reason, note:'Không ảnh hưởng commission đã khoá'});
   return h;
 };
+
+
+// ============================================================
+// LIÊN KẾT NGƯỢC — đặt Ở ĐÂY chứ không ở submitted-enrichment.js vì file đó
+// nạp ở vị trí 28, TRƯỚC advice-sessions.js (29) và chính file này (35);
+// đặt sai chỗ thì hai mảng nguồn còn chưa tồn tại, vòng lặp chạy trên rỗng.
+// ============================================================
+(function(){
+  // ---- LIÊN KẾT NGƯỢC: hợp đồng → hồ sơ → bàn giao → phiên tư vấn ----
+  // Phiên tư vấn đã trỏ tới hồ sơ (convertedCaseId) nhưng hồ sơ KHÔNG trỏ ngược,
+  // nên từ hợp đồng không lần được về ai tư vấn và vì sao đề xuất gói đó.
+  // [CII IF1 tr.212 mục H5] phải nêu được lý do cho mọi lời tư vấn.
+  // [VN] Mức bắt buộc lưu hồ sơ tư vấn phải đối chiếu Luật KDBH 2022.
+  (BANCA.adviceSessions||[]).forEach(function(sess){
+    if(!sess.convertedCaseId) return;
+    const a=BANCA.appById&&BANCA.appById(sess.convertedCaseId);
+    if(!a) return;
+    a.sourceAdviceId = a.sourceAdviceId || sess.id;
+    a.adviceSessionId = a.adviceSessionId || sess.id;
+    a.adviceNeed = a.adviceNeed || sess.primaryNeed || null;
+    if(!a.source) a.source='ADVICE';
+  });
+  (BANCA.handoffs||[]).forEach(function(h){
+    const caseId=h.caseId||h.applicationId;
+    if(!caseId) return;
+    const a=BANCA.appById&&BANCA.appById(caseId);
+    if(!a) return;
+    a.handoffId = a.handoffId || h.id;
+    if(h.adviceId){ a.sourceAdviceId = a.sourceAdviceId || h.adviceId; a.adviceSessionId = a.adviceSessionId || h.adviceId; }
+  });
+
+})();

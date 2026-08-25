@@ -61,7 +61,10 @@ BANCA.commissionChannelOf = function(policy){
   return BANCA.COMMISSION_CHANNEL_OF[raw] || raw;
 };
 
-BANCA._todayISO = function(){ return new Date().toISOString().slice(0,10); };
+// Ngày tra biểu hoa hồng — theo đồng hồ demo dùng chung, không theo giờ máy.
+BANCA._todayISO = function(){
+  return BANCA.nowISODate ? BANCA.nowISODate() : new Date().toISOString().slice(0,10);
+};
 
 // opts.asOf: 'YYYY-MM-DD' — cho phép tra biểu tại một ngày cụ thể (test/đối soát).
 BANCA.commissionRateFor = function(policy, opts){

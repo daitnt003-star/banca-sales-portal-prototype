@@ -702,7 +702,11 @@ if(p.status!=='ACTIVE'){
    const more=html=>html?`<details class="table-action-more"><summary class="btn btn-secondary btn-sm" aria-label="Các hành động khác">Khác</summary><div class="table-action-more__menu">${html}</div></details>`:'';
    if(x.isNew) return `<div class="table-action-stack"><button class="btn btn-primary btn-sm" onclick="alert('Gửi GCN cho khách (demo)')">Gửi GCN</button>${more(x.status==='ACTIVE'?claim:'')}</div>`;
    if(x.renewalStatus==='RENEWAL_DUE'){
-     const renew = x.renewalDraftId?`<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`:`<button class="btn btn-primary btn-sm" onclick="alert('Tạo yêu cầu tái tục (demo)')">Tái tục</button>`;
+     // Chưa có hồ sơ tái tục thì MỞ luồng tái tục thật (?renew=<id>) — trước đây
+     // chỉ alert 'demo' rồi đứng im, người dùng không đi tiếp được.
+     const renew = x.renewalDraftId
+       ? `<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?id=${x.renewalDraftId}">Tái tục</a>`
+       : `<a class="btn btn-primary btn-sm" href="${r}modules/application-workspace/index.html?renew=${encodeURIComponent(x.id)}&new=1">Tái tục</a>`;
      return `<div class="table-action-stack">${renew}${more(x.status==='ACTIVE'?claim:'')}</div>`;
    }
    if(x.status!=='ACTIVE') return `<div class="table-action-stack">${more(`<button class="btn btn-secondary btn-sm" onclick="alert('Lý do hủy: ${(x.cancelReason||'Khách yêu cầu chấm dứt trước hạn').replace(/'/g,'')} (demo)')">Xem lý do hủy</button>`)}</div>`;

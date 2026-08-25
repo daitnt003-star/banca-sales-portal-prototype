@@ -4,6 +4,7 @@
  const r = location.pathname.includes('/modules/') ? '../../' : location.pathname.includes('/dev/') ? '../' : '';
  const files = [
   'shared/js/terminology.js',
+  'shared/mock/seed/demo-clock.js',
   'shared/mock/seed/sellers.js',
   'shared/mock/seed/products.js',
   'shared/mock/seed/status-model.js',

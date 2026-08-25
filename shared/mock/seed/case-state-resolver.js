@@ -83,7 +83,12 @@ BANCA.caseStates = function(app){
     } else if(['PAID','ISSUED','PENDING_ISSUE'].includes(legacy)){
       payStatus='SUCCESS';
     } else if(legacy==='PENDING_PAYMENT'){
-      payStatus='PENDING';
+      // 'PENDING_PAYMENT' nghĩa là ĐANG CHỜ THU TIỀN, không đồng nghĩa "đã có
+      // phiên thanh toán đang chạy". Suy thành PENDING khi app.payment còn null
+      // sẽ khoá cổng bằng lý do "Đang có phiên thanh toán chờ xử lý" cho một
+      // phiên không tồn tại — và không có gì để huỷ hay theo dõi. Fail-open ở
+      // ĐÚNG chỗ này: chưa có phiên thì là "cần khởi tạo thanh toán".
+      payStatus = (app.payment && app.payment.status) ? 'PENDING' : 'METHOD_REQUIRED';
     } else {
       // Chưa được duyệt → payment chưa khả dụng.
       const approved = BANCA.UW_APPROVED_CLEAN.includes(uwDecision)

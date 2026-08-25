@@ -41,7 +41,7 @@ BANCA.caseHealth = function(app){
   const missingDoc = st==='NEED_MORE_INFO';
   const waitingCustomer = st==='PENDING_CUSTOMER_CONFIRM';
   const paymentIssue = app.payment&&['FAILED','TIMEOUT','EXPIRED'].includes(app.payment.status);
-  const slaBad = (app.sla && new Date(app.sla.replace(' ','T')) < new Date('2026-07-20T15:30:00'));
+  const slaBad = (app.sla && new Date(app.sla.replace(' ','T')) < (BANCA.now ? BANCA.now() : new Date('2026-07-20T15:30:00')));
   const items=[
     ['SLA', slaBad?'Quá hạn':'Trong hạn', slaBad?'bad':'ok'],
     ['Thiếu tài liệu', missingDoc?'Có':'Không', missingDoc?'bad':'ok'],

@@ -109,6 +109,17 @@ window.BANCA = window.BANCA || {};
     if(c && c.cif) a.externalCustomerRef='JANUS-CIF-'+c.cif;
   });
 
+  // Hồ sơ tái tục trong seed dùng trường `renewalOf`, còn toàn bộ mã đọc
+  // `renewalPolicyRef` (banner tái tục, khoá sản phẩm, bank callback…). Hai tên
+  // cho một thứ ⇒ hồ sơ tái tục seed không được nhận diện là tái tục.
+  (BANCA.applications||[]).forEach(function(a){
+    if(a.renewalOf && !a.renewalPolicyRef) a.renewalPolicyRef = a.renewalOf;
+    if(a.renewalPolicyRef && BANCA.declaration && !BANCA.declaration.needsReconfirm(a)){
+      BANCA.declaration.markNeedsReconfirm(a,
+        'Tái tục — hợp đồng mới, cần rà lại câu trả lời khai báo kỳ trước (IF3 1/7 C3D)');
+    }
+  });
+
   const app103=BANCA.appById&&BANCA.appById('APP-2026-103');
   if(app103){
     app103.mortgage={mortgaged:true,lenderType:'Ngân hàng',bank:'Vietcombank',branch:'CN Tân Định',creditContract:'VCB-LOAN-2026-4431'};

@@ -85,6 +85,14 @@ if(isNew){
    sourceAdviceId:ctx.sourceAdviceId||null, sourceAdviceVersion:ctx.sourceAdviceVersion,
    adviceNeed:ctx.adviceNeed, adviceBudget:ctx.adviceBudget, adviceNote:ctx.adviceNote, adviceSessionId:ctx.adviceSessionId, leadId:ctx.leadId, campaign:ctx.campaign, leadNeed:ctx.leadNeed };
  if(ctx.sourceAdviceId && !sourceAdvice) sourceAdvice=(BANCA.adviceById&&BANCA.adviceById(ctx.sourceAdviceId))||null;
+ // TÁI TỤC = HỢP ĐỒNG MỚI, không phải gia hạn im lặng. Câu trả lời khai báo kỳ
+ // trước phải được kéo ra hỏi lại "còn đúng không" [CII IF3 1/7 mục C3D].
+ // Trước đây BANCA.startRenewal có sẵn nhưng KHÔNG chỗ nào trong giao diện gọi,
+ // nên hồ sơ tái tục kế thừa mù bản khai kỳ cũ.
+ if(app.renewalPolicyRef && BANCA.declaration && !BANCA.declaration.needsReconfirm(app)){
+  BANCA.declaration.markNeedsReconfirm(app,
+    'Tái tục — hợp đồng mới, cần rà lại câu trả lời khai báo kỳ trước (IF3 1/7 C3D)');
+ }
  // FIX (13:52): merge overlay đã patch (chọn gói/quote/risk answers…) vào draft mới —
  // trước đây app dựng literal nên mọi patchApp bị MẤT sau mỗi reload (không chọn được gói).
  const __ov = BANCA.overlay && BANCA.overlay.applications && BANCA.overlay.applications[app.id];
@@ -2081,14 +2089,28 @@ if(app.submissionState==='NOT_SUBMITTED'){
     return;
   }
 
-  BANCA.patchApp(id, {
+  // Nhánh KHÔNG STP trước đây chỉ ghi mỗi `status`, bỏ trống underwritingStatus/
+  // Decision/paymentStatus. Resolver phải đoán từ status cũ, và với
+  // APPROVED_FOR_BIND (status 'PENDING_PAYMENT') nó suy ra:
+  //   uw = NOT_STARTED           → cổng báo "Hồ sơ chưa được thẩm định"
+  //   pay = PENDING              → cổng báo "Đang có phiên thanh toán chờ xử lý"
+  // trong khi app.payment còn null. Hồ sơ xe vừa nộp là kẹt cứng: cổng khoá
+  // bằng hai lý do mâu thuẫn nhau, không màn hình nào gỡ được.
+  // Ghi ĐỦ trạng thái ngay tại nguồn — cùng cách nhánh STP vẫn làm.
+  const _R = {
+    APPROVED_FOR_BIND:     {status:'PAYMENT_METHOD_REQUIRED', underwritingStatus:'DECIDED', underwritingDecision:'APPROVED',  paymentStatus:'METHOD_REQUIRED', policyStatus:'NOT_STARTED'},
+    UW_REQUIRED:           {status:'PENDING_UW',              underwritingStatus:'PENDING', underwritingDecision:'NONE',      paymentStatus:'NOT_AVAILABLE',   policyStatus:'NOT_STARTED'},
+    NEED_MORE_INFORMATION: {status:'NEED_MORE_INFO',          underwritingStatus:'NEED_MORE_INFORMATION', underwritingDecision:'NONE', paymentStatus:'NOT_AVAILABLE', policyStatus:'NOT_STARTED'},
+    REJECTED:              {status:'REJECTED',                underwritingStatus:'DECIDED', underwritingDecision:'DECLINED',  paymentStatus:'NOT_AVAILABLE',   policyStatus:'NOT_STARTED'}
+  }[routing.code] || {status: routing.appStatus};
+  BANCA.patchApp(id, Object.assign({
     submissionState:'SUBMITTED',
-    status: routing.appStatus,
+    applicationStatus: routing.code==='REJECTED' ? 'COMPLETED' : 'PROCESSING',
     routing: routing,                       // lưu để tracking mode đọc lại
     submittedAt: now2,
     premium: premium,
-    sla:'2026-07-24'
-  });
+    sla: routing.code==='UW_REQUIRED' ? '2026-07-24' : null
+  }, _R));
   BANCA.patchApp(id, (BANCA.quoteVersion?BANCA.quoteVersion.freezeOnSubmit(app,premium):{}));
   // Continuity: mở đúng bước tiếp theo TRONG cùng workspace (không về danh sách).
   const tabByStage = {PAYMENT:'confirmpay', UNDERWRITING:'uw', REVIEW_AND_SUBMIT:'supplement', null:'overview'};
@@ -2279,7 +2301,7 @@ const CONFIRMPAY_ALIASES=['confirmpay','confirm','payment','comm'];
 // P2-3: SLA countdown màu theo mức khẩn (mốc demo NOW = 2026-07-20 15:30)
 function slaHtml(sla){
  if(!sla) return '—';
- const now=new Date('2026-07-20T15:30:00'), d=new Date(sla.replace(' ','T'));
+ const now=BANCA.now?BANCA.now():new Date('2026-07-20T15:30:00'), d=new Date(sla.replace(' ','T'));
  const hrs=(d-now)/3600000;
  const color=hrs<0?'var(--red-600)':hrs<=24?'var(--red-600)':hrs<=72?'var(--amber-600)':'var(--teal-600)';
  const txt=hrs<0?'QUÁ HẠN':hrs<=24?('còn '+Math.round(hrs)+'h'):('còn '+Math.round(hrs/24)+' ngày');
@@ -2641,7 +2663,26 @@ function declarationFixPanel(a){
  if(!BANCA.statementOfFact || !BANCA.riskQuestionsFor) return '';
  if(!(BANCA.riskQuestionsFor(a.productId)||[]).length) return '';
  const st = BANCA.statementOfFact.status(a);
- if(st === 'CONFIRMED') return '';
+ const needsRe = BANCA.declaration && BANCA.declaration.needsReconfirm(a);
+ if(st === 'CONFIRMED' && !needsRe) return '';
+ // Cờ "cần xác nhận lại khai báo" (đổi khách hàng · sửa giữa kỳ · TÁI TỤC) khoá
+ // cổng thu phí nhưng trước đây KHÔNG màn hình nào gọi BANCA.declaration.confirmed
+ // để gỡ — bật lên là chặn vĩnh viễn. Cho gỡ ngay tại đây, sau khi đọc lại cho khách.
+ if(st === 'CONFIRMED' && needsRe){
+  const dr = a.declarationReconfirm || {};
+  return `<div class="card" style="padding:16px;margin-bottom:14px;border-left:4px solid var(--amber-600);">
+    <div style="font-weight:700;color:var(--amber-600);font-size:14px;">Cần khách xác nhận LẠI nội dung khai báo</div>
+    <div style="font-size:12px;color:var(--ink-500);margin-top:4px;line-height:1.7;">
+      ${dr.reason || 'Dữ liệu nền của bản khai đã thay đổi'}.
+      Nội dung khai báo cũ không tự động dùng lại được — đọc lại cho khách nghe rồi ghi nhận xác nhận.
+    </div>
+    ${BANCA.ui.declarationReadBack(a)}
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary btn-sm" ${readOnly?'disabled':''} onclick="submittedReconfirmDeclaration('${a.id}')">
+        Khách xác nhận lại nội dung khai báo</button>
+    </div>
+   </div>`;
+ }
  const sof = BANCA.statementOfFact.build(a);
  const answered = sof.lines.filter(function(l){return l.applicable && l.answered;}).length;
  const total    = sof.lines.filter(function(l){return l.applicable;}).length;
@@ -2704,6 +2745,17 @@ window.submittedSetDeclarationSource = function(id, src){
   patch.answeredBy = by;
  }
  BANCA.patchApp(id, patch);
+ location.href='?id='+id+'&stage=confirmation-payment';
+};
+// Khách xác nhận LẠI sau khi bản khai bị đánh dấu cần rà lại (IF3 1/7 C3C/C3D).
+window.submittedReconfirmDeclaration = function(id){
+ const a = BANCA.appById(id) || app;
+ const schemaId = (BANCA.journeyFor(a.productId)||{}).declarationSchemaId || null;
+ BANCA.declaration.confirmed(a, a.declarationAnsweredBy || 'CUSTOMER', schemaId);
+ // Bản khai cũng phải đóng dấu lại theo nội dung hiện tại, không giữ hash cũ.
+ try{ BANCA.statementOfFact.confirm(a, { by: a.declarationAnsweredBy || null, channel:'PORTAL' }); }catch(e){}
+ BANCA.patchApp(id, { warningFlags:a.warningFlags||[], warnings:a.warnings||[],
+   declarationReconfirm:a.declarationReconfirm, statementOfFact:a.statementOfFact });
  location.href='?id='+id+'&stage=confirmation-payment';
 };
 // Ghi nhận khách đã xác nhận nội dung bản khai.

@@ -1,0 +1,42 @@
+# UAT trình duyệt thật (Playwright)
+
+Bộ kiểm tầng logic **không** bắt được lỗi tầng hiển thị. Bốn lỗi thật đã lọt qua
+41 test script rồi mới bị người dùng phát hiện:
+
+- khối chọn "ai trả lời" gán bằng `window.x = function` SAU chỗ dựng HTML → lúc
+  render vẫn `undefined`, guard `window.x ? … : ''` âm thầm trả rỗng
+- cùng khối đó khai trong nhánh hồ sơ nháp (kết thúc bằng `return`) → màn hồ sơ
+  đã nộp không thấy
+- lý do chặn đọc y như "bạn chưa trả lời" trong khi đã trả lời đủ
+- nút vẫn ghi "Khởi tạo thanh toán" khi cổng đang khoá
+
+Bộ này mở Chromium thật, bấm đúng chữ hiển thị, và kiểm **thứ người dùng nhìn thấy**.
+
+## Chạy
+
+```bash
+python3 scripts/serve.py 8899 &        # phục vụ tĩnh
+BASE=http://localhost:8899 node uat-browser/01-smoke.js
+```
+
+Chạy tuần tự: `01` → `08`. Mỗi file độc lập, dùng context trình duyệt sạch.
+
+| File | Phạm vi |
+|---|---|
+| `01-smoke` | 13 màn hình: mở được · không lỗi JS · không lộ `undefined`/`NaN` ra màn |
+| `02-advisory` | Tư vấn nhanh: danh sách → phiên → nhu cầu → gợi ý · phiên đã chuyển bán bị khoá |
+| `03-newsale` | Bản chào nháp: khai báo rủi ro → ghi nhận ai trả lời → rà soát → nộp |
+| `04-topolicy` | Sau nộp: thẩm định → xác nhận & thanh toán → màn hợp đồng |
+| `05-fullchain` | Trọn tuyến tới HỢP ĐỒNG: nộp → OTP → tạo yêu cầu thu phí → callback thành công → phát hành → hoa hồng |
+| `06-postsale` | Danh sách/chi tiết hợp đồng · loại yêu cầu dịch vụ theo sản phẩm · tái tục |
+| `07-postsale2` | Bấm thật: tạo yêu cầu dịch vụ · khai tổn thất trong/ngoài thời hạn · tái tục |
+| `08-renewal` | Tái tục nhận diện đúng · nút không đứng im · gỡ được cờ "cần xác nhận lại khai báo" |
+
+## Nguyên tắc viết assertion
+
+1. **Gọi thật, đừng grep chuỗi.** Có tên hàm trong file không có nghĩa nó chạy.
+2. **Bấm theo chữ hiển thị**, không theo selector nội bộ — người dùng đọc chữ.
+3. **Chữ bị CSS viết hoa** (`text-transform`) → so khớp không phân biệt hoa thường.
+4. **Chọn đúng dữ liệu mẫu.** Nháp thiếu tài liệu bị chặn là ĐÚNG, không phải lỗi.
+   `DRAFT-2026-006` là bản đủ điều kiện nộp (và là hồ sơ TÁI TỤC).
+5. **Sai của bộ kiểm phải sửa ở bộ kiểm**, không nới lỏng để lấy màu xanh.

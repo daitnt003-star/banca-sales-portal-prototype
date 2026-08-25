@@ -1356,6 +1356,22 @@ if(app.submissionState==='NOT_SUBMITTED'){
     const pv = BANCA.validatePA({age:app.insuredAge, occupationClass:app.occupationClass, sumInsured:app.sumInsured, riskAnswers:app.riskAnswers, buyerIsInsured:app.buyerIsInsured});
     pv.errors.forEach(function(e){ blockers.push({t:e.msg, fix:'Sửa thông tin', step:'INSURED_PARTY'}); });
   }
+  // BẢN KHAI — hiện thành blocker NGAY TRÊN MÀN, không để bấm Nộp rồi mới alert.
+  // Phân biệt rõ hai thứ rất dễ lẫn:
+  //   · thiếu CÂU TRẢ LỜI  → phải quay lại bước Khai báo rủi ro
+  //   · thiếu NGƯỜI trả lời → xử lý ngay tại đây, không phải khai lại gì
+  // Trước đây gộp làm một và báo bằng alert "Quay lại bước Khai báo rủi ro",
+  // nên người bán vừa trả lời đủ xong lại tưởng bị bắt khai lại.
+  if(BANCA.statementOfFact && BANCA.riskQuestionsFor && (BANCA.riskQuestionsFor(app.productId)||[]).length){
+   const sofR = BANCA.statementOfFact.build(app);
+   if(sofR.unanswered.length){
+    blockers.push({t:'Bản khai còn '+sofR.unanswered.length+' câu chưa trả lời',
+      fix:'Hoàn tất khai báo', step:'RISK_DECLARATION'});
+   } else if(sofR.unattributed.length){
+    blockers.push({t:'Đã trả lời đủ — còn thiếu ghi nhận AI trả lời (khách tự khai hay nhân viên nhập hộ)',
+      fix:'Chọn ngay ở khối bên dưới', step:'REVIEW_AND_SUBMIT'});
+   }
+  }
   if(!caps.includes('can_submit')) blockers.push({t:'Bạn không có quyền nộp yêu cầu bảo hiểm sản phẩm này', fix:'', step:''});
   const missing=blockers.map(b=>b.t);
   const okData = missing.length===0;
@@ -1422,6 +1438,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
    <table class="dtable"><tbody>${reviewRows}</tbody></table>
   </div>` + healthMatrix + `
   ${BANCA.ui.declarationReadBack(app)}
+  ${(BANCA.statementOfFact && BANCA.statementOfFact.build(app).unattributed.length)
+     ? BANCA.ui.declarationSourcePicker(app,{readOnly:readOnly,handler:'setDeclarationSource'}) : ''}
   <div class="card" style="padding:16px;margin-top:12px;">
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;"><input type="checkbox" id="c1" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Khách hàng xác nhận thông tin kê khai là đúng và đầy đủ.</label>
    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-top:8px;"><input type="checkbox" id="c2" ${readOnly?'disabled':''} onchange="refreshSubmitBtn()"> Tôi (nhân viên tư vấn) xác nhận đã tư vấn đầy đủ quyền lợi, điều khoản loại trừ.</label>
@@ -1962,9 +1980,15 @@ if(app.submissionState==='NOT_SUBMITTED'){
     BANCA.statementOfFact.confirm(app, {by: app.declarationAnsweredBy || null, channel:'PORTAL', sourceSystem:'PORTAL'});
     BANCA.patchApp(id, {statementOfFact: app.statementOfFact});
    }catch(e){
-    alert('Chưa nộp được — bản khai chưa hoàn tất:\n\n' + e.message +
-          '\n\nQuay lại bước "Khai báo rủi ro" để hoàn tất.');
-    location.href='?id='+id+'&step=RISK_DECLARATION'+(isNew?'&new=1':''); return;
+    // Chỉ còn là lưới an toàn — blocker ở bước Rà soát đã chặn trước đó.
+    // Thiếu NGƯỜI trả lời thì giữ nguyên tại bước Rà soát (có sẵn khối chọn);
+    // chỉ khi thiếu CÂU TRẢ LỜI mới đưa về bước Khai báo rủi ro.
+    var _needAnswers = /chưa trả lời/.test(e.message);
+    alert(_needAnswers
+      ? ('Chưa nộp được — bản khai còn câu chưa trả lời:\n\n' + e.message)
+      : ('Chưa nộp được — các câu ĐÃ trả lời đủ, chỉ còn thiếu ghi nhận AI trả lời:\n\n'
+         + e.message + '\n\nChọn "Khách tự trả lời" hoặc "Nhân viên nhập hộ" ở khối ngay bên dưới. Không phải khai lại câu nào.'));
+    location.href='?id='+id+'&step='+(_needAnswers?'RISK_DECLARATION':'REVIEW_AND_SUBMIT')+(isNew?'&new=1':''); return;
    }
   }
   // P0.4/P0.6 — Decision router sau submit + KHÔNG ngắt hành trình.

@@ -35,6 +35,7 @@ Chạy tuần tự: `01` → `08`. Mỗi file độc lập, dùng context trình
 | `10-unhappy` | Thanh toán lỗi/hết hạn · phát hành lỗi → thử lại · từ chối · thu hồi · phân quyền theo chủ hồ sơ · chống thu tiền 2 lần |
 | `11-health-pa` | Sức khoẻ khai theo TỪNG NGƯỜI · PA nhánh hoạt động nguy hiểm · GCN mỗi người |
 | `12-responsive` | Điện thoại/máy tính bảng/laptop: không tràn ngang · nút không bị cắt · chữ ≥10px · bảng cuộn trong khung riêng |
+| `13-new-sale-documents` | Bán MỚI: tải tài liệu THẬT bằng `setInputFiles` · thanh bước phải nói đúng sự thật về dữ liệu |
 
 ## Nguyên tắc viết assertion
 
@@ -50,3 +51,12 @@ Chạy tuần tự: `01` → `08`. Mỗi file độc lập, dùng context trình
    thân bước (ví dụ `button[onclick*="retryIssue"]`).
 8. **Phần tử trong khung cuộn ngang bị "cắt" là bình thường** — chỉ tính nút bị
    cắt khi nằm ngoài mọi khung cuộn.
+9. **Tải tệp phải dùng `setInputFiles` vào `<input type=file>`.** Bấm nút "Tải lên"
+   chỉ mở hộp thoại của hệ điều hành — Playwright chặn, và KHÔNG có tệp nào được
+   nạp. Bấm nút rồi tưởng đã tải là cách bỏ sót lỗi tài liệu suốt 259 ca đầu.
+10. **Đừng chỉ kiểm hồ sơ MẪU.** Seed có sẵn `docsUploaded`, nên hồ sơ mẫu che mất
+   lỗi của hồ sơ bán MỚI. Mọi cổng chặn phải được kiểm bằng hồ sơ tạo từ đầu.
+11. **Thanh bước và banner chặn phải khớp nhau.** Nếu thanh bước báo "Hoàn tất" mà
+   banner báo còn thiếu thì một trong hai nói dối — kiểm cả hai trong cùng một ca.
+12. **Mỗi lần chạy ghi ảnh ra đường dẫn RIÊNG.** Hai lần chạy trên hai cổng khác
+   nhau mà ghi đè cùng một tệp ảnh sẽ dẫn tới đọc nhầm kết quả bản chưa sửa.

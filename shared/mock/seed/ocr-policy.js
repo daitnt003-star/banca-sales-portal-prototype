@@ -100,6 +100,38 @@ BANCA.docAll = id => { try{ return JSON.parse(localStorage.getItem(BANCA.docKey(
 BANCA.docGet = (id,code) => (BANCA.docAll(id))[code] || {};
 BANCA.docPatch = (id,code,patch) => { const s=BANCA.docAll(id); s[code]=Object.assign(s[code]||{}, patch); localStorage.setItem(BANCA.docKey(id), JSON.stringify(s)); };
 
+// ============================================================
+// MỘT NGUỒN SỰ THẬT DUY NHẤT CHO "TÀI LIỆU ĐÃ NỘP"
+//
+// Trước đây có HAI kho song song, không kho nào biết kho kia:
+//   · docUpload()  → banca_docstore_<id>   ← nút "Tải lên" thật ghi vào đây
+//   · uploadDoc()  → overlay.__docsUploaded ← cổng chặn NỘP đọc ở đây
+// uploadDoc() KHÔNG được gọi từ bất cứ đâu ⇒ tải tệp lên thì danh sách tài liệu
+// hiện "Đã tải" nhưng cổng chặn nộp mãi mãi không thấy ⇒ hồ sơ bán MỚI không bao
+// giờ nộp được. Hồ sơ mẫu lọt lưới vì có sẵn docsUploaded trong seed.
+//
+// Hai hàm dưới hợp nhất mọi nguồn. MỌI chỗ hỏi "đã nộp tài liệu nào" phải gọi
+// BANCA.uploadedDocCodes(app) — đừng đọc thẳng một kho.
+// ============================================================
+
+// Mã tài liệu THỰC SỰ có tệp trong kho tài liệu.
+BANCA.docUploadedCodes = function (appId) {
+  var all = BANCA.docAll(appId);
+  return Object.keys(all).filter(function (c) {
+    return !!(all[c] && (all[c].dataUrl || all[c].fileName));
+  });
+};
+
+// Hợp nhất: seed (app.docsUploaded) + overlay (__docsUploaded) + kho tệp thật.
+BANCA.uploadedDocCodes = function (app) {
+  if (!app) return [];
+  var ov = (BANCA.overlay && BANCA.overlay.applications && BANCA.overlay.applications[app.id]) || {};
+  var seen = {};
+  [].concat(app.docsUploaded || [], ov.__docsUploaded || [], BANCA.docUploadedCodes(app.id))
+    .forEach(function (c) { if (c) seen[c] = 1; });
+  return Object.keys(seen);
+};
+
 // def: {code,name,sub,ocr:'enabled'|'optional'|'none',required,docType}
 BANCA.docItemHtml = function(appId, def){
   BANCA.__docDefs[def.code] = def; // registry để re-render sau upload

@@ -31,6 +31,10 @@ Chạy tuần tự: `01` → `08`. Mỗi file độc lập, dùng context trình
 | `06-postsale` | Danh sách/chi tiết hợp đồng · loại yêu cầu dịch vụ theo sản phẩm · tái tục |
 | `07-postsale2` | Bấm thật: tạo yêu cầu dịch vụ · khai tổn thất trong/ngoài thời hạn · tái tục |
 | `08-renewal` | Tái tục nhận diện đúng · nút không đứng im · gỡ được cờ "cần xác nhận lại khai báo" |
+| `09-channels-personas` | 4 kênh × 7 màn · 7 người dùng · tài khoản ngừng hoạt động bị chặn |
+| `10-unhappy` | Thanh toán lỗi/hết hạn · phát hành lỗi → thử lại · từ chối · thu hồi · phân quyền theo chủ hồ sơ · chống thu tiền 2 lần |
+| `11-health-pa` | Sức khoẻ khai theo TỪNG NGƯỜI · PA nhánh hoạt động nguy hiểm · GCN mỗi người |
+| `12-responsive` | Điện thoại/máy tính bảng/laptop: không tràn ngang · nút không bị cắt · chữ ≥10px · bảng cuộn trong khung riêng |
 
 ## Nguyên tắc viết assertion
 
@@ -40,3 +44,9 @@ Chạy tuần tự: `01` → `08`. Mỗi file độc lập, dùng context trình
 4. **Chọn đúng dữ liệu mẫu.** Nháp thiếu tài liệu bị chặn là ĐÚNG, không phải lỗi.
    `DRAFT-2026-006` là bản đủ điều kiện nộp (và là hồ sơ TÁI TỤC).
 5. **Sai của bộ kiểm phải sửa ở bộ kiểm**, không nới lỏng để lấy màu xanh.
+6. **Mỗi hồ sơ có chủ.** Mở bằng người khác sẽ `ACCESS_DENIED` — đó là ĐÚNG.
+   Đổi người dùng bằng `localStorage.bancaPersona` trước khi mở.
+7. **Nút ở thanh lệnh là ĐIỀU HƯỚNG**, không phải hành động. Nút thật nằm trong
+   thân bước (ví dụ `button[onclick*="retryIssue"]`).
+8. **Phần tử trong khung cuộn ngang bị "cắt" là bình thường** — chỉ tính nút bị
+   cắt khi nằm ngoài mọi khung cuộn.

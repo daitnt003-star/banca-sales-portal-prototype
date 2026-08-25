@@ -2257,6 +2257,12 @@ function getSubmittedCaseActions(){
   if(act.key==='chooseMethod' && caseView.canInitiatePayment===false){
    return `<a class="btn btn-secondary btn-sm" href="?id=${app.id}&stage=${stage}">Xem việc cần xử lý</a>`;
   }
+  // Đang ĐỨNG SẴN ở bước đích thì liên kết này không đưa đi đâu cả — bấm vào
+  // tưởng là làm việc gì đó nhưng trang y nguyên. Điều khiển thật nằm trong thân
+  // bước; đưa người dùng xuống đó thay vì để họ bấm vào khoảng không (§15.3).
+  if(stage === activeSubmittedStage){
+   return `<button type="button" class="btn ${cls} btn-sm" onclick="(document.querySelector('.submitted-content-main')||document.body).scrollIntoView({behavior:'smooth',block:'start'})">${act.label} ↓</button>`;
+  }
   return `<a class="btn ${cls} btn-sm" href="?id=${app.id}&stage=${stage}">${act.label}</a>`;
  };
  // Hợp đồng đã phát hành: gộp action ở header — "Xem hợp đồng" là hyperlink mở chi tiết hợp đồng,

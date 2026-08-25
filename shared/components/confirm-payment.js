@@ -314,8 +314,12 @@ BANCA.ui = BANCA.ui || {};
       var on = cur === code;
       return '<button type="button" class="btn ' + (on ? 'btn-primary' : 'btn-secondary') + ' btn-sm"' + dis +
         ' onclick="' + handler + '(\'' + e(app.id) + '\',\'' + code + '\')"' +
-        ' style="text-align:left;flex:1;min-width:210px;">' +
-        '<b>' + label + '</b><div style="font-size:11px;font-weight:400;opacity:.85;">' + desc + '</div></button>';
+        // min-width cứng 210px làm nút không co được trên điện thoại → chữ mô tả
+        // tràn ra ngoài khung và đẩy cả trang. Dùng min() để nút co theo màn.
+        ' style="text-align:left;flex:1 1 210px;min-width:min(210px,100%);max-width:100%;' +
+        'display:block;white-space:normal;">' +
+        '<b>' + label + '</b><div style="font-size:11px;font-weight:400;opacity:.85;overflow-wrap:anywhere;">' +
+        desc + '</div></button>';
     }
     var buttons = '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
       b('CUSTOMER', 'Khách tự trả lời', 'Khách trực tiếp đọc và trả lời từng câu') +

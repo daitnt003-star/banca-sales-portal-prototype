@@ -849,6 +849,33 @@
   /* sticky side rails become normal flow on tablet to avoid cramped columns */
   .ux-2col > aside, .quote-side{ position:static!important; }
 }
+/* ============================================================
+   MÀN HÌNH NHỎ — thanh bên phải thu lại, nếu không nội dung bị bóp nát.
+   Trước đây .sb1 giữ nguyên chiều rộng máy tính (--sb1-w) ở mọi kích thước:
+   trên điện thoại 390px thì phần nội dung chỉ còn ~150px, trang tràn ngang tới
+   748px và nút bị cắt khỏi màn hình.
+   Dùng lại đúng chế độ 'collapsed' đã có sẵn thay vì đẻ layout mới.
+   ============================================================ */
+@media(max-width:900px){
+  .sb1{ width:var(--sb1-w-collapsed)!important; }
+  .sb1 .sb1-header .sys-name,
+  .sb1 .nav-label, .sb1 .sb1-section-label,
+  .sb1 .sb1-user-meta{ display:none!important; }
+  .page-body{ padding-left:14px; padding-right:14px; }
+  /* Bảng rộng cuộn trong khung riêng, không đẩy cả trang. */
+  .card > table, .dtable{ display:block; overflow-x:auto; max-width:100%; }
+}
+@media(max-width:560px){
+  /* Điện thoại: thanh bên xuống đáy dạng thanh điều hướng ngang. */
+  .shell{ flex-direction:column; }
+  .sb1{
+    width:100%!important; height:auto; position:fixed; bottom:0; top:auto;
+    flex-direction:row; overflow-x:auto; z-index:60;
+    border-top:1px solid rgba(255,255,255,.12);
+  }
+  .sb1-header{ display:none!important; }
+  .content{ padding-bottom:64px; }
+}
 @media(max-width:768px){
   .main{ padding-left:14px!important; padding-right:14px!important; }
   .kpi-strip, .kpi-strip.light{ grid-template-columns:1fr!important; }

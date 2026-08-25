@@ -42,7 +42,32 @@ window.BANCA = window.BANCA || {};
     // Hồ sơ đã nộp thì về logic là khách ĐÃ khai và ĐÃ xác nhận — nếu không backfill
     // thì cổng thanh toán chặn hết với lý do "còn N câu chưa trả lời".
     // Suy từ CHÍNH a.declarations ở trên để text hiển thị và dữ liệu máy không lệch nhau.
-    if(BANCA.statementOfFact && BANCA.riskQuestionsFor){
+    // Sản phẩm khai theo TỪNG NGƯỜI (sức khoẻ): câu trả lời nằm trên từng thành
+    // viên, KHÔNG ở a.riskAnswers. Phần bù bên dưới chỉ chạm cấp hồ sơ nên mọi
+    // hồ sơ sức khoẻ ĐÃ NỘP thiếu quy kết ⇒ bị khoá thu phí oan.
+    if(BANCA.statementOfFact && BANCA.statementOfFact.perMember(a) && Array.isArray(a.insuredMembers)){
+      const by = (a.owner==='TS-01') ? 'SELLER_ON_BEHALF' : 'CUSTOMER';
+      a.declarationAnsweredBy = a.declarationAnsweredBy || by;
+      a.insuredMembers.forEach(function(m){
+        if(m.active === false) return;
+        m.riskAnswers = m.riskAnswers || {};
+        m.answeredBy  = m.answeredBy  || {};
+        (BANCA.riskQuestionsFor(a.productId)||[]).forEach(function(q){
+          // Câu nhánh chỉ áp dụng khi câu cha là "có" — không tự điền.
+          if(q.branchOn && m.riskAnswers[q.branchOn] !== true) return;
+          if(!(q.code in m.riskAnswers)){
+            m.riskAnswers[q.code] = (q.triggers==='consent') ? true
+              : (q.type==='boolean' ? false : (q.type==='number' ? 0 : null));
+          }
+          if(!m.answeredBy[q.code]) m.answeredBy[q.code] = by;
+        });
+      });
+      try{
+        BANCA.statementOfFact.confirm(a, { by:by, channel:'PORTAL', sourceSystem:'PORTAL',
+          otp:(a.confirm&&a.confirm.otp) || 'VERIFIED' });
+      }catch(e){ /* thiếu dữ liệu thì để trống — cổng chặn kèm lý do, đúng ý đồ */ }
+    }
+    else if(BANCA.statementOfFact && BANCA.riskQuestionsFor){
       const hasClaim = a.id==='APP-2026-105';
       const hasFlood = a.id==='APP-2026-109';
       const seedAnswer = {

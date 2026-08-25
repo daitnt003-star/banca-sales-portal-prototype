@@ -527,7 +527,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
  if(AUTO_STAGES.includes(reqStep)) reqStep='CUSTOMER_INFO';
  let curIdx = steps.findIndex(s=>s.id===reqStep); if(curIdx<0) curIdx=0;
  const cur = steps[curIdx];
- const doneIdx = steps.findIndex(s=>s.id===app.currentStage);
+ // (đã bỏ doneIdx: app.currentStage chỉ là BƯỚC ĐANG XEM — lấy từ ?step= trên URL —
+ //  chứ không phải bước đã hoàn tất. Xem stepIsComplete bên dưới.)
  const quoteVersionEsc = (BANCA.ui&&BANCA.ui._esc) ? BANCA.ui._esc : function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); };
  function quoteVersionStatusLabel(status){
   return {DRAFT:'Đang soạn',CURRENT:'Đang soạn',APPROVED:'Đã duyệt',SUPERSEDED:'Đã thay thế'}[String(status||'').toUpperCase()] || 'Đang soạn';
@@ -608,8 +609,61 @@ if(app.submissionState==='NOT_SUBMITTED'){
   return `<div id="quote-version-preview" class="card" hidden style="padding:var(--space-sm);margin-bottom:var(--space-md);"></div>`;
  }
 
+ // ── "Hoàn tất" phải nói SỰ THẬT về dữ liệu, không suy từ vị trí ───────────────
+ // Trước đây: done = (i < doneIdx), với doneIdx = vị trí của app.currentStage.
+ // Mà bản chào MỚI lấy currentStage thẳng từ ?step= trên URL (dòng ~75), nên mở
+ // ?step=REVIEW_AND_SUBMIT là năm bước trước đó đều hiện "✓ Hoàn tất" trên một hồ
+ // sơ TRỐNG RỖNG — trong khi banner ngay dưới liệt kê thiếu đủ thứ. Thanh bước nói
+ // dối đúng vào thứ người bán tin nhất, rồi họ đi tìm lỗi ở chỗ không có lỗi.
+ // Nay mỗi bước tự kiểm tra dữ liệu của chính nó.
+ const __jrnS = BANCA.journeyFor(app.productId)||{};
+ function stepIsComplete(id){
+  switch(id){
+   case 'CUSTOMER_INFO':
+    return !!(cust || app.customerName);
+   case 'RISK_OBJECT':
+    return __jrnS.riskObjectType==='VEHICLE' ? !!app.vehicle : true;
+   case 'INSURED_PARTY': {
+    if(app.productId==='health'){
+     const ms=healthMembersOf(app)||[];
+     return ms.length>0 && ms.every(function(m){ return m.name && m.age!=null; });
+    }
+    return !!app.insuredAge;
+   }
+   case 'RISK_DECLARATION': {
+    if(!(BANCA.statementOfFact && BANCA.riskQuestionsFor)) return false;
+    if(!(BANCA.riskQuestionsFor(app.productId)||[]).length) return true;
+    try{ return BANCA.statementOfFact.build(app).unanswered.length===0; }catch(e){ return false; }
+   }
+   case 'PACKAGE_AND_QUOTE': {
+    if(!app.quote) return false;
+    const st=BANCA.quoteStatus(app.quote,null);
+    return st!=='EXPIRED' && st!=='STALE';
+   }
+   case 'DOCUMENTS': {
+    // Chỉ nghiệp vụ XE mới có ma trận tài liệu bắt buộc (BANCA.docRequirements).
+    // Sức khoẻ/PA khai documentRuleSetId nhưng KHÔNG có bộ luật nào hiện thực, nên
+    // ta THẬT SỰ không biết bước này cần gì. Trả 'true' vô điều kiện là lặp lại
+    // đúng lời nói dối vừa sửa — chỉ khác là thu hẹp cho sức khoẻ.
+    // Cách trung thực: chưa tải tài liệu nào thì KHÔNG gọi là hoàn tất; tải rồi thì
+    // coi là xong, vì không có căn cứ nào để đòi thêm.
+    if(__jrnS.riskObjectType!=='VEHICLE') return BANCA.uploadedDocCodes(app).length>0;
+    try{
+     const ovS=(BANCA.overlay.applications&&BANCA.overlay.applications[app.id])||{};
+     const ctxS={source:app.source,
+      vehicleAgeYears:(app.quote&&app.quote.inputsSnapshot&&app.quote.inputsSnapshot.vehicleAgeYears)||(app.vehicle?2026-(app.vehicle.year||2024):0),
+      idv:(app.vehicle&&app.vehicle.value)||0, mortgage:ovS.mortgage||app.mortgage||{mortgaged:false}};
+     return (BANCA.missingRequiredDocs(ctxS, BANCA.uploadedDocCodes(app))||[]).length===0;
+    }catch(e){ return false; }
+   }
+   case 'REVIEW_AND_SUBMIT':
+    return app.submissionState==='SUBMITTED';
+   default:
+    return false;
+  }
+ }
  const stepper = BANCA.ui.progressStepper(steps.map(function(s,i){
-  const done=doneIdx>=0&&i<doneIdx;
+  const done=stepIsComplete(s.id);
   const active=i===curIdx;
   return {
    id:s.id,label:s.label,ordinal:i+1,
@@ -1218,7 +1272,8 @@ if(app.submissionState==='NOT_SUBMITTED'){
   // Ma trận tài liệu ●◐↻○ (doc 2026-07-20) — phân biệt bắt buộc / có điều kiện / kế thừa / không cần
   const ovA = (BANCA.overlay.applications&&BANCA.overlay.applications[app.id])||{};
   const mgDoc = ovA.mortgage||app.mortgage||{mortgaged:false};
-  const uploaded = [...new Set([...(app.docsUploaded||[]),...(ovA.__docsUploaded||[])])];
+  // Hợp nhất mọi nguồn (seed + overlay + kho tệp thật) — xem BANCA.uploadedDocCodes.
+  const uploaded = BANCA.uploadedDocCodes(app);
   const ctx = {source:app.source, vehicleAgeYears:(app.quote&&app.quote.inputsSnapshot&&app.quote.inputsSnapshot.vehicleAgeYears)||(app.vehicle? 2026-(app.vehicle.year||2024):0), idv:(app.vehicle&&app.vehicle.value)||0, mortgage:mgDoc};
   const req = BANCA.docRequirements(ctx);
   const needDocs = BANCA.DOC_CATALOG.filter(d=>{const rr=req[d.code];return rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active);});
@@ -1332,7 +1387,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const effQStatus = q? BANCA.quoteStatus(q,null) : null;
   const ovR = (BANCA.overlay.applications&&BANCA.overlay.applications[app.id])||{};
   const mgR = ovR.mortgage||app.mortgage||{mortgaged:false};
-  const uploadedR = [...new Set([...(app.docsUploaded||[]),...(ovR.__docsUploaded||[])])];
+  // GỐC RỄ của "đã upload hết rồi vẫn bị chặn": dòng này từng chỉ đọc overlay,
+  // trong khi nút Tải lên ghi vào kho tệp banca_docstore_*. Nay đọc hợp nhất.
+  const uploadedR = BANCA.uploadedDocCodes(app);
   const ctxR = {source:app.source, vehicleAgeYears:(q&&q.inputsSnapshot&&q.inputsSnapshot.vehicleAgeYears)||(app.vehicle? 2026-(app.vehicle.year||2024):0), idv:(app.vehicle&&app.vehicle.value)||0, mortgage:mgR};
   const missingDocs = BANCA.missingRequiredDocs(ctxR, uploadedR);
   // P1: blocker có CTA sửa trực tiếp — mỗi blocker trỏ về đúng bước cần bổ sung.
@@ -1404,7 +1461,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
       ? app.productName+(app.package?' · '+healthPkgName(app.package):'')+` · Hiệu lực ${app.effectiveDate||dateOnly(new Date().toISOString())} · Thời hạn ${(healthPkg(app.package).termMonths||12)} tháng · Loại trừ: ${(healthPkg(app.package).exclusions||[]).slice(0,2).join('; ')}`
       : app.productName+(app.package?' · '+paPkgName(app.package):'')+(app.productId==='pa'?` · Hiệu lực ${app.effectiveDate||dateOnly(new Date().toISOString())} · Thời hạn ${(paPkg(app.package).termMonths||12)} tháng · Loại trừ: ${(paPkg(app.package).exclusions||[]).slice(0,2).join('; ')}`:'')),
     riskDeclaration:()=>secRow('Khai báo rủi ro', app.riskAnswers&&Object.keys(app.riskAnswers).length?Object.keys(app.riskAnswers).length+' câu đã trả lời':'—'),
-    documents:     ()=>secRow('Tài liệu', (app.docsUploaded||[]).length?(app.docsUploaded||[]).length+' tài liệu đã tải':'—'),
+    // Đọc hợp nhất: trước đây chỉ đọc app.docsUploaded nên vừa tải tài liệu xong,
+    // dòng tóm tắt vẫn hiện "—" trong khi thanh bước đã báo Hoàn tất — hai chỗ đá nhau.
+    documents:     ()=>{const u=BANCA.uploadedDocCodes(app); return secRow('Tài liệu', u.length?u.length+' tài liệu đã tải':'—');},
     quote:         ()=>secRow('Phí bảo hiểm', premVal)
   };
   const reviewRows = (jrn.reviewSections||['customer','package','quote']).map(function(k){ return secBuilders[k]?secBuilders[k]():''; }).join('');
@@ -1946,11 +2005,9 @@ if(app.submissionState==='NOT_SUBMITTED'){
   const code=(app.quote&&app.quote.inputsSnapshot&&app.quote.inputsSnapshot.packageCode)||(app.package||'STANDARD').toUpperCase();
   window.pickPackage(code);
  };
- window.uploadDoc = function(code){
-  const cur=(BANCA.overlay.applications&&BANCA.overlay.applications[app.id]&&BANCA.overlay.applications[app.id].__docsUploaded)||[];
-  BANCA.patchApp(app.id,{__docsUploaded:[...new Set([...cur,code])]});
-  location.reload();
- };
+ // window.uploadDoc đã XOÁ: không nơi nào gọi, và nó ghi vào kho thứ hai
+ // (__docsUploaded) song song với kho tệp thật — chính nguồn gốc lệch trạng thái.
+ // Ghi nhận tài liệu nay đi một đường duy nhất: docUpload → banca_docstore_*.
  // Datalist: giá trị mới gõ vào tự insert danh mục in-session (không cần nút)
  window.comboChanged = function(id){
   const el=document.getElementById(id); if(!el) return;
@@ -2367,7 +2424,11 @@ const benefitsHtml = `<div class="card" style="padding:0;margin-top:12px;"><tabl
 function submittedDocTable(){
  const ctx={source:app.source,vehicleAgeYears:snapTrack.vehicleAgeYears||(app.vehicle?2026-(app.vehicle.year||2024):0),idv:idvTrack,mortgage:mgTrack};
  const req=BANCA.docRequirements(ctx);
- const uploaded=[...new Set([...(app.docsUploaded||['REG','INSPECT','PHOTOS','ID']),...(mgTrack.mortgaged?['BENEFICIARY']:[])])];
+ // Dữ liệu THẬT được ưu tiên tuyệt đối. Danh sách mặc định phía dưới chỉ dùng khi
+ // hồ sơ mẫu cũ không có bất kỳ thông tin tài liệu nào — nếu dùng nó khi đã có dữ
+ // liệu thật thì màn theo dõi sẽ BỊA ra 4 tài liệu chưa từng được nộp.
+ const upReal=BANCA.uploadedDocCodes(app);
+ const uploaded=[...new Set([...(upReal.length?upReal:['REG','INSPECT','PHOTOS','ID']),...(mgTrack.mortgaged?['BENEFICIARY']:[])])];
  const docs=BANCA.DOC_CATALOG.filter(d=>{const rr=req[d.code];return rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active)||uploaded.includes(d.code);});
  const icon=r=>r.status==='REQUIRED'?['●','var(--red-600)']:r.status==='INHERITED'?['↻','#2563eb']:r.active?['◐','var(--amber-600)']:['○','var(--ink-300)'];
  const requiredCount=docs.filter(d=>{const rr=req[d.code];return rr.status==='REQUIRED'||(rr.status==='CONDITIONAL'&&rr.active)}).length;
